@@ -1,0 +1,6 @@
+<Project>
+  <PropertyGroup>
+    <TargetFramework>net35</TargetFramework>
+    <OutputPath>$(SolutionDir)bin\$(Configuration)\StarPluginsKK</OutputPath>
+  </PropertyGroup>
+</Project>
