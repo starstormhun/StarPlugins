@@ -1,6 +1,6 @@
 ﻿using UnityEngine;
 
-namespace LightTogger.Koikatu
+namespace ItemLayerEdit.Koikatu
 {
     public static class Extensions
     {

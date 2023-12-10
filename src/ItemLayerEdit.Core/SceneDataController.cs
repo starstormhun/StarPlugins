@@ -6,7 +6,7 @@ using Studio;
 using System.Collections.Generic;
 using System.Linq;
 
-namespace LightTogger.Koikatu
+namespace ItemLayerEdit.Koikatu
 {
     internal class SceneDataController : SceneCustomFunctionController
     {

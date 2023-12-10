@@ -12,16 +12,16 @@ using Studio;
 using System.Linq;
 using UnityEngine;
 
-[assembly: System.Reflection.AssemblyFileVersion(LightTogger.Koikatu.LightTogger.Version)]
+[assembly: System.Reflection.AssemblyFileVersion(ItemLayerEdit.Koikatu.ItemLayerEdit.Version)]
 
-namespace LightTogger.Koikatu
+namespace ItemLayerEdit.Koikatu
 {
     [BepInDependency(KKAPI.KoikatuAPI.GUID)]
     [BepInProcess(Constants.StudioProcessName)]
     [BepInPlugin(GUID, "Item Layer Edit", Version)]
-    public class LightTogger : BaseUnityPlugin
+    public class ItemLayerEdit : BaseUnityPlugin
     {
-        public const string GUID = "keelhauled.LightTogger";
+        public const string GUID = "keelhauled.itemlayeredit";
         public const string Version = "1.1.1." + BuildNumber.Version;
 
         private ConfigEntry<KeyboardShortcut> ChangeLayer { get; set; }

@@ -38,8 +38,6 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{BA55B5E5-B0F
 		src\SkipAllRefs.targets = src\SkipAllRefs.targets
 	EndProjectSection
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "UnityLogFilter", "src\UnityLogFilter\UnityLogFilter.csproj", "{C8DE4A42-1B6C-4E58-985E-76972009A8BF}"
-EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "repo", "repo", "{29232F8B-47DA-426C-96D0-2BB0978765E2}"
 	ProjectSection(SolutionItems) = preProject
 		.editorconfig = .editorconfig
@@ -69,24 +67,26 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "LightToggler", "LightToggle
 EndProject
 Project("{D954291E-2A0B-460D-934E-DC6B0785DB48}") = "LightToggler.Core", "src\LightToggler.Core\LightToggler.Core.shproj", "{5DC1B6B6-264F-41EA-B079-5777F0503CDE}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LightToggler.Koikatu", "src\LightToggler.Koikatu\LightToggler.Koikatu.csproj", "{398D13B4-5014-4EEA-8AA8-0E709EE9DAA3}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "LightToggler.Koikatu", "src\LightToggler.Koikatu\LightToggler.Koikatu.csproj", "{398D13B4-5014-4EEA-8AA8-0E709EE9DAA3}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LightToggler.KoikatuSunshine", "src\LightToggler.KoikatuSunshine\LightToggler.KoikatuSunshine.csproj", "{6C7097ED-8929-4F45-AF0F-E8253D981724}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "LightToggler.KoikatuSunshine", "src\LightToggler.KoikatuSunshine\LightToggler.KoikatuSunshine.csproj", "{6C7097ED-8929-4F45-AF0F-E8253D981724}"
 EndProject
 Global
 	GlobalSection(SharedMSBuildProjectFiles) = preSolution
-		src\Common.Core\Common.Core.projitems*{398d13b4-5014-4eea-8aa8-0e709ee9daa3}*SharedItemsImports = 4
-		src\Common.Koikatu\Common.Koikatu.projitems*{398d13b4-5014-4eea-8aa8-0e709ee9daa3}*SharedItemsImports = 4
-		src\LightToggler.Core\LightToggler.Core.projitems*{398d13b4-5014-4eea-8aa8-0e709ee9daa3}*SharedItemsImports = 4
-		src\UIUtility\UIUtility.projitems*{398d13b4-5014-4eea-8aa8-0e709ee9daa3}*SharedItemsImports = 4
+		src\Common.Core\Common.Core.projitems*{398d13b4-5014-4eea-8aa8-0e709ee9daa3}*SharedItemsImports = 5
+		src\Common.Koikatu\Common.Koikatu.projitems*{398d13b4-5014-4eea-8aa8-0e709ee9daa3}*SharedItemsImports = 5
+		src\Common.Unity\Common.Unity.projitems*{398d13b4-5014-4eea-8aa8-0e709ee9daa3}*SharedItemsImports = 5
+		src\LightToggler.Core\LightToggler.Core.projitems*{398d13b4-5014-4eea-8aa8-0e709ee9daa3}*SharedItemsImports = 5
+		src\UIUtility\UIUtility.projitems*{398d13b4-5014-4eea-8aa8-0e709ee9daa3}*SharedItemsImports = 5
 		src\Common.Unity\Common.Unity.projitems*{50994af9-8369-47a9-a33a-37650e4b454e}*SharedItemsImports = 13
 		src\LightToggler.Core\LightToggler.Core.projitems*{5dc1b6b6-264f-41ea-b079-5777f0503cde}*SharedItemsImports = 13
 		src\Common.Koikatu\Common.Koikatu.projitems*{5fc98374-508a-40b7-b4e1-edb3b1d482f6}*SharedItemsImports = 13
 		src\ItemLayerEdit.Core\ItemLayerEdit.Core.projitems*{6af96840-64fa-43da-93ca-43d5af47fd60}*SharedItemsImports = 13
-		src\Common.Core\Common.Core.projitems*{6c7097ed-8929-4f45-af0f-e8253d981724}*SharedItemsImports = 4
-		src\Common.KoikatsuSunshine\Common.KoikatsuSunshine.projitems*{6c7097ed-8929-4f45-af0f-e8253d981724}*SharedItemsImports = 4
-		src\LightToggler.Core\LightToggler.Core.projitems*{6c7097ed-8929-4f45-af0f-e8253d981724}*SharedItemsImports = 4
-		src\UIUtility\UIUtility.projitems*{6c7097ed-8929-4f45-af0f-e8253d981724}*SharedItemsImports = 4
+		src\Common.Core\Common.Core.projitems*{6c7097ed-8929-4f45-af0f-e8253d981724}*SharedItemsImports = 5
+		src\Common.KoikatsuSunshine\Common.KoikatsuSunshine.projitems*{6c7097ed-8929-4f45-af0f-e8253d981724}*SharedItemsImports = 5
+		src\Common.Unity\Common.Unity.projitems*{6c7097ed-8929-4f45-af0f-e8253d981724}*SharedItemsImports = 5
+		src\LightToggler.Core\LightToggler.Core.projitems*{6c7097ed-8929-4f45-af0f-e8253d981724}*SharedItemsImports = 5
+		src\UIUtility\UIUtility.projitems*{6c7097ed-8929-4f45-af0f-e8253d981724}*SharedItemsImports = 5
 		src\UIUtility\UIUtility.projitems*{7f30866a-1b8b-40f1-8960-0e203eede225}*SharedItemsImports = 13
 		src\Common.Harmony\Common.Harmony.projitems*{81e73402-3a7e-4ed3-b990-33c1b31fc205}*SharedItemsImports = 13
 		src\Common.Core\Common.Core.projitems*{8c76020f-a387-4306-8fd3-aa4e7660c8c8}*SharedItemsImports = 5
@@ -100,9 +100,9 @@ Global
 		src\Common.Core\Common.Core.projitems*{a9a5b556-b590-4948-9e89-87d38623daf1}*SharedItemsImports = 5
 		src\Common.Koikatu\Common.Koikatu.projitems*{a9a5b556-b590-4948-9e89-87d38623daf1}*SharedItemsImports = 5
 		src\Common.Unity\Common.Unity.projitems*{a9a5b556-b590-4948-9e89-87d38623daf1}*SharedItemsImports = 5
+		src\ItemLayerEdit.Core\ItemLayerEdit.Core.projitems*{a9a5b556-b590-4948-9e89-87d38623daf1}*SharedItemsImports = 5
 		src\UIUtility\UIUtility.projitems*{a9a5b556-b590-4948-9e89-87d38623daf1}*SharedItemsImports = 5
 		src\Common.Utils\Common.Utils.projitems*{afc4ee66-2891-439a-925a-baf22553e1ba}*SharedItemsImports = 13
-		src\Common.Core\Common.Core.projitems*{c8de4a42-1b6c-4e58-985e-76972009a8bf}*SharedItemsImports = 5
 		src\Common.KoikatsuSunshine\Common.KoikatsuSunshine.projitems*{d0c39de2-d3e6-46bf-8a32-19250bf4f2d4}*SharedItemsImports = 13
 		src\LightManager.Core\LightManager.Core.projitems*{d2938a42-199f-4a5b-8c9b-6592e9e53424}*SharedItemsImports = 13
 		src\Common.Core\Common.Core.projitems*{dd7d6945-54a6-4190-8f49-46a189ee32cd}*SharedItemsImports = 13
@@ -123,9 +123,6 @@ Global
 		{9495FFE8-C90D-44E6-AE4F-A21506594AAD}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{9495FFE8-C90D-44E6-AE4F-A21506594AAD}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{9495FFE8-C90D-44E6-AE4F-A21506594AAD}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{C8DE4A42-1B6C-4E58-985E-76972009A8BF}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{C8DE4A42-1B6C-4E58-985E-76972009A8BF}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{C8DE4A42-1B6C-4E58-985E-76972009A8BF}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{E696AB96-E970-4F15-B9CE-911E0969C71B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{E696AB96-E970-4F15-B9CE-911E0969C71B}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{E696AB96-E970-4F15-B9CE-911E0969C71B}.Release|Any CPU.ActiveCfg = Release|Any CPU
@@ -152,7 +149,6 @@ Global
 		{D2938A42-199F-4A5B-8C9B-6592E9E53424} = {21652626-F032-4986-B258-C36B4C9115E7}
 		{9495FFE8-C90D-44E6-AE4F-A21506594AAD} = {21652626-F032-4986-B258-C36B4C9115E7}
 		{7F30866A-1B8B-40F1-8960-0E203EEDE225} = {BA55B5E5-B0FD-465F-93F2-D73BD193AC86}
-		{C8DE4A42-1B6C-4E58-985E-76972009A8BF} = {BA55B5E5-B0FD-465F-93F2-D73BD193AC86}
 		{50994AF9-8369-47A9-A33A-37650E4B454E} = {BA55B5E5-B0FD-465F-93F2-D73BD193AC86}
 		{AFC4EE66-2891-439A-925A-BAF22553E1BA} = {BA55B5E5-B0FD-465F-93F2-D73BD193AC86}
 		{81E73402-3A7E-4ED3-B990-33C1B31FC205} = {BA55B5E5-B0FD-465F-93F2-D73BD193AC86}
