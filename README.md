@@ -10,6 +10,6 @@ Configuration Manager is recommended to make changing the settings from these pl
 
 ## Plugins
 
-#### LightToggler <WIP> [KK/KKS]
+#### LightToggler (WIP) [KK/KKS]
 Autoamtically toggles on/off lights when a parent object is toggled on/off.
 Also works for items that have built-in lights.
