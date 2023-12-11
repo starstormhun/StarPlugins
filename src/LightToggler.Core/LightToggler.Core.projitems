@@ -9,6 +9,8 @@
     <Import_RootNamespace>LightToggler.Core</Import_RootNamespace>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="$(MSBuildThisFileDirectory)Extensions.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)LightToggler.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)SceneDataController.cs" />
   </ItemGroup>
 </Project>

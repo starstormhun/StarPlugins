@@ -13,12 +13,12 @@
     <DefineConstants>TRACE;KKS</DefineConstants>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="IllusionLibs.BepInEx" Version="5.4.15" />
-    <PackageReference Include="IllusionLibs.BepInEx.Harmony" Version="2.5.4" />
-    <PackageReference Include="IllusionLibs.KoikatsuSunshine.Assembly-CSharp" Version="2021.8.27.2" />
+    <PackageReference Include="IllusionLibs.BepInEx" Version="5.4.22" />
+    <PackageReference Include="IllusionLibs.BepInEx.Harmony" Version="2.9.0" />
+    <PackageReference Include="IllusionLibs.KoikatsuSunshine.Assembly-CSharp" Version="2021.9.17" />
 	<PackageReference Include="IllusionLibs.KoikatsuSunshine.Assembly-CSharp-firstpass" Version="2021.9.17" />
-    <PackageReference Include="IllusionLibs.KoikatsuSunshine.UniRx" Version="2021.8.27.2" />
-    <PackageReference Include="IllusionLibs.KoikatsuSunshine.UniTask" Version="2021.8.27.2" />
+    <PackageReference Include="IllusionLibs.KoikatsuSunshine.UniRx" Version="2021.9.17" />
+    <PackageReference Include="IllusionLibs.KoikatsuSunshine.UniTask" Version="2021.9.17" />
     <PackageReference Include="IllusionLibs.KoikatsuSunshine.Unity.TextMeshPro" Version="2019.4.9" />
     <PackageReference Include="IllusionLibs.KoikatsuSunshine.UnityEngine.AnimationModule" Version="2019.4.9" />
     <PackageReference Include="IllusionLibs.KoikatsuSunshine.UnityEngine.AssetBundleModule" Version="2019.4.9" />
@@ -28,7 +28,7 @@
     <PackageReference Include="IllusionLibs.KoikatsuSunshine.UnityEngine.TextRenderingModule" Version="2019.4.9" />
     <PackageReference Include="IllusionLibs.KoikatsuSunshine.UnityEngine.UI" Version="2019.4.9" />
     <PackageReference Include="IllusionLibs.KoikatsuSunshine.UnityEngine.UIModule" Version="2019.4.9" />
-    <PackageReference Include="IllusionModdingAPI.KKSAPI" Version="1.24.0">
+    <PackageReference Include="IllusionModdingAPI.KKSAPI" Version="1.36.0">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets></IncludeAssets>
       <GeneratePathProperty></GeneratePathProperty>
