@@ -3,7 +3,7 @@ using KeelPlugins.Core;
 using System;
 using System.Reflection;
 
-namespace KeelPlugins.Koikatu
+namespace StarPlugins.Koikatu
 {
     internal class Maker
     {
