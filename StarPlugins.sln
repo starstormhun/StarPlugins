@@ -77,7 +77,6 @@ Global
 		src\Common.Koikatu\Common.Koikatu.projitems*{398d13b4-5014-4eea-8aa8-0e709ee9daa3}*SharedItemsImports = 5
 		src\Common.Unity\Common.Unity.projitems*{398d13b4-5014-4eea-8aa8-0e709ee9daa3}*SharedItemsImports = 5
 		src\LightToggler.Core\LightToggler.Core.projitems*{398d13b4-5014-4eea-8aa8-0e709ee9daa3}*SharedItemsImports = 5
-		src\UIUtility\UIUtility.projitems*{398d13b4-5014-4eea-8aa8-0e709ee9daa3}*SharedItemsImports = 5
 		src\Common.Unity\Common.Unity.projitems*{50994af9-8369-47a9-a33a-37650e4b454e}*SharedItemsImports = 13
 		src\LightToggler.Core\LightToggler.Core.projitems*{5dc1b6b6-264f-41ea-b079-5777f0503cde}*SharedItemsImports = 13
 		src\Common.Koikatu\Common.Koikatu.projitems*{5fc98374-508a-40b7-b4e1-edb3b1d482f6}*SharedItemsImports = 13
@@ -86,7 +85,6 @@ Global
 		src\Common.KoikatsuSunshine\Common.KoikatsuSunshine.projitems*{6c7097ed-8929-4f45-af0f-e8253d981724}*SharedItemsImports = 5
 		src\Common.Unity\Common.Unity.projitems*{6c7097ed-8929-4f45-af0f-e8253d981724}*SharedItemsImports = 5
 		src\LightToggler.Core\LightToggler.Core.projitems*{6c7097ed-8929-4f45-af0f-e8253d981724}*SharedItemsImports = 5
-		src\UIUtility\UIUtility.projitems*{6c7097ed-8929-4f45-af0f-e8253d981724}*SharedItemsImports = 5
 		src\UIUtility\UIUtility.projitems*{7f30866a-1b8b-40f1-8960-0e203eede225}*SharedItemsImports = 13
 		src\Common.Harmony\Common.Harmony.projitems*{81e73402-3a7e-4ed3-b990-33c1b31fc205}*SharedItemsImports = 13
 		src\Common.Core\Common.Core.projitems*{8c76020f-a387-4306-8fd3-aa4e7660c8c8}*SharedItemsImports = 5

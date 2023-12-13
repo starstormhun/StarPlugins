@@ -3,7 +3,6 @@
   <Import Project="..\BuildSettings.KoikatsuSunshine.props" />
   <Import Project="..\Common.Core\Common.Core.projitems" Label="Shared" />
   <Import Project="..\Common.KoikatsuSunshine\Common.KoikatsuSunshine.projitems" Label="Shared" />
-  <Import Project="..\UIUtility\UIUtility.projitems" Label="Shared" />
   <Import Project="..\Common.Unity\Common.Unity.projitems" Label="Shared" />
   <Import Project="..\LightToggler.Core\LightToggler.Core.projitems" Label="Shared" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">

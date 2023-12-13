@@ -19,8 +19,10 @@ namespace LightToggler.Koikatu {
         public const string GUID = "starstorm.lighttoggler";
         public const string Version = "0.1.1." + BuildNumber.Version;
         public static bool updateLightPanel = false;
+#if DEBUG
         private static string toLog = "";
         private static bool logNew = false;
+#endif
 
         private void Awake() {
             StudioSaveLoadApi.RegisterExtraBehaviour<SceneDataController>(null);
