@@ -3,11 +3,11 @@ using System;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 
-namespace KeelPlugins.Harmony
+namespace Common.Harmony
 {
     internal static class EventFactory
     {
-        private static Harmony harmony = new Harmony("KeelPlugins.EventFactory");
+        private static Harmony harmony = new Harmony("Common.EventFactory");
         private static MultiKeyDictionary<Type, string, MethodInfo> methods = new MultiKeyDictionary<Type, string, MethodInfo>();
 
         [MethodImpl(MethodImplOptions.Synchronized)]

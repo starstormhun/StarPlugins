@@ -2,7 +2,7 @@
 using System.Collections;
 using UnityEngine;
 
-namespace KeelPlugins.Harmony
+namespace Common.Harmony
 {
     public static class CoroutineExtensions
     {

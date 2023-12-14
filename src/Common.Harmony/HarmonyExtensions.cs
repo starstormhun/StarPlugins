@@ -2,7 +2,7 @@
 using System;
 using System.Reflection;
 
-namespace KeelPlugins.Harmony
+namespace Common.Harmony
 {
     public static class HarmonyExtensions
     {

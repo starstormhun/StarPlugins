@@ -6,7 +6,7 @@ using System.Linq;
 using System.Reflection;
 using System.Reflection.Emit;
 
-namespace KeelPlugins.Harmony
+namespace Common.Harmony
 {
     internal static class HarmonyDelegatePatchingExtensions
     {

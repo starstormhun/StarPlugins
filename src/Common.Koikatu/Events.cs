@@ -1,9 +1,9 @@
 ﻿using HarmonyLib;
-using KeelPlugins.Core;
+using Common.Core;
 using System;
 using System.Reflection;
 
-namespace StarPlugins.Koikatu
+namespace Common.Koikatu
 {
     internal class Maker
     {

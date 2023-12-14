@@ -1,4 +1,4 @@
-﻿namespace KeelPlugins.Utils
+﻿namespace Common.Utils
 {
     internal struct Tuple<T1, T2>
     {

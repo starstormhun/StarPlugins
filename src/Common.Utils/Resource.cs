@@ -1,7 +1,7 @@
 ﻿using System.IO;
 using System.Reflection;
 
-namespace KeelPlugins.Utils
+namespace Common.Utils
 {
     internal static class Resource
     {

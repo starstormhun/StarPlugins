@@ -1,20 +1,17 @@
 ﻿using BepInEx;
-using BepInEx.Configuration;
-using StarPlugins.Koikatu;
+using Common.Koikatu;
 using KKAPI.Studio.SaveLoad;
 using Studio;
-using System.Linq;
-using UnityEngine;
 
 [assembly: System.Reflection.AssemblyFileVersion(LightToggler.Koikatu.LightToggler.Version)]
 
-/// <info>
-/// Plugin structure thanks to Keelhauled
-/// </info>
 namespace LightToggler.Koikatu {
     [BepInDependency(KKAPI.KoikatuAPI.GUID)]
     [BepInProcess(Constants.StudioProcessName)]
     [BepInPlugin(GUID, "Light Toggler", Version)]
+	/// <info>
+	/// Plugin structure thanks to Keelhauled
+	/// </info>
     public class LightToggler : BaseUnityPlugin {
         public const string GUID = "starstorm.lighttoggler";
         public const string Version = "0.1.1." + BuildNumber.Version;

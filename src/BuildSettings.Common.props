@@ -9,5 +9,9 @@
   <ItemGroup>
     <PackageReference Include="BepInEx.Analyzers" Version="1.0.4" />
   </ItemGroup>
-  <Import Project="SkipAllRefs.targets" />
+  <Target Name="SkipAllRefs" AfterTargets="ResolveReferences">
+    <ItemGroup>
+      <ReferenceCopyLocalPaths Remove="@(ReferenceCopyLocalPaths)" />
+    </ItemGroup>
+  </Target>
 </Project>

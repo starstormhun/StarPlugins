@@ -1,5 +1,4 @@
-﻿namespace StarPlugins.Koikatu
-{
+﻿namespace Common.Koikatu {
     internal static class Constants
     {
         public const string MainGameProcessName = "Koikatu";

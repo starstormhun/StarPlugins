@@ -1,4 +1,4 @@
-﻿namespace StarPlugins.Koikatu
+﻿namespace Common.Koikatu
 {
     internal static class Constants
     {

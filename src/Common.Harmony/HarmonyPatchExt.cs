@@ -2,7 +2,7 @@
 using System;
 using System.Reflection;
 
-namespace KeelPlugins.Harmony
+namespace Common.Harmony
 {
     [AttributeUsage(AttributeTargets.Method, Inherited = false, AllowMultiple = true)]
     public sealed class HarmonyPatchExtAttribute : Attribute

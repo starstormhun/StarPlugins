@@ -1,6 +1,6 @@
 ﻿#pragma warning disable 0649
 
-namespace KeelPlugins.Utils
+namespace Common.Utils
 {
     /// <summary>
     /// Special class that controls how a setting is displayed inside ConfigurationManager.
