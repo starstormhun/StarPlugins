@@ -1,5 +1,5 @@
 ﻿using System;
-using System.Collections;
+using System.Collections.Generic;
 using HarmonyLib;
 using Studio;
 using UnityEngine;
@@ -10,9 +10,18 @@ namespace LightToggler.Koikatu {
             HookPatch.Hooks.SetupHooks();
         }
 
+        internal static void Deactivate() {
+            HookPatch.Hooks.UnregisterHooks();
+        }
+
         private static class Hooks {
+            private static Harmony _harmony;
             public static void SetupHooks() {
-                Harmony.CreateAndPatchAll(typeof(HookPatch.Hooks), null);
+                _harmony = Harmony.CreateAndPatchAll(typeof(HookPatch.Hooks), null);
+            }
+
+            public static void UnregisterHooks() {
+                _harmony.UnpatchSelf();
             }
 
             // Makes OnObjectVisibilityToggled fire for folders
@@ -26,7 +35,7 @@ namespace LightToggler.Koikatu {
             [HarmonyPostfix]
             [HarmonyPatch(typeof(Studio.AddObjectLight), "Load", new Type[] { typeof(OILightInfo), typeof(ObjectCtrlInfo), typeof(TreeNodeObject), typeof(bool), typeof(int) })]
             private static void AddObjectLightLoad(ref OCILight __result) {
-                __result.treeNodeObject.onVisible = new TreeNodeObject.OnVisibleFunc(__result.OnVisible);
+                __result.treeNodeObject.onVisible += new TreeNodeObject.OnVisibleFunc(__result.OnVisible);
                 __result.treeNodeObject.enableAddChild = true;
                 __result.treeNodeObject.enableVisible = true;
                 __result.treeNodeObject.visible = (__result.objectInfo as OILightInfo).enable;
@@ -36,7 +45,8 @@ namespace LightToggler.Koikatu {
             [HarmonyPostfix]
             [HarmonyPatch(typeof(OCILight),"OnVisible")]
             private static void OCILightOnVisible(ref OCILight __instance) {
-                __instance.SetEnable(__instance.objectLight.GetComponent<Light>().enabled);
+                //__instance.SetEnable(__instance.objectLight.GetComponentInChildren<Light>().enabled);
+                __instance.SetEnable(__instance.treeNodeObject.visible && __instance.treeNodeObject.m_ButtonVisible.interactable);
             }
 
             // When the light is toggled visible, it should only turn on if all its parents are visible as well
@@ -80,6 +90,20 @@ namespace LightToggler.Koikatu {
 #if DEBUG
                 Console.WriteLine("UpdateInfo ran!");
 #endif
+            }
+
+            [HarmonyPostfix]
+            [HarmonyPatch(typeof(Studio.Studio), "SaveScene")]
+            private static void StudioSaveScene(Studio.Studio __instance) {
+                foreach (KeyValuePair<int,ObjectCtrlInfo> keyValuePair in __instance.dicObjectCtrl) {
+                    Light[] lights;
+                    lights = keyValuePair.Value.GetObject().GetComponentsInChildren<Light>();
+                    if (lights.Length > 0) {
+                        foreach (Light light in lights) {
+                            light.enabled = keyValuePair.Value.treeNodeObject.visible && keyValuePair.Value.treeNodeObject.m_ButtonVisible.interactable;
+                        }
+                    }
+                }
             }
 
         }

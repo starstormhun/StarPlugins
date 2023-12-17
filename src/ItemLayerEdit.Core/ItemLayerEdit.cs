@@ -1,11 +1,9 @@
 ﻿using BepInEx;
 using BepInEx.Configuration;
-#if AI
-using KeelPlugins.AISyoujyo;
-#elif HS2
-using KeelPlugins.HoneySelect2;
+#if KKS
+using Common.KoikatsuSunshine;
 #else
-using KeelPlugins.Koikatu;
+using Common.Koikatu;
 #endif
 using KKAPI.Studio.SaveLoad;
 using Studio;

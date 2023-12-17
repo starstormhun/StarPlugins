@@ -63,10 +63,19 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "LightToggler.Koikatu", "src
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "LightToggler.KoikatuSunshine", "src\LightToggler.KoikatuSunshine\LightToggler.KoikatuSunshine.csproj", "{6C7097ED-8929-4F45-AF0F-E8253D981724}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "MassShaderEditor", "MassShaderEditor", "{D2F7BC66-95ED-4228-9A6A-DCC2AC4E0F75}"
+EndProject
+Project("{D954291E-2A0B-460D-934E-DC6B0785DB48}") = "MassShaderEditor.Core", "src\MassShaderEditor.Core\MassShaderEditor.Core.shproj", "{BB145CBE-97F1-463D-9432-1A8532F002D6}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "MassShaderEditor.KoikatsuSunshine", "src\MassShaderEditor.KoikatsuSunshine\MassShaderEditor.KoikatsuSunshine.csproj", "{BB4E453F-3EB9-45DB-8CDA-F69B095DBD75}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "MassShaderEditor.Koikatu", "src\MassShaderEditor.Koikatu\MassShaderEditor.Koikatu.csproj", "{DAF81AD1-CD50-4376-B4C7-A9EFF12D933E}"
+EndProject
 Global
 	GlobalSection(SharedMSBuildProjectFiles) = preSolution
 		src\Common.Core\Common.Core.projitems*{398d13b4-5014-4eea-8aa8-0e709ee9daa3}*SharedItemsImports = 5
 		src\Common.Koikatu\Common.Koikatu.projitems*{398d13b4-5014-4eea-8aa8-0e709ee9daa3}*SharedItemsImports = 5
+		src\Common.Utils\Common.Utils.projitems*{398d13b4-5014-4eea-8aa8-0e709ee9daa3}*SharedItemsImports = 5
 		src\LightToggler.Core\LightToggler.Core.projitems*{398d13b4-5014-4eea-8aa8-0e709ee9daa3}*SharedItemsImports = 5
 		src\Common.Unity\Common.Unity.projitems*{50994af9-8369-47a9-a33a-37650e4b454e}*SharedItemsImports = 13
 		src\LightToggler.Core\LightToggler.Core.projitems*{5dc1b6b6-264f-41ea-b079-5777f0503cde}*SharedItemsImports = 13
@@ -74,6 +83,7 @@ Global
 		src\ItemLayerEdit.Core\ItemLayerEdit.Core.projitems*{6af96840-64fa-43da-93ca-43d5af47fd60}*SharedItemsImports = 13
 		src\Common.Core\Common.Core.projitems*{6c7097ed-8929-4f45-af0f-e8253d981724}*SharedItemsImports = 5
 		src\Common.KoikatsuSunshine\Common.KoikatsuSunshine.projitems*{6c7097ed-8929-4f45-af0f-e8253d981724}*SharedItemsImports = 5
+		src\Common.Utils\Common.Utils.projitems*{6c7097ed-8929-4f45-af0f-e8253d981724}*SharedItemsImports = 5
 		src\LightToggler.Core\LightToggler.Core.projitems*{6c7097ed-8929-4f45-af0f-e8253d981724}*SharedItemsImports = 5
 		src\UIUtility\UIUtility.projitems*{7f30866a-1b8b-40f1-8960-0e203eede225}*SharedItemsImports = 13
 		src\Common.Harmony\Common.Harmony.projitems*{81e73402-3a7e-4ed3-b990-33c1b31fc205}*SharedItemsImports = 13
@@ -83,7 +93,16 @@ Global
 		src\ItemLayerEdit.Core\ItemLayerEdit.Core.projitems*{a9a5b556-b590-4948-9e89-87d38623daf1}*SharedItemsImports = 5
 		src\UIUtility\UIUtility.projitems*{a9a5b556-b590-4948-9e89-87d38623daf1}*SharedItemsImports = 5
 		src\Common.Utils\Common.Utils.projitems*{afc4ee66-2891-439a-925a-baf22553e1ba}*SharedItemsImports = 13
+		src\MassShaderEditor.Core\MassShaderEditor.Core.projitems*{bb145cbe-97f1-463d-9432-1a8532f002d6}*SharedItemsImports = 13
+		src\Common.Core\Common.Core.projitems*{bb4e453f-3eb9-45db-8cda-f69b095dbd75}*SharedItemsImports = 5
+		src\Common.KoikatsuSunshine\Common.KoikatsuSunshine.projitems*{bb4e453f-3eb9-45db-8cda-f69b095dbd75}*SharedItemsImports = 5
+		src\Common.Unity\Common.Unity.projitems*{bb4e453f-3eb9-45db-8cda-f69b095dbd75}*SharedItemsImports = 5
+		src\MassShaderEditor.Core\MassShaderEditor.Core.projitems*{bb4e453f-3eb9-45db-8cda-f69b095dbd75}*SharedItemsImports = 5
 		src\Common.KoikatsuSunshine\Common.KoikatsuSunshine.projitems*{d0c39de2-d3e6-46bf-8a32-19250bf4f2d4}*SharedItemsImports = 13
+		src\Common.Core\Common.Core.projitems*{daf81ad1-cd50-4376-b4c7-a9eff12d933e}*SharedItemsImports = 5
+		src\Common.Koikatu\Common.Koikatu.projitems*{daf81ad1-cd50-4376-b4c7-a9eff12d933e}*SharedItemsImports = 5
+		src\Common.Unity\Common.Unity.projitems*{daf81ad1-cd50-4376-b4c7-a9eff12d933e}*SharedItemsImports = 5
+		src\MassShaderEditor.Core\MassShaderEditor.Core.projitems*{daf81ad1-cd50-4376-b4c7-a9eff12d933e}*SharedItemsImports = 5
 		src\Common.Core\Common.Core.projitems*{dd7d6945-54a6-4190-8f49-46a189ee32cd}*SharedItemsImports = 13
 		src\Common.Core\Common.Core.projitems*{e696ab96-e970-4f15-b9ce-911e0969c71b}*SharedItemsImports = 4
 		src\Common.KoikatsuSunshine\Common.KoikatsuSunshine.projitems*{e696ab96-e970-4f15-b9ce-911e0969c71b}*SharedItemsImports = 4
@@ -110,6 +129,14 @@ Global
 		{6C7097ED-8929-4F45-AF0F-E8253D981724}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{6C7097ED-8929-4F45-AF0F-E8253D981724}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{6C7097ED-8929-4F45-AF0F-E8253D981724}.Release|Any CPU.Build.0 = Release|Any CPU
+		{BB4E453F-3EB9-45DB-8CDA-F69B095DBD75}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{BB4E453F-3EB9-45DB-8CDA-F69B095DBD75}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{BB4E453F-3EB9-45DB-8CDA-F69B095DBD75}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{BB4E453F-3EB9-45DB-8CDA-F69B095DBD75}.Release|Any CPU.Build.0 = Release|Any CPU
+		{DAF81AD1-CD50-4376-B4C7-A9EFF12D933E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{DAF81AD1-CD50-4376-B4C7-A9EFF12D933E}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{DAF81AD1-CD50-4376-B4C7-A9EFF12D933E}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{DAF81AD1-CD50-4376-B4C7-A9EFF12D933E}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -130,6 +157,10 @@ Global
 		{5DC1B6B6-264F-41EA-B079-5777F0503CDE} = {4E206337-513B-4606-91D9-BA8CF14939CD}
 		{398D13B4-5014-4EEA-8AA8-0E709EE9DAA3} = {4E206337-513B-4606-91D9-BA8CF14939CD}
 		{6C7097ED-8929-4F45-AF0F-E8253D981724} = {4E206337-513B-4606-91D9-BA8CF14939CD}
+		{D2F7BC66-95ED-4228-9A6A-DCC2AC4E0F75} = {BA55B5E5-B0FD-465F-93F2-D73BD193AC86}
+		{BB145CBE-97F1-463D-9432-1A8532F002D6} = {D2F7BC66-95ED-4228-9A6A-DCC2AC4E0F75}
+		{BB4E453F-3EB9-45DB-8CDA-F69B095DBD75} = {D2F7BC66-95ED-4228-9A6A-DCC2AC4E0F75}
+		{DAF81AD1-CD50-4376-B4C7-A9EFF12D933E} = {D2F7BC66-95ED-4228-9A6A-DCC2AC4E0F75}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {CECC9C6B-8041-49A1-B7FD-DC89264B7393}

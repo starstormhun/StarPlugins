@@ -6,9 +6,6 @@
     <OutputPath>$(SolutionDir)bin\$(Configuration)</OutputPath>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
-  <ItemGroup>
-    <PackageReference Include="BepInEx.Analyzers" Version="1.0.4" />
-  </ItemGroup>
   <Target Name="SkipAllRefs" AfterTargets="ResolveReferences">
     <ItemGroup>
       <ReferenceCopyLocalPaths Remove="@(ReferenceCopyLocalPaths)" />
