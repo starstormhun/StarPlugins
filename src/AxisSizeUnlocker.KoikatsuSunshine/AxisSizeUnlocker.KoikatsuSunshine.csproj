@@ -1,0 +1,27 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <Import Project="..\BuildSettings.Common.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
+	<OutputPath>..\..\bin\Debug\PluginsKKS\</OutputPath>
+	<TargetFramework>net46</TargetFramework>
+    <DefineConstants>TRACE;KKS</DefineConstants>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
+	<OutputPath>..\..\bin\Release\PluginsKKS\</OutputPath>
+	<TargetFramework>net46</TargetFramework>
+    <DefineConstants>TRACE;KKS</DefineConstants>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="BepInEx.Core" Version="5.4.11" />
+	<PackageReference Include="BepInEx.Analyzers" Version="1.0.4" />
+    <PackageReference Include="ExtensibleSaveFormat.KoikatsuSunshine" Version="19.3.3" />
+    <PackageReference Include="IllusionLibs.KoikatsuSunshine.Assembly-CSharp" Version="2021.9.17" />
+	<PackageReference Include="IllusionLibs.KoikatsuSunshine.Assembly-CSharp-firstpass" Version="2021.9.17" />
+    <PackageReference Include="IllusionLibs.KoikatsuSunshine.UnityEngine.CoreModule" Version="2019.4.9" />
+    <PackageReference Include="IllusionLibs.KoikatsuSunshine.UnityEngine.UI" Version="2019.4.9" />
+    <PackageReference Include="IllusionModdingAPI.KKSAPI" Version="1.36.0" />
+  </ItemGroup>
+  <Import Project="..\Common.KoikatsuSunshine\Common.KoikatsuSunshine.projitems" Label="Shared" />
+  <Import Project="..\Common.Core\Common.Core.projitems" Label="Shared" />
+  <Import Project="..\Common.Unity\Common.Unity.projitems" Label="Shared" />
+  <Import Project="..\AxisSizeUnlocker.Core\AxisSizeUnlocker.Core.projitems" Label="Shared" />
+</Project>
