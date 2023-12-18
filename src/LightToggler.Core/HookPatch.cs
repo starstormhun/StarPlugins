@@ -16,10 +16,13 @@ namespace LightToggler.Koikatu {
 
         private static class Hooks {
             private static Harmony _harmony;
+            
+            // Setup functionality on launch / enable
             public static void SetupHooks() {
                 _harmony = Harmony.CreateAndPatchAll(typeof(HookPatch.Hooks), null);
             }
 
+            // Disable functionality when disabled in settings
             public static void UnregisterHooks() {
                 _harmony.UnpatchSelf();
             }
@@ -31,29 +34,27 @@ namespace LightToggler.Koikatu {
                 __result.treeNodeObject.onVisible += new TreeNodeObject.OnVisibleFunc(__result.OnVisible);
             }
 
-            // Makes OnObjectVisiblityToggled fire for lights, and also enables parenting 
+            // Makes OnObjectVisiblityToggled fire for lights, and enables the visibility toggle button
             [HarmonyPostfix]
             [HarmonyPatch(typeof(Studio.AddObjectLight), "Load", new Type[] { typeof(OILightInfo), typeof(ObjectCtrlInfo), typeof(TreeNodeObject), typeof(bool), typeof(int) })]
             private static void AddObjectLightLoad(ref OCILight __result) {
                 __result.treeNodeObject.onVisible += new TreeNodeObject.OnVisibleFunc(__result.OnVisible);
-                __result.treeNodeObject.enableAddChild = true;
                 __result.treeNodeObject.enableVisible = true;
                 __result.treeNodeObject.visible = (__result.objectInfo as OILightInfo).enable;
             }
 
-            // When an object is toggled the lights' OnVisible now triggers, and we use that to toggle the Enabled state
+            // When an treenodeobject is toggled the lights' OnVisible now triggers, and we use that to toggle the Enabled state
             [HarmonyPostfix]
             [HarmonyPatch(typeof(OCILight),"OnVisible")]
             private static void OCILightOnVisible(ref OCILight __instance) {
-                //__instance.SetEnable(__instance.objectLight.GetComponentInChildren<Light>().enabled);
-                __instance.SetEnable(__instance.treeNodeObject.visible && __instance.treeNodeObject.m_ButtonVisible.interactable);
+                __instance.SetEnable(__instance.objectLight.GetComponentInChildren<Light>().enabled);
             }
 
             // When the light is toggled visible, it should only turn on if all its parents are visible as well
             [HarmonyPostfix]
             [HarmonyPatch(typeof(OCILight), "SetEnable")]
             private static void OCILightSetEnable(ref OCILight __instance, bool __result, bool _value) {
-                if (_value && __result && __instance.light) {
+                if (_value && __result) {
                     TreeNodeObject currentNode = __instance.treeNodeObject;
                     bool toggleTo = true;
                     while(currentNode.parent != null) {
@@ -64,7 +65,7 @@ namespace LightToggler.Koikatu {
                         }
                         currentNode = currentNode.parent;
                     }
-                    __instance.light.enabled = toggleTo;
+                    __instance.objectLight.GetComponentInChildren<Light>().enabled = toggleTo;
                 }
             }
 
@@ -74,24 +75,30 @@ namespace LightToggler.Koikatu {
             private static void MpLightCtrlOCILightValueGet(ref MPLightCtrl __instance) {
                 if (__instance.m_OCILight != null) {
                     if (__instance.m_OCILight.treeNodeObject.visible != __instance.toggleVisible.isOn) {
-                        if (__instance.toggleVisible.isOn != (__instance.m_OCILight as OCILight).objectLight.GetComponent<Light>().enabled) {
+                        if (__instance.toggleVisible.isOn != (__instance.m_OCILight as OCILight).objectLight.GetComponentInChildren<Light>().enabled) {
                             __instance.UpdateInfo();
                         } else {
                             __instance.m_OCILight.treeNodeObject.visible = __instance.toggleVisible.isOn;
+#if DEBUG
+                            Debug.Log("MpLightCtrlOCILightValueGet toggling node visibility to: " + __instance.toggleVisible.isOn.ToString());
+#endif
                         }
                     }
                 }
             }
 
+
+            // Makes the toggle on the UI update its value according to the visibility of the node instead of the status of the light
             [HarmonyPostfix]
             [HarmonyPatch(typeof(MPLightCtrl), "UpdateInfo")]
             private static void MpLightCtrlUpdateInfo(ref MPLightCtrl __instance) {
                 __instance.toggleVisible.isOn = __instance.m_OCILight.treeNodeObject.visible;
 #if DEBUG
-                Console.WriteLine("UpdateInfo ran!");
+                Debug.Log("UpdateInfo ran!");
 #endif
             }
 
+            // After saving the scene with all lights ON, this updates all lights to their intended state
             [HarmonyPostfix]
             [HarmonyPatch(typeof(Studio.Studio), "SaveScene")]
             private static void StudioSaveScene(Studio.Studio __instance) {
@@ -105,7 +112,6 @@ namespace LightToggler.Koikatu {
                     }
                 }
             }
-
         }
     }
 }

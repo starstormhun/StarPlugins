@@ -7,17 +7,22 @@ namespace LightToggler.Koikatu {
     internal class SceneDataController : SceneCustomFunctionController {
         protected override void OnSceneLoad(SceneOperationKind operation, ReadOnlyDictionary<int, ObjectCtrlInfo> loadedItems) {
 #if DEBUG
-            LightToggler.LogThis("Scene loaded!");
+            Debug.Log("Scene loaded!");
 #endif
         }
 
         protected override void OnSceneSave() {
+            // When saving the scene, all lights need to be ON, otherwise ones not toggled off will be incorrectly loaded as off if the plugin is disabled / uninstalled
             if (LightToggler.IsEnabled.Value) {
-                GameObject root = GameObject.Find("CommonSpace");
+#if KKS
+                GameObject root = Manager.Scene.commonSpace;
+#else
+                GameObject root = Singleton<Manager.Scene>.Instance.commonSpace;
+#endif
                 root.SetAllLightsState(true);
             }
 #if DEBUG
-            LightToggler.LogThis("Scene saved!");
+            Debug.Log("Scene saved!");
 #endif
         }
 

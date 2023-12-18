@@ -16,23 +16,19 @@ namespace LightToggler.Koikatu {
     [BepInDependency(KKAPI.KoikatuAPI.GUID)]
     [BepInProcess(Constants.StudioProcessName)]
     [BepInPlugin(GUID, "Light Toggler", Version)]
-	/// <info>
+
 	/// Plugin structure thanks to Keelhauled
-	/// </info>
+
     public class LightToggler : BaseUnityPlugin {
         public const string GUID = "starstorm.lighttoggler";
         public const string Version = "0.2.0." + BuildNumber.Version;
-        public static bool updateLightPanel = false;
 
         public static ConfigEntry<bool> IsEnabled { get; set; }
 
-#if DEBUG
-        private static string toLog = "";
-        private static bool logNew = false;
-#endif
+        private static GameObject lightPanel = null;
 
         protected void Awake() {
-            IsEnabled = Config.Bind("General", "Enable plugin", true, new ConfigDescription("Enable or disable the plugin entirely. Requires reloading the scene to take effect.", null, new ConfigurationManagerAttributes { Order = 1 }));
+            IsEnabled = Config.Bind("General", "Enable plugin", true, new ConfigDescription("Enable or disable the plugin entirely.\nRequires reloading the scene to take effect.", null, new ConfigurationManagerAttributes { Order = 10 }));
             IsEnabled.SettingChanged += (x,y) => UpdateState();
 
             StudioSaveLoadApi.RegisterExtraBehaviour<SceneDataController>(null);
@@ -44,30 +40,21 @@ namespace LightToggler.Koikatu {
         }
 
         protected void Update() {
-
-#if DEBUG
-            if (logNew) {
-                logNew = false;
-                Logger.LogInfo(toLog);
-            }
-#endif
-
-            if (updateLightPanel) {
-                //Appears useless but triggers the info update that is patched onto the end of get_ociLight
-                ManipulatePanelCtrl.LightPanelInfo read = Singleton<Studio.Studio>.Instance.manipulatePanelCtrl.lightPanelInfo;
-                if (read != null) {
-                    OCILight light = read.mpLightCtrl.ociLight;
+            if (lightPanel == null) {
+                Studio.Studio studio = Singleton<Studio.Studio>.Instance;
+                if (studio != null) {
+                    lightPanel = studio.manipulatePanelCtrl.lightPanelInfo.mpLightCtrl.gameObject;
                 }
-                updateLightPanel = false;
+            }
+
+            //Appears useless but triggers the synchronisation update that is patched onto the end of get_ociLight
+            if (IsEnabled.Value && lightPanel != null) {
+                Studio.Studio read = Singleton<Studio.Studio>.Instance;
+                if (read != null && lightPanel.activeSelf) {
+                    OCILight light = read.manipulatePanelCtrl.lightPanelInfo.mpLightCtrl.ociLight;
+                }
             }
         }
-
-#if DEBUG
-        public static void LogThis(string str) {
-            toLog = str;
-            logNew = true;
-        }
-#endif
 
         private void UpdateState() {
             if (IsEnabled.Value) {
