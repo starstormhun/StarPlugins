@@ -63,13 +63,13 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "MassShaderEditor.KoikatsuSu
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "MassShaderEditor.Koikatu", "src\MassShaderEditor.Koikatu\MassShaderEditor.Koikatu.csproj", "{DAF81AD1-CD50-4376-B4C7-A9EFF12D933E}"
 EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "AxisSizeUnlocker", "AxisSizeUnlocker", "{9320AAC2-533C-40AA-B35B-1CDEBFCE62CA}"
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "AxisUnlocker", "AxisUnlocker", "{9320AAC2-533C-40AA-B35B-1CDEBFCE62CA}"
 EndProject
-Project("{D954291E-2A0B-460D-934E-DC6B0785DB48}") = "AxisSizeUnlocker.Core", "src\AxisSizeUnlocker.Core\AxisSizeUnlocker.Core.shproj", "{4D1F9342-05C3-4B51-A466-D2B70951147F}"
+Project("{D954291E-2A0B-460D-934E-DC6B0785DB48}") = "AxisUnlocker.Core", "src\AxisUnlocker.Core\AxisUnlocker.Core.shproj", "{4D1F9342-05C3-4B51-A466-D2B70951147F}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AxisSizeUnlocker.Koikatu", "src\AxisSizeUnlocker.Koikatu\AxisSizeUnlocker.Koikatu.csproj", "{5E472017-3D7D-4872-8A55-81C4D45E385D}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AxisUnlocker.Koikatu", "src\AxisUnlocker.Koikatu\AxisUnlocker.Koikatu.csproj", "{5E472017-3D7D-4872-8A55-81C4D45E385D}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AxisSizeUnlocker.KoikatsuSunshine", "src\AxisSizeUnlocker.KoikatsuSunshine\AxisSizeUnlocker.KoikatsuSunshine.csproj", "{F5B32A1E-9AE6-4802-A2F7-FFE52022874B}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AxisUnlocker.KoikatsuSunshine", "src\AxisUnlocker.KoikatsuSunshine\AxisUnlocker.KoikatsuSunshine.csproj", "{F5B32A1E-9AE6-4802-A2F7-FFE52022874B}"
 EndProject
 Global
 	GlobalSection(SharedMSBuildProjectFiles) = preSolution
@@ -77,10 +77,10 @@ Global
 		src\Common.Koikatu\Common.Koikatu.projitems*{398d13b4-5014-4eea-8aa8-0e709ee9daa3}*SharedItemsImports = 5
 		src\Common.Utils\Common.Utils.projitems*{398d13b4-5014-4eea-8aa8-0e709ee9daa3}*SharedItemsImports = 5
 		src\LightToggler.Core\LightToggler.Core.projitems*{398d13b4-5014-4eea-8aa8-0e709ee9daa3}*SharedItemsImports = 5
-		src\AxisSizeUnlocker.Core\AxisSizeUnlocker.Core.projitems*{4d1f9342-05c3-4b51-a466-d2b70951147f}*SharedItemsImports = 13
+		src\AxisUnlocker.Core\AxisUnlocker.Core.projitems*{4d1f9342-05c3-4b51-a466-d2b70951147f}*SharedItemsImports = 13
 		src\Common.Unity\Common.Unity.projitems*{50994af9-8369-47a9-a33a-37650e4b454e}*SharedItemsImports = 13
 		src\LightToggler.Core\LightToggler.Core.projitems*{5dc1b6b6-264f-41ea-b079-5777f0503cde}*SharedItemsImports = 13
-		src\AxisSizeUnlocker.Core\AxisSizeUnlocker.Core.projitems*{5e472017-3d7d-4872-8a55-81c4d45e385d}*SharedItemsImports = 5
+		src\AxisUnlocker.Core\AxisUnlocker.Core.projitems*{5e472017-3d7d-4872-8a55-81c4d45e385d}*SharedItemsImports = 5
 		src\Common.Core\Common.Core.projitems*{5e472017-3d7d-4872-8a55-81c4d45e385d}*SharedItemsImports = 5
 		src\Common.Koikatu\Common.Koikatu.projitems*{5e472017-3d7d-4872-8a55-81c4d45e385d}*SharedItemsImports = 5
 		src\Common.Unity\Common.Unity.projitems*{5e472017-3d7d-4872-8a55-81c4d45e385d}*SharedItemsImports = 5
@@ -103,7 +103,7 @@ Global
 		src\Common.Unity\Common.Unity.projitems*{daf81ad1-cd50-4376-b4c7-a9eff12d933e}*SharedItemsImports = 5
 		src\MassShaderEditor.Core\MassShaderEditor.Core.projitems*{daf81ad1-cd50-4376-b4c7-a9eff12d933e}*SharedItemsImports = 5
 		src\Common.Core\Common.Core.projitems*{dd7d6945-54a6-4190-8f49-46a189ee32cd}*SharedItemsImports = 13
-		src\AxisSizeUnlocker.Core\AxisSizeUnlocker.Core.projitems*{f5b32a1e-9ae6-4802-a2f7-ffe52022874b}*SharedItemsImports = 5
+		src\AxisUnlocker.Core\AxisUnlocker.Core.projitems*{f5b32a1e-9ae6-4802-a2f7-ffe52022874b}*SharedItemsImports = 5
 		src\Common.Core\Common.Core.projitems*{f5b32a1e-9ae6-4802-a2f7-ffe52022874b}*SharedItemsImports = 5
 		src\Common.KoikatsuSunshine\Common.KoikatsuSunshine.projitems*{f5b32a1e-9ae6-4802-a2f7-ffe52022874b}*SharedItemsImports = 5
 		src\Common.Unity\Common.Unity.projitems*{f5b32a1e-9ae6-4802-a2f7-ffe52022874b}*SharedItemsImports = 5

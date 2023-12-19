@@ -6,9 +6,11 @@
     <SharedGUID>4d1f9342-05c3-4b51-a466-d2b70951147f</SharedGUID>
   </PropertyGroup>
   <PropertyGroup Label="Configuration">
-    <Import_RootNamespace>AxisSizeUnlocker</Import_RootNamespace>
+    <Import_RootNamespace>AxisUnlocker.Koikatu</Import_RootNamespace>
   </PropertyGroup>
   <ItemGroup>
-    <Compile Include="$(MSBuildThisFileDirectory)AxisSizeUnlocker.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)AxisUnlocker.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Extensions.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)HookPatch.cs" />
   </ItemGroup>
 </Project>

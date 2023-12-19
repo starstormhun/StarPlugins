@@ -61,7 +61,11 @@ namespace LightToggler.Koikatu {
                 HookPatch.Init();
             } else {
                 HookPatch.Deactivate();
-                GameObject root = GameObject.Find("CommonSpace");
+#if KKS
+                GameObject root = Manager.Scene.commonSpace;
+#else
+                GameObject root = Singleton<Manager.Scene>.Instance.commonSpace;
+#endif
                 foreach (Light lightComponent in root.GetComponentsInChildren<Light>()) {
                     lightComponent.enabled = true;
                 }
