@@ -1,12 +1,12 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <Import Project="..\BuildSettings.Common.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
-    <OutputPath>..\..\bin\Debug\PluginsKK\</OutputPath>
+    <OutputPath>..\..\bin\Debug\StarPluginsKK\</OutputPath>
 	<TargetFramework>net35</TargetFramework>
     <DefineConstants>TRACE;KK</DefineConstants>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
-    <OutputPath>..\..\bin\Release\PluginsKK\</OutputPath>
+    <OutputPath>..\..\bin\Release\StarPluginsKK\</OutputPath>
 	<TargetFramework>net35</TargetFramework>
 	<DefineConstants>TRACE;KK</DefineConstants>
   </PropertyGroup>
