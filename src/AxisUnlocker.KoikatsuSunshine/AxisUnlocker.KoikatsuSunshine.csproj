@@ -22,8 +22,6 @@
     <PackageReference Include="IllusionLibs.KoikatsuSunshine.UnityEngine.UI" Version="2019.4.9" />
     <PackageReference Include="IllusionModdingAPI.KKSAPI" Version="1.36.0" />
   </ItemGroup>
-  <Import Project="..\Common.KoikatsuSunshine\Common.KoikatsuSunshine.projitems" Label="Shared" />
   <Import Project="..\Common.Core\Common.Core.projitems" Label="Shared" />
-  <Import Project="..\Common.Unity\Common.Unity.projitems" Label="Shared" />
   <Import Project="..\AxisUnlocker.Core\AxisUnlocker.Core.projitems" Label="Shared" />
 </Project>

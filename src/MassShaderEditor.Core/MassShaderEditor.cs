@@ -1,10 +1,5 @@
 using BepInEx;
 using BepInEx.Configuration;
-#if KKS
-using Common.KoikatsuSunshine;
-#else
-using Common.Koikatu;
-#endif
 using System.Linq;
 using UnityEngine;
 
@@ -12,6 +7,11 @@ using UnityEngine;
 
 namespace MassShaderEditor.Koikatu {
     [BepInDependency(KKAPI.KoikatuAPI.GUID)]
+    [BepInProcess(KKAPI.KoikatuAPI.StudioProcessName)]
+    [BepInProcess(KKAPI.KoikatuAPI.GameProcessName)]
+#if KK
+    [BepInProcess(KKAPI.KoikatuAPI.GameProcessNameSteam)]
+#endif
     [BepInPlugin(GUID, "Mass Shader Editor", Version)]
 	/// <info>
 	/// Plugin structure thanks to Keelhauled

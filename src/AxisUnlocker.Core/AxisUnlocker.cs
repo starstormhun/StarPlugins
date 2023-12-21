@@ -1,10 +1,5 @@
 using BepInEx;
 using BepInEx.Configuration;
-#if KKS
-using Common.KoikatsuSunshine;
-#else
-using Common.Koikatu;
-#endif
 using KKAPI.Utilities;
 using UnityEngine;
 using Studio;
@@ -13,14 +8,14 @@ using Studio;
 
 namespace AxisUnlocker.Koikatu {
     [BepInDependency(KKAPI.KoikatuAPI.GUID)]
-    [BepInProcess(Constants.StudioProcessName)]
+    [BepInProcess(KKAPI.KoikatuAPI.StudioProcessName)]
     [BepInPlugin(GUID, "Axis Unlocker", Version)]
 	/// <info>
 	/// Plugin structure thanks to Keelhauled
 	/// </info>
     public class AxisUnlocker : BaseUnityPlugin {
         public const string GUID = "starstorm.axisunlocker";
-        public const string Version = "1.0.0." + BuildNumber.Version;
+        public const string Version = "1.1.0." + BuildNumber.Version;
 
         public static ConfigEntry<float> NewMinSize { get; set; }
         public static ConfigEntry<float> NewMaxSize { get; set; }

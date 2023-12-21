@@ -12,6 +12,11 @@ using UnityEngine;
 
 namespace $nsname$ {
     [BepInDependency(KKAPI.KoikatuAPI.GUID)]
+	[BepInProcess(KKAPI.KoikatuAPI.StudioProcessName)]
+	[BepInProcess(KKAPI.KoikatuAPI.GameProcessName)]
+#if KK
+	[BepInProcess(KKAPI.KoikatuAPI.GameProcessNameSteam)]
+#endif
     [BepInPlugin(GUID, "$projectname$", Version)]
 	/// <info>
 	/// Plugin structure thanks to Keelhauled

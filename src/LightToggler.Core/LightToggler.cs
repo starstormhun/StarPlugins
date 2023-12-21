@@ -1,20 +1,15 @@
 ﻿using BepInEx;
 using BepInEx.Configuration;
-#if KKS
-using Common.KoikatsuSunshine;
-#else
-using Common.Koikatu;
-#endif
 using KKAPI.Studio.SaveLoad;
 using Studio;
-using Common.Utils;
+using KKAPI.Utilities;
 using UnityEngine;
 
 [assembly: System.Reflection.AssemblyFileVersion(LightToggler.Koikatu.LightToggler.Version)]
 
 namespace LightToggler.Koikatu {
     [BepInDependency(KKAPI.KoikatuAPI.GUID)]
-    [BepInProcess(Constants.StudioProcessName)]
+    [BepInProcess(KKAPI.KoikatuAPI.StudioProcessName)]
     [BepInPlugin(GUID, "Light Toggler", Version)]
 
 	/// Plugin structure thanks to Keelhauled
