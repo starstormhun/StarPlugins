@@ -1,7 +1,0 @@
-<Project>
-  <Target Name="SkipAllRefs" AfterTargets="ResolveReferences">
-    <ItemGroup>
-      <ReferenceCopyLocalPaths Remove="@(ReferenceCopyLocalPaths)" />
-    </ItemGroup>
-  </Target>
-</Project>

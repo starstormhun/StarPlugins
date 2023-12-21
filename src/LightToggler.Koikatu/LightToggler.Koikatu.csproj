@@ -1,15 +1,18 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
   <Import Project="..\BuildSettings.Common.props" />
-  <Import Project="..\BuildSettings.Koikatu.props" />
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
-    <OutputPath>..\..\bin\Release\StarPluginsKK\</OutputPath>
-  </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
     <OutputPath>..\..\bin\Debug\StarPluginsKK\</OutputPath>
+    <TargetFramework>net35</TargetFramework>
+	<DefineConstants>TRACE;KK</DefineConstants>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
+    <OutputPath>..\..\bin\Release\StarPluginsKK\</OutputPath>
+	<TargetFramework>net35</TargetFramework>
     <DefineConstants>TRACE;KK</DefineConstants>
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="BepInEx.Core" Version="5.4.4" />
+	<PackageReference Include="BepInEx.Analyzers" Version="1.0.4" />
     <PackageReference Include="ExtensibleSaveFormat.Koikatu" Version="19.3.3" />
     <PackageReference Include="IllusionLibs.Koikatu.Assembly-CSharp" Version="2019.4.27.4" />
     <PackageReference Include="IllusionLibs.Koikatu.Assembly-CSharp-firstpass" Version="2019.4.27.4" />
