@@ -100,9 +100,9 @@ namespace LightToggler.Koikatu {
 
             // After saving the scene with all lights ON, this updates all lights to their intended state
             [HarmonyPostfix]
-            [HarmonyPatch(typeof(Studio.Studio), "SaveScene")]
-            private static void StudioSaveScene(Studio.Studio __instance) {
-                foreach (KeyValuePair<int,ObjectCtrlInfo> keyValuePair in __instance.dicObjectCtrl) {
+            [HarmonyPatch(typeof(SceneInfo), "Save", new Type[] { typeof(string)})]
+            private static void StudioSaveScene() {
+                foreach (KeyValuePair<int,ObjectCtrlInfo> keyValuePair in Singleton<Studio.Studio>.Instance.dicObjectCtrl) {
                     Light[] lights;
                     lights = keyValuePair.Value.GetObject().GetComponentsInChildren<Light>();
                     if (lights.Length > 0) {
