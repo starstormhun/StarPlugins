@@ -9,6 +9,8 @@
     <Import_RootNamespace>MassShaderEditor</Import_RootNamespace>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="$(MSBuildThisFileDirectory)ColorConverter.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)MassShaderEditor.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)UIFunctions.cs" />
   </ItemGroup>
 </Project>

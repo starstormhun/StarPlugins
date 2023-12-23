@@ -1,4 +1,4 @@
-using BepInEx;
+﻿using BepInEx;
 using BepInEx.Configuration;
 using System.Linq;
 using UnityEngine;
@@ -16,17 +16,30 @@ namespace MassShaderEditor.Koikatu {
 	/// <info>
 	/// Plugin structure thanks to Keelhauled
 	/// </info>
-    public class MassShaderEditor : BaseUnityPlugin {
+    public partial class MassShaderEditor : BaseUnityPlugin {
         public const string GUID = "starstorm.massshadereditor";
         public const string Version = "1.0.0." + BuildNumber.Version;
 
-        private static ConfigEntry<KeyboardShortcut> VisibleHotkey { get; set; }
+        private ConfigEntry<KeyboardShortcut> VisibleHotkey { get; set; }
+        private ConfigEntry<float> UIScale { get; set; }
 
-        private static bool isShown = false;
-        private Rect windowRect = new Rect(500, 40, 240, 170);
+        private ConfigEntry<bool> IsDebug { get; set; }
 
-        private void Start() {
+        private Studio.Studio studio;
+        private bool inited = false;
+        private bool scaled = false;
+
+        private void Awake() {
             VisibleHotkey = Config.Bind("General", "UI Toggle", new KeyboardShortcut(KeyCode.M), new ConfigDescription("The key used to toggle the plugin's UI",null,new KKAPI.Utilities.ConfigurationManagerAttributes{ Order = 10}));
+            UIScale = Config.Bind("General", "UI Scale", 1f, new ConfigDescription("Can also be set via the built-in settings panel", new AcceptableValueRange<float>(1f, 3f), null));
+            UIScale.SettingChanged += (x, y) => scaled = false;
+
+            IsDebug = Config.Bind("Debug", "Logging", false, new ConfigDescription("Enable verbose logging", null, new KKAPI.Utilities.ConfigurationManagerAttributes { IsAdvanced = true }));
+
+            KKAPI.Studio.StudioAPI.StudioLoadedChanged += (x, y) => studio = Singleton<Studio.Studio>.Instance;
+
+            Log.SetLogSource(Logger);
+            if (IsDebug.Value) Log.Info("Awoken!");
         }
 
         private void Update() {
@@ -37,16 +50,25 @@ namespace MassShaderEditor.Koikatu {
         }
 
         private void OnGUI() {
-            if (isShown) {
-                windowRect = GUI.Window(587, windowRect, WindowFunction, "Mass Shader Editor v" + Version);
-                KKAPI.Utilities.IMGUIUtils.EatInputInRect(windowRect);
+            if (!inited) {
+                inited = true;
+                InitUI();
             }
-        }
-
-        private void WindowFunction(int WindowID) {
-
-
-            GUI.DragWindow();
+            if (!scaled) {
+                scaled = true;
+                ScaleUI(UIScale.Value);
+            }
+            if (isShown) {
+                windowRect = GUILayout.Window(587, windowRect, WindowFunction, "Mass Shader Editor", newSkin.window);
+                KKAPI.Utilities.IMGUIUtils.EatInputInRect(windowRect);
+                helpRect = new Rect(windowRect.position + new Vector2(windowRect.size.x+3, 0), windowRect.size);
+                if (isHelp) helpRect.size = new Vector2(helpRect.size.x, newSkin.label.CalcHeight(new GUIContent(helpText),helpRect.size.x) + 2.5f*newSkin.window.padding.top);
+                if (isHelp || isSetting) {
+                    if (isHelp) helpRect = GUILayout.Window(588, helpRect, HelpFunction, "How to use?", newSkin.window);
+                    else if (isSetting) helpRect = GUILayout.Window(588, helpRect, SettingFunction, "Settings ۞", newSkin.window);
+                    KKAPI.Utilities.IMGUIUtils.EatInputInRect(helpRect);
+                }
+            }
         }
     }
 }
