@@ -8,27 +8,36 @@ using UnityEngine;
 namespace MassShaderEditor.Koikatu {
     public partial class MassShaderEditor : BaseUnityPlugin {
         private bool isShown = false;
-        private Rect windowRect = new Rect(500, 40, 240, 170);
-        private Rect helpRect = new Rect(0, 0, 0, 0);
-        private SettingType tab = SettingType.Slider;
         private bool isHelp = false;
         private bool isSetting = false;
+        private bool showWarning = false;
+
+        private Rect windowRect = new Rect(500, 40, 240, 170);
+        private Rect helpRect = new Rect();
+        private Rect warnRect = new Rect(0,0,320,180);
+        private SettingType tab = SettingType.Slider;
         private float prevScale = 1;
         private float newScale;
         private GUISkin newSkin;
 
         private string setName = "";
+        private bool setReset = true;
+        private float setVal = 0;
+        private Color setCol = Color.white;
+
         private float leftLim = -1;
         private float rightLim = 1;
         private string setValInputString = "";
         private float setValInput = 0;
         private float setValSlider = 0;
-        private float setVal = 0;
         private List<float> setColNum = new List<float> { 1f, 1f, 1f, 1f };
+        private string setColStringMemory = "ffffffff";
         private string setColString = "ffffffff";
-        private Color setCol = Color.white;
 
-        private const string helpText = "To use, first choose whether the property you want to edit is a value, or a color. Afterwards you can input its name, and set the desired value/color. Clicking 'Set Selected' will modify shaders with an appropriately named property only on items you currently have selected. 'Set ALL' will modify all items in the scene / on the current outfit. You have been warned.";
+        private int helpPage = 0;
+        private List<string> helpText = new List<string>{"To use, first choose whether the property you want to edit is a value, or a color using the buttons at the top of the UI. Afterwards you can input its name, and set the desired value/color using the fields below those.",
+            "After you have the edited-to-be property named, and its desired value set, you can click'Set Selected', or 'Set ALL'. In Studio, 'Set Selected' will modify items you currently have selected in the Workspace. Also in Studio, 'Set ALL' will modify EVERYTHING in the scene.",
+            "In Character Maker, 'Set Selected' will affect only the currently edited clothing piece or accessory. When in the face or body menus, the appropriate body part will be affected instead. The 'Set ALL' button in Maker affects all of the currently edited category."};
         private void WindowFunction(int WindowID) {
             GUILayout.BeginVertical();
 
@@ -96,11 +105,9 @@ namespace MassShaderEditor.Koikatu {
                         setColString = GUILayout.TextField(setColString, newSkin.textField);
                         try {
                             Color buffer = new Color(setCol.r, setCol.g, setCol.b, setCol.a);
-                            setCol = ColorConverter.ConvertFromString(setColString);
-                            if (Mathf.Abs(setColNum[0] - setCol.r) >= 1.2f / 255f ||
-                                Mathf.Abs(setColNum[1] - setCol.g) >= 1.2f / 255f ||
-                                Mathf.Abs(setColNum[2] - setCol.b) >= 1.2f / 255f ||
-                                Mathf.Abs(setColNum[3] - setCol.a) >= 1.2f / 255f) {
+                            Color colConvert = ColorConverter.ConvertFromString(setColString);
+                            if ((new Vector4(setColNum[0], setColNum[1], setColNum[2], setColNum[3]) - new Vector4(colConvert.r, colConvert.g, colConvert.b, colConvert.a)).magnitude >= 1.2f / 255f) {
+                                setCol = colConvert;
                                 setColNum[0] = setCol.r;
                                 setColNum[1] = setCol.g;
                                 setColNum[2] = setCol.b;
@@ -111,7 +118,10 @@ namespace MassShaderEditor.Koikatu {
                                 }
                             }
                         } catch {
-                            if (IsDebug.Value) Log.Info("Could not convert color code!");
+                            if (IsDebug.Value && setColStringMemory != setColString) {
+                                Log.Info("Could not convert color code!");
+                            }
+                            setColStringMemory = setColString;
                         }
                     } else {
                         GUILayout.TextField("########", newSkin.textField);
@@ -159,8 +169,26 @@ namespace MassShaderEditor.Koikatu {
             GUIStyle allStyle = new GUIStyle(newSkin.button);
             allStyle.normal.textColor = Color.red;
             allStyle.hover.textColor = Color.red;
-            GUILayout.Button("Set ALL", allStyle);
-            GUILayout.Button("Set Selected", newSkin.button);
+            if (GUILayout.Button("Set ALL", allStyle)) {
+                if (setName != "") {
+                    if (!DisableWarning.Value) {
+                        showWarning = true;
+                    } else {
+                        if (tab == SettingType.Color)
+                            SetAllProperties(setCol);
+                        else if (tab == SettingType.Slider)
+                            SetAllProperties(setVal);
+                    }
+                }
+            }
+            if (GUILayout.Button("Set Selected", newSkin.button)) {
+                if (setName != "") {
+                    if (tab == SettingType.Color)
+                        SetSelectedProperties(setCol);
+                    else if (tab == SettingType.Slider)
+                        SetSelectedProperties(setVal);
+                }
+            }
             GUILayout.EndHorizontal();
 
             GUILayout.EndVertical();
@@ -175,7 +203,7 @@ namespace MassShaderEditor.Koikatu {
 
         private void HelpFunction(int WindowID) {
             GUILayout.BeginVertical(); GUILayout.FlexibleSpace();
-            GUILayout.Label(helpText, newSkin.label);
+            GUILayout.Label(helpText[helpPage], newSkin.label);
             GUILayout.FlexibleSpace(); GUILayout.EndVertical();
             GUI.DragWindow();
         }
@@ -189,14 +217,44 @@ namespace MassShaderEditor.Koikatu {
             newScale = GUILayout.HorizontalSlider(newScale, 1, 3, newSkin.horizontalSlider, newSkin.horizontalSliderThumb);
             GUILayout.EndVertical();
             GUILayout.Label(newScale.ToString("0.00"), newSkin.label, GUILayout.ExpandWidth(false));
-            if (GUILayout.Button("Set", newSkin.button, GUILayout.ExpandWidth(false))) {
+            if (GUILayout.Button("Set", newSkin.button, GUILayout.ExpandWidth(false)))
                 UIScale.Value = newScale;
-                //scaled = false;
-            }
             GUILayout.EndHorizontal();
 
             GUILayout.FlexibleSpace(); GUILayout.EndVertical();
             GUI.DragWindow();
+        }
+
+        private void WarnFunction(int WindowID) {
+            GUILayout.BeginHorizontal(); GUILayout.Space(20 * UIScale.Value); GUILayout.BeginVertical(); GUILayout.FlexibleSpace();
+            var warnStyle = new GUIStyle(newSkin.label);
+            warnStyle.fontSize *= 2;
+            warnStyle.normal.textColor = Color.red;
+            GUILayout.BeginHorizontal(); GUILayout.FlexibleSpace(); GUILayout.Label("!! WARNING !!", warnStyle); GUILayout.FlexibleSpace(); GUILayout.EndHorizontal();
+            GUILayout.FlexibleSpace();
+            string items = "";
+            if (KKAPI.Studio.StudioAPI.InsideStudio) items = "items in the scene";
+            if (KKAPI.Maker.MakerAPI.InsideMaker) items = "items in the currently edited category";
+            string value = "";
+            if (tab == SettingType.Color) value = setCol.ToString();
+            if (tab == SettingType.Slider) value = setVal.ToString();
+            GUILayout.BeginHorizontal(); GUILayout.Label($"Are you sure you want to set the \"{setName}\" property of ALL {items} to {value}?", newSkin.label); GUILayout.EndHorizontal();
+            GUILayout.BeginHorizontal();
+            var buttonStyle = new GUIStyle(newSkin.button);
+            buttonStyle.fontSize = (int)(buttonStyle.fontSize*1.5f);
+            buttonStyle.fixedHeight = buttonStyle.CalcHeight(new GUIContent("test"), 150) * 1.5f;
+            if (GUILayout.Button("No", buttonStyle))
+                showWarning = false;
+            GUILayout.Space(10 * UIScale.Value);
+            if (GUILayout.Button("Yes", buttonStyle)) {
+                showWarning = false;
+                if (tab == SettingType.Color)
+                    SetAllProperties(setCol);
+                if (tab == SettingType.Slider)
+                    SetAllProperties(setVal);
+            }
+            GUILayout.EndHorizontal();
+            GUILayout.FlexibleSpace(); GUILayout.EndVertical(); GUILayout.Space(20 * UIScale.Value); GUILayout.EndHorizontal();
         }
 
         private bool ColorPicker(Color col, Action<Color> act = null) {
@@ -252,6 +310,7 @@ namespace MassShaderEditor.Koikatu {
 
         private void ScaleUI(float scale) {
             windowRect.size = new Vector2(windowRect.size.x * scale / prevScale, (windowRect.size.y + (prevScale - 1) * 90) * scale / prevScale - (scale - 1) * 90);
+            warnRect.size *= scale / prevScale;
             prevScale = scale;
             newScale = scale;
             int newSize = (int)(GUI.skin.font.fontSize * scale);

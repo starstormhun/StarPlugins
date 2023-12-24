@@ -21,6 +21,11 @@
     <PackageReference Include="IllusionLibs.KoikatsuSunshine.UnityEngine.UI" Version="2019.4.9" />
     <PackageReference Include="IllusionModdingAPI.KKSAPI" Version="1.36.0" />
   </ItemGroup>
+  <ItemGroup>
+    <Reference Include="KKS_MaterialEditor">
+      <HintPath>..\..\lib\KKS_MaterialEditor.dll</HintPath>
+    </Reference>
+  </ItemGroup>
   <Import Project="..\Common.Core\Common.Core.projitems" Label="Shared" />
   <Import Project="..\MassShaderEditor.Core\MassShaderEditor.Core.projitems" Label="Shared" />
 </Project>

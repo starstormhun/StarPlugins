@@ -6,11 +6,12 @@
     <SharedGUID>bb145cbe-97f1-463d-9432-1a8532f002d6</SharedGUID>
   </PropertyGroup>
   <PropertyGroup Label="Configuration">
-    <Import_RootNamespace>MassShaderEditor</Import_RootNamespace>
+    <Import_RootNamespace>MassShaderEditor.Koikatu</Import_RootNamespace>
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="$(MSBuildThisFileDirectory)ColorConverter.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)MassShaderEditor.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Extensions.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)UIFunctions.cs" />
   </ItemGroup>
 </Project>
