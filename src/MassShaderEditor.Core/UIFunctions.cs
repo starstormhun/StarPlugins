@@ -1,9 +1,11 @@
 ﻿using BepInEx;
 using System;
+using System.Linq;
 using System.Collections.Generic;
 using KKAPI;
 using ChaCustom;
 using UnityEngine;
+using UnityEngine.UI;
 
 namespace MassShaderEditor.Koikatu {
     public partial class MassShaderEditor : BaseUnityPlugin {
@@ -14,13 +16,13 @@ namespace MassShaderEditor.Koikatu {
 
         private Rect windowRect = new Rect(500, 40, 240, 170);
         private Rect helpRect = new Rect();
-        private Rect warnRect = new Rect(0,0,320,180);
-        private SettingType tab = SettingType.Slider;
+        private Rect setRect = new Rect();
+        private Rect warnRect = new Rect(0,0,360,200);
+        private SettingType tab = SettingType.Float;
         private float prevScale = 1;
-        private float newScale;
         private GUISkin newSkin;
 
-        private string setName = "";
+        internal string setName = "";
         private bool setReset = true;
         private float setVal = 0;
         private Color setCol = Color.white;
@@ -34,17 +36,27 @@ namespace MassShaderEditor.Koikatu {
         private string setColStringMemory = "ffffffff";
         private string setColString = "ffffffff";
 
+        private float newScale = 1;
+        private float newScalePrev = 1;
+        private string newScaleText = "1.00";
+        private float newScaleSlider = 1;
+
         private int helpPage = 0;
+
         private List<string> helpText = new List<string>{"To use, first choose whether the property you want to edit is a value, or a color using the buttons at the top of the UI. Afterwards you can input its name, and set the desired value/color using the fields below those.",
+            "You can either type in the name of the property you want to edit, or you can click its name in the MaterialEditor UI, or click the timeline integration button that you can enable in the ME settings. Clicking these things will autofill the property name.",
             "After you have the edited-to-be property named, and its desired value set, you can click'Set Selected', or 'Set ALL'. In Studio, 'Set Selected' will modify items you currently have selected in the Workspace. Also in Studio, 'Set ALL' will modify EVERYTHING in the scene.",
-            "In Character Maker, 'Set Selected' will affect only the currently edited clothing piece or accessory. When in the face or body menus, the appropriate body part will be affected instead. The 'Set ALL' button in Maker affects all of the currently edited category."};
+            "In Character Maker, 'Set Selected' will affect only the currently edited clothing piece or accessory. When in the face or body menus, the appropriate body part will be affected instead. The 'Set ALL' button in Maker affects all of the currently edited category.",
+            "Right-clicking either of these two buttons will reset the specified property of the appropriate items to the default value instead of setting the one you have currently inputted."};
+        private const float maxScale = 3;
+
         private void WindowFunction(int WindowID) {
             GUILayout.BeginVertical();
 
             // Changing tabs
             GUILayout.BeginHorizontal();
             if (GUILayout.Button("Value", newSkin.button))
-                tab = SettingType.Slider;
+                tab = SettingType.Float;
             if (GUILayout.Button("Color", newSkin.button))
                 tab = SettingType.Color;
             if (GUILayout.Button("۞", newSkin.button, GUILayout.ExpandWidth(false))) {
@@ -66,8 +78,10 @@ namespace MassShaderEditor.Koikatu {
             setName = GUILayout.TextField(setName,newSkin.textField);
             GUILayout.EndHorizontal();
 
+            setColNum.FindAll(x => (x > 0));
+
             // Choosing the slider value
-            if (tab == SettingType.Slider) {
+            if (tab == SettingType.Float) {
                 GUILayout.BeginHorizontal();
                 GUILayout.Label("Value", newSkin.label, GUILayout.ExpandWidth(false));
                 setValInputString = GUILayout.TextField(setValInputString, newSkin.textField);
@@ -176,7 +190,7 @@ namespace MassShaderEditor.Koikatu {
                     } else {
                         if (tab == SettingType.Color)
                             SetAllProperties(setCol);
-                        else if (tab == SettingType.Slider)
+                        else if (tab == SettingType.Float)
                             SetAllProperties(setVal);
                     }
                 }
@@ -185,7 +199,7 @@ namespace MassShaderEditor.Koikatu {
                 if (setName != "") {
                     if (tab == SettingType.Color)
                         SetSelectedProperties(setCol);
-                    else if (tab == SettingType.Slider)
+                    else if (tab == SettingType.Float)
                         SetSelectedProperties(setVal);
                 }
             }
@@ -194,7 +208,10 @@ namespace MassShaderEditor.Koikatu {
             GUILayout.EndVertical();
 
             GUI.DragWindow();
-            if (isHelp || isSetting) windowRect.position = helpRect.position - new Vector2(windowRect.size.x+3, 0);
+
+            if (isHelp) windowRect.position = helpRect.position - new Vector2(windowRect.size.x + 3, 0);
+            if (isSetting) windowRect.position = setRect.position - new Vector2(windowRect.size.x + 3, 0);
+
             if (windowRect.position.x < 0) windowRect.position -= new Vector2(windowRect.position.x, 0);
             if (windowRect.position.y < 0) windowRect.position -= new Vector2(0, windowRect.position.y);
             if (windowRect.position.x + windowRect.size.x > Screen.width) windowRect.position -= new Vector2(windowRect.position.x + windowRect.size.x - Screen.width, 0);
@@ -202,7 +219,19 @@ namespace MassShaderEditor.Koikatu {
         }
 
         private void HelpFunction(int WindowID) {
-            GUILayout.BeginVertical(); GUILayout.FlexibleSpace();
+            GUILayout.BeginVertical();
+            GUILayout.BeginHorizontal();
+            if (GUILayout.Button(" < ", newSkin.button)) {
+                if (--helpPage < 0) helpPage++;
+                CalcHelpSize();
+            }
+            GUILayout.FlexibleSpace(); GUILayout.Label($"Page {helpPage+1}/{helpText.Count}", newSkin.label); GUILayout.FlexibleSpace();
+            if (GUILayout.Button(" > ", newSkin.button)) {
+                if (++helpPage == helpText.Count) helpPage--;
+                CalcHelpSize();
+            }
+            GUILayout.EndHorizontal();
+            GUILayout.FlexibleSpace();
             GUILayout.Label(helpText[helpPage], newSkin.label);
             GUILayout.FlexibleSpace(); GUILayout.EndVertical();
             GUI.DragWindow();
@@ -213,10 +242,24 @@ namespace MassShaderEditor.Koikatu {
             GUILayout.Label("GUI Scale", newSkin.label);
 
             GUILayout.Space(-4); GUILayout.BeginHorizontal();
+            newScaleText = GUILayout.TextField(newScaleText, newSkin.textField, GUILayout.ExpandWidth(false));
+            float newScaleTemp = Studio.Utility.StringToFloat(newScaleText);
+            if (float.TryParse(newScaleText, out _)) {
+                newScale = Mathf.Clamp(newScaleTemp, 1, maxScale);
+                newScaleSlider = newScale;
+                newScaleText = newScale.ToString("0.00");
+            }
+
             GUILayout.BeginVertical(); GUILayout.Space(8);
-            newScale = GUILayout.HorizontalSlider(newScale, 1, 3, newSkin.horizontalSlider, newSkin.horizontalSliderThumb);
+            if (Mathf.Abs(newScaleSlider - newScale) > 1E-06) newScaleSlider = newScale;
+            newScaleSlider = GUILayout.HorizontalSlider(newScaleSlider, 1, maxScale, newSkin.horizontalSlider, newSkin.horizontalSliderThumb);
+            if (Mathf.Abs(newScaleSlider - newScale) > 1E-06) newScale = newScaleSlider;
+            if (Mathf.Abs(newScale - newScalePrev) > 1E-06) newScaleText = newScale.ToString("0.00");
+            newScalePrev = newScale;
             GUILayout.EndVertical();
-            GUILayout.Label(newScale.ToString("0.00"), newSkin.label, GUILayout.ExpandWidth(false));
+
+            GUILayout.Label("→ " + newScale.ToString("0.00"), newSkin.label, GUILayout.ExpandWidth(false));
+
             if (GUILayout.Button("Set", newSkin.button, GUILayout.ExpandWidth(false)))
                 UIScale.Value = newScale;
             GUILayout.EndHorizontal();
@@ -226,19 +269,20 @@ namespace MassShaderEditor.Koikatu {
         }
 
         private void WarnFunction(int WindowID) {
-            GUILayout.BeginHorizontal(); GUILayout.Space(20 * UIScale.Value); GUILayout.BeginVertical(); GUILayout.FlexibleSpace();
+            GUILayout.BeginHorizontal(); GUILayout.Space(15 * UIScale.Value); GUILayout.BeginVertical(); GUILayout.FlexibleSpace();
             var warnStyle = new GUIStyle(newSkin.label);
-            warnStyle.fontSize *= 2;
+            warnStyle.fontSize = (int)(warnStyle.fontSize*2);
             warnStyle.normal.textColor = Color.red;
-            GUILayout.BeginHorizontal(); GUILayout.FlexibleSpace(); GUILayout.Label("!! WARNING !!", warnStyle); GUILayout.FlexibleSpace(); GUILayout.EndHorizontal();
+            GUILayout.BeginHorizontal(); GUILayout.FlexibleSpace(); GUILayout.Label("WARNING !", warnStyle); GUILayout.FlexibleSpace(); GUILayout.EndHorizontal();
             GUILayout.FlexibleSpace();
             string items = "";
             if (KKAPI.Studio.StudioAPI.InsideStudio) items = "items in the scene";
             if (KKAPI.Maker.MakerAPI.InsideMaker) items = "items in the currently edited category";
             string value = "";
             if (tab == SettingType.Color) value = setCol.ToString();
-            if (tab == SettingType.Slider) value = setVal.ToString();
-            GUILayout.BeginHorizontal(); GUILayout.Label($"Are you sure you want to set the \"{setName}\" property of ALL {items} to {value}?", newSkin.label); GUILayout.EndHorizontal();
+            if (tab == SettingType.Float) value = setVal.ToString();
+            GUILayout.BeginHorizontal(); GUILayout.Label($"Are you sure you want to {(setReset?"re":"")}set the \"{setName}\" property of ALL {items}{(setReset?"":$" to {value}")}?", newSkin.label); GUILayout.EndHorizontal();
+            GUILayout.FlexibleSpace();
             GUILayout.BeginHorizontal();
             var buttonStyle = new GUIStyle(newSkin.button);
             buttonStyle.fontSize = (int)(buttonStyle.fontSize*1.5f);
@@ -250,11 +294,35 @@ namespace MassShaderEditor.Koikatu {
                 showWarning = false;
                 if (tab == SettingType.Color)
                     SetAllProperties(setCol);
-                if (tab == SettingType.Slider)
+                if (tab == SettingType.Float)
                     SetAllProperties(setVal);
             }
             GUILayout.EndHorizontal();
-            GUILayout.FlexibleSpace(); GUILayout.EndVertical(); GUILayout.Space(20 * UIScale.Value); GUILayout.EndHorizontal();
+            var infoStyle = new GUIStyle(newSkin.label);
+            infoStyle.normal.textColor = Color.yellow;
+            infoStyle.fontSize = Math.Max((int)(infoStyle.fontSize / 2 * 0.75), GUI.skin.font.fontSize);
+            GUILayout.BeginHorizontal(); GUILayout.FlexibleSpace(); GUILayout.Label("(You can disable this warning in the F1 menu)", infoStyle); GUILayout.FlexibleSpace(); GUILayout.EndHorizontal();
+            GUILayout.FlexibleSpace(); GUILayout.EndVertical(); GUILayout.Space(15 * UIScale.Value); GUILayout.EndHorizontal();
+        }
+
+        private void IntroFunction(int WindowID) {
+            GUILayout.BeginHorizontal(); GUILayout.Space(5 * UIScale.Value); GUILayout.BeginVertical(); GUILayout.FlexibleSpace();
+            var warnStyle = new GUIStyle(newSkin.label);
+            warnStyle.fontSize = (int)(warnStyle.fontSize*1.25f);
+            warnStyle.normal.textColor = Color.yellow;
+            warnStyle.fontStyle = FontStyle.Bold;
+            GUILayout.BeginHorizontal(); GUILayout.FlexibleSpace(); GUILayout.Label($"Mass Shader Editor v{Version}", warnStyle); GUILayout.FlexibleSpace(); GUILayout.EndHorizontal();
+            GUILayout.FlexibleSpace();
+            GUILayout.Label("Welcome to Mass Shader Editor! To get started, I first recommend checking out the Help section, which will tell you how to best use this plugin, and any specifics on what each of the buttons and options do.\nTo access the help section, click the yellow '?' symbol in the top right corner of the plugin window.\nHappy creating!", newSkin.label);
+            GUILayout.BeginHorizontal(); GUILayout.FlexibleSpace();
+            var buttonStyle = new GUIStyle(newSkin.button);
+            buttonStyle.fontSize = (int)(buttonStyle.fontSize * 1.25f);
+            buttonStyle.fixedHeight = buttonStyle.CalcHeight(new GUIContent("test"), 150) * 1.5f;
+            buttonStyle.fontStyle = FontStyle.Bold;
+            if (GUILayout.Button("OK", buttonStyle))
+                IntroShown.Value = true;
+            GUILayout.FlexibleSpace(); GUILayout.EndHorizontal();
+            GUILayout.FlexibleSpace(); GUILayout.EndVertical(); GUILayout.Space(5 * UIScale.Value); GUILayout.EndHorizontal();
         }
 
         private bool ColorPicker(Color col, Action<Color> act = null) {
@@ -265,6 +333,7 @@ namespace MassShaderEditor.Koikatu {
                 if (studio.colorPalette.visible) {
                     studio.colorPalette.visible = false;
                 } else {
+                    studio.colorPalette._outsideVisible = true;
                     studio.colorPalette.Setup("ColorPicker", col, act, true);
                     studio.colorPalette.visible = true;
                 }
@@ -297,6 +366,14 @@ namespace MassShaderEditor.Koikatu {
             return gUIStyle;
         }
 
+        private void CalcHelpSize() {
+            helpRect.size = new Vector2(windowRect.size.x, newSkin.label.CalcHeight(new GUIContent(helpText[helpPage]), windowRect.size.x) + newSkin.label.CalcHeight(new GUIContent("temp"), windowRect.size.x) + 10 * UIScale.Value);
+        }
+
+        private void CalcSettingSize() {
+            setRect.size = new Vector2(windowRect.size.x, 2.5f * newSkin.label.CalcHeight(new GUIContent("TEST"), setRect.size.x) + 10);
+        }
+
         private void InitUI() {
             newSkin = new GUISkin {
                 label = new GUIStyle(GUI.skin.label),
@@ -313,6 +390,8 @@ namespace MassShaderEditor.Koikatu {
             warnRect.size *= scale / prevScale;
             prevScale = scale;
             newScale = scale;
+            newScaleSlider = scale;
+            newScaleText = scale.ToString("0.00");
             int newSize = (int)(GUI.skin.font.fontSize * scale);
 
             newSkin.label.fontSize = newSize;
@@ -320,11 +399,15 @@ namespace MassShaderEditor.Koikatu {
             newSkin.textField.fontSize = newSize;
             newSkin.horizontalSlider.fixedHeight = newSize;
             newSkin.horizontalSliderThumb.fixedHeight = newSize;
+
+            CalcHelpSize();
+            CalcSettingSize();
+
         }
 
         private enum SettingType {
             Color,
-            Slider
+            Float
         }
     }
 }

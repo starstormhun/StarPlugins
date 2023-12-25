@@ -25,13 +25,17 @@ namespace MassShaderEditor.Koikatu {
 	/// </info>
     public partial class MassShaderEditor : BaseUnityPlugin {
         public const string GUID = "starstorm.massshadereditor";
-        public const string Version = "1.0.0." + BuildNumber.Version;
+        public const string Version = "0.1.0." + BuildNumber.Version;
 
-        private ConfigEntry<KeyboardShortcut> VisibleHotkey { get; set; }
-        private ConfigEntry<float> UIScale { get; set; }
-
-        private ConfigEntry<bool> IsDebug { get; set; }
-        private ConfigEntry<bool> DisableWarning { get; set; }
+        public ConfigEntry<KeyboardShortcut> VisibleHotkey { get; private set; }
+        public ConfigEntry<float> UIScale { get; private set; }
+        public ConfigEntry<bool> IsDebug { get; private set; }
+        public ConfigEntry<bool> DisableWarning { get; private set; }
+        public ConfigEntry<KeyboardShortcut> SetSelectedHotkey { get; private set; }
+        public ConfigEntry<KeyboardShortcut> ResetSelectedHotkey { get; private set; }
+        public ConfigEntry<KeyboardShortcut> SetAllHotkey { get; private set; }
+        public ConfigEntry<KeyboardShortcut> ResetAllHotkey { get; private set; }
+        private ConfigEntry<bool> IntroShown { get; set; }
 
         private Studio.Studio studio;
         private bool inited = false;
@@ -39,12 +43,18 @@ namespace MassShaderEditor.Koikatu {
         private SceneController controller;
 
         private void Awake() {
-            VisibleHotkey = Config.Bind("General", "UI Toggle", new KeyboardShortcut(KeyCode.M), new ConfigDescription("The key used to toggle the plugin's UI",null,new KKAPI.Utilities.ConfigurationManagerAttributes{ Order = 10}));
-            UIScale = Config.Bind("General", "UI Scale", 1f, new ConfigDescription("Can also be set via the built-in settings panel", new AcceptableValueRange<float>(1f, 3f), null));
+            VisibleHotkey = Config.Bind("Hotkeys", "UI Toggle", new KeyboardShortcut(KeyCode.M), new ConfigDescription("The key used to toggle the plugin's UI",null,new KKAPI.Utilities.ConfigurationManagerAttributes{ Order = 10}));
+            SetSelectedHotkey = Config.Bind("Hotkeys", "Set Selected", new KeyboardShortcut(KeyCode.None), new ConfigDescription("Simulate left-clicking 'Set Selected'", null, null));
+            ResetSelectedHotkey = Config.Bind("Hotkeys", "Reset Selected", new KeyboardShortcut(KeyCode.None), new ConfigDescription("Simulate right-clicking 'Set Selected'", null, null));
+            SetAllHotkey = Config.Bind("Hotkeys", "Set ALL", new KeyboardShortcut(KeyCode.None), new ConfigDescription("Simulate left-clicking 'Set ALL'", null, null));
+            ResetAllHotkey = Config.Bind("Hotkeys", "Reset ALL", new KeyboardShortcut(KeyCode.None), new ConfigDescription("Simulate right-clicking 'Set ALL'", null, null));
+
+            UIScale = Config.Bind("General", "UI Scale", 1.5f, new ConfigDescription("Can also be set via the built-in settings panel", new AcceptableValueRange<float>(1f, maxScale), null));
             UIScale.SettingChanged += (x, y) => scaled = false;
 
-            DisableWarning = Config.Bind("General", "Disable warning", false, new ConfigDescription("Disable the warning screen for the 'Set All' function.", null, new KKAPI.Utilities.ConfigurationManagerAttributes { IsAdvanced = true }));
-            IsDebug = Config.Bind("Debug", "Logging", false, new ConfigDescription("Enable verbose logging", null, new KKAPI.Utilities.ConfigurationManagerAttributes { IsAdvanced = true }));
+            DisableWarning = Config.Bind("Advanced", "Disable warning", false, new ConfigDescription("Disable the warning screen for the 'Set All' function.", null, new KKAPI.Utilities.ConfigurationManagerAttributes { IsAdvanced = true }));
+            IsDebug = Config.Bind("Advanced", "Logging", false, new ConfigDescription("Enable verbose logging for debugging purposes", null, new KKAPI.Utilities.ConfigurationManagerAttributes { IsAdvanced = true }));
+            IntroShown = Config.Bind("Advanced", "Intro Shown", false, new ConfigDescription("Whether the intro message has been shown already", null, new KKAPI.Utilities.ConfigurationManagerAttributes { IsAdvanced = true }));
 
             KKAPI.Studio.StudioAPI.StudioLoadedChanged += (x, y) => {
                 studio = Singleton<Studio.Studio>.Instance;
@@ -53,6 +63,7 @@ namespace MassShaderEditor.Koikatu {
             KKAPI.Maker.MakerAPI.MakerFinishedLoading += (x, y) => {
                 controller = MEStudio.GetSceneController();
             };
+            HookPatch.Init();
 
             Log.SetLogSource(Logger);
             if (IsDebug.Value) Log.Info("Awoken!");
@@ -61,11 +72,43 @@ namespace MassShaderEditor.Koikatu {
         private void Update() {
             if (VisibleHotkey.Value.IsDown())
                 isShown = !isShown;
+            if (SetSelectedHotkey.Value.IsDown()) {
+                setReset = false;
+                if (tab == SettingType.Color) SetSelectedProperties(setCol);
+                if (tab == SettingType.Float) SetSelectedProperties(setVal);
+            }
+            if (ResetSelectedHotkey.Value.IsDown()) {
+                setReset = true;
+                SetSelectedProperties(0f);
+            }
+            if (SetAllHotkey.Value.IsDown()) {
+                setReset = false;
+                if (DisableWarning.Value) {
+                    if (tab == SettingType.Color) SetAllProperties(setCol);
+                    if (tab == SettingType.Float) SetAllProperties(setVal);
+                } else showWarning = true;
+            }
+            if (ResetAllHotkey.Value.IsDown()) {
+                setReset = true;
+                if (DisableWarning.Value) SetAllProperties(0f);
+                else showWarning = true;
+            }
             if (!KKAPI.Maker.MakerAPI.InsideMaker && !KKAPI.Studio.StudioAPI.InsideStudio)
                 isShown = false;
         }
 
         private void OnGUI() {
+            if (!inited) {
+                inited = true;
+                InitUI();
+                CalcSettingSize();
+                CalcHelpSize();
+            }
+            if (!scaled) {
+                scaled = true;
+                ScaleUI(UIScale.Value);
+            }
+
             if (Input.GetMouseButtonDown(1) && windowRect.Contains(Input.mousePosition.InvertScreenY()) && !showWarning) {
                 setReset = true;
                 if (IsDebug.Value) Log.Info($"RMB detected! setReset: {setReset}");
@@ -75,31 +118,38 @@ namespace MassShaderEditor.Koikatu {
                 if (IsDebug.Value) Log.Info($"LMB detected! setReset: {setReset}");
             }
 
-            if (!inited) {
-                inited = true;
-                InitUI();
-            }
-            if (!scaled) {
-                scaled = true;
-                ScaleUI(UIScale.Value);
-            }
-            if (isShown &&!showWarning) {
-                windowRect = GUILayout.Window(587, windowRect, WindowFunction, "Mass Shader Editor", newSkin.window);
-                KKAPI.Utilities.IMGUIUtils.EatInputInRect(windowRect);
-                helpRect = new Rect(windowRect.position + new Vector2(windowRect.size.x+3, 0), windowRect.size);
-                if (isHelp) helpRect.size = new Vector2(helpRect.size.x, newSkin.label.CalcHeight(new GUIContent(helpText[helpPage]),helpRect.size.x) + 2.5f*newSkin.window.padding.top);
-                if (isHelp || isSetting) {
-                    if (isHelp) helpRect = GUILayout.Window(588, helpRect, HelpFunction, "How to use?", newSkin.window);
-                    else if (isSetting) helpRect = GUILayout.Window(588, helpRect, SettingFunction, "Settings ۞", newSkin.window);
-                    KKAPI.Utilities.IMGUIUtils.EatInputInRect(helpRect);
+            if (isShown) {
+                if (IntroShown.Value) {
+                    if (!showWarning) {
+                        windowRect = GUILayout.Window(587, windowRect, WindowFunction, "Mass Shader Editor", newSkin.window);
+                        KKAPI.Utilities.IMGUIUtils.EatInputInRect(windowRect);
+
+                        helpRect.position = windowRect.position + new Vector2(windowRect.size.x + 3, 0);
+                        setRect.position = windowRect.position + new Vector2(windowRect.size.x + 3, 0);
+
+                        if (isHelp) {
+                            helpRect = GUILayout.Window(588, helpRect, HelpFunction, "How to use?", newSkin.window);
+                            KKAPI.Utilities.IMGUIUtils.EatInputInRect(helpRect);
+                        }
+                        if (isSetting) {
+                            setRect = GUILayout.Window(588, setRect, SettingFunction, "Settings ۞", newSkin.window);
+                            KKAPI.Utilities.IMGUIUtils.EatInputInRect(setRect);
+                        }
+                    }
+                    if (showWarning) {
+                        Rect screenRect = new Rect(0, 0, Screen.width, Screen.height);
+                        GUI.Box(screenRect, "");
+                        warnRect.position = new Vector2((Screen.width - warnRect.size.x) / 2, (Screen.height - warnRect.size.y) / 2);
+                        warnRect = GUILayout.Window(589, warnRect, WarnFunction, "", newSkin.window);
+                        KKAPI.Utilities.IMGUIUtils.EatInputInRect(screenRect);
+                    }
+                } else {
+                    Rect screenRect = new Rect(0, 0, Screen.width, Screen.height);
+                    GUI.Box(screenRect, "");
+                    warnRect.position = new Vector2((Screen.width - warnRect.size.x) / 2, (Screen.height - warnRect.size.y) / 2);
+                    warnRect = GUILayout.Window(589, warnRect, IntroFunction, "", newSkin.window);
+                    KKAPI.Utilities.IMGUIUtils.EatInputInRect(screenRect);
                 }
-            }
-            if (showWarning) {
-                Rect screenRect = new Rect(0, 0, Screen.width, Screen.height);
-                GUI.Box(screenRect, "");
-                warnRect.position = new Vector2((Screen.width - warnRect.size.x) / 2, (Screen.height - warnRect.size.y) / 2);
-                warnRect = GUILayout.Window(589, warnRect, WarnFunction, "", newSkin.window);
-                KKAPI.Utilities.IMGUIUtils.EatInputInRect(screenRect);
             }
         }
 
@@ -134,8 +184,8 @@ namespace MassShaderEditor.Koikatu {
                             if (mat.HasProperty("_"+setName)) {
                                 try {
                                     if (setReset) {
-                                        if (_value is float) controller.RemoveMaterialFloatProperty(item.objectInfo.dicKey, mat, setName);
-                                        if (_value is Color) controller.RemoveMaterialColorProperty(item.objectInfo.dicKey, mat, setName);
+                                        controller.RemoveMaterialFloatProperty(item.objectInfo.dicKey, mat, setName);
+                                        controller.RemoveMaterialColorProperty(item.objectInfo.dicKey, mat, setName);
                                         if (IsDebug.Value) Log.Info($"Property {setName}({_value.GetType()}) reset!");
                                     } else {
                                         if (_value is float floatval) controller.SetMaterialFloatProperty(item.objectInfo.dicKey, mat, setName, floatval);
