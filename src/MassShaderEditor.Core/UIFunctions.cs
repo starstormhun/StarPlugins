@@ -13,8 +13,10 @@ namespace MassShaderEditor.Koikatu {
         private bool isHelp = false;
         private bool isSetting = false;
         private bool showWarning = false;
+        private bool showMessage = false;
+        private string message = "";
 
-        private Rect windowRect = new Rect(500, 40, 240, 170);
+        private Rect windowRect = new Rect(200, 40, 240, 170);
         private Rect helpRect = new Rect();
         private Rect setRect = new Rect();
         private Rect warnRect = new Rect(0,0,360,200);
@@ -325,12 +327,12 @@ namespace MassShaderEditor.Koikatu {
             GUILayout.FlexibleSpace(); GUILayout.EndVertical(); GUILayout.Space(5 * UIScale.Value); GUILayout.EndHorizontal();
         }
 
-        private bool ColorPicker(Color col, Action<Color> act = null) {
+        private bool ColorPicker(Color col, Action<Color> act = null, bool forceClose = false) {
             if (KoikatuAPI.GetCurrentGameMode() == GameMode.Studio) {
                 if (act == null) {
                     return studio.colorPalette.visible;
                 }
-                if (studio.colorPalette.visible) {
+                if (studio.colorPalette.visible || forceClose) {
                     studio.colorPalette.visible = false;
                 } else {
                     studio.colorPalette._outsideVisible = true;
@@ -344,7 +346,7 @@ namespace MassShaderEditor.Koikatu {
                 if (act == null) {
                     return component.isOpen;
                 }
-                if (component.isOpen) {
+                if (component.isOpen || forceClose) {
                     component.Close();
                 } else {
                     component.Setup("ColorPicker", CvsColor.ConnectColorKind.None, col, act, true);

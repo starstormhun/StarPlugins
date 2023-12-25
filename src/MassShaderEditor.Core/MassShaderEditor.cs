@@ -41,6 +41,8 @@ namespace MassShaderEditor.Koikatu {
         private bool inited = false;
         private bool scaled = false;
         private SceneController controller;
+        private float timeStored = 0;
+        private float messageDur = 1;
 
         private void Awake() {
             VisibleHotkey = Config.Bind("Hotkeys", "UI Toggle", new KeyboardShortcut(KeyCode.M), new ConfigDescription("The key used to toggle the plugin's UI",null,new KKAPI.Utilities.ConfigurationManagerAttributes{ Order = 10}));
@@ -72,27 +74,30 @@ namespace MassShaderEditor.Koikatu {
         private void Update() {
             if (VisibleHotkey.Value.IsDown())
                 isShown = !isShown;
-            if (SetSelectedHotkey.Value.IsDown()) {
-                setReset = false;
-                if (tab == SettingType.Color) SetSelectedProperties(setCol);
-                if (tab == SettingType.Float) SetSelectedProperties(setVal);
+            if (isShown) {
+                if (SetSelectedHotkey.Value.IsDown()) {
+                    setReset = false;
+                    if (tab == SettingType.Color) SetSelectedProperties(setCol);
+                    if (tab == SettingType.Float) SetSelectedProperties(setVal);
+                }
+                if (ResetSelectedHotkey.Value.IsDown()) {
+                    setReset = true;
+                    SetSelectedProperties(0f);
+                }
+                if (SetAllHotkey.Value.IsDown()) {
+                    setReset = false;
+                    if (DisableWarning.Value) {
+                        if (tab == SettingType.Color) SetAllProperties(setCol);
+                        if (tab == SettingType.Float) SetAllProperties(setVal);
+                    } else showWarning = true;
+                }
+                if (ResetAllHotkey.Value.IsDown()) {
+                    setReset = true;
+                    if (DisableWarning.Value) SetAllProperties(0f);
+                    else showWarning = true;
+                }
             }
-            if (ResetSelectedHotkey.Value.IsDown()) {
-                setReset = true;
-                SetSelectedProperties(0f);
-            }
-            if (SetAllHotkey.Value.IsDown()) {
-                setReset = false;
-                if (DisableWarning.Value) {
-                    if (tab == SettingType.Color) SetAllProperties(setCol);
-                    if (tab == SettingType.Float) SetAllProperties(setVal);
-                } else showWarning = true;
-            }
-            if (ResetAllHotkey.Value.IsDown()) {
-                setReset = true;
-                if (DisableWarning.Value) SetAllProperties(0f);
-                else showWarning = true;
-            }
+            if (showMessage && Time.time - timeStored >= messageDur) showMessage = false;
             if (!KKAPI.Maker.MakerAPI.InsideMaker && !KKAPI.Studio.StudioAPI.InsideStudio)
                 isShown = false;
         }
@@ -122,6 +127,7 @@ namespace MassShaderEditor.Koikatu {
                 if (IntroShown.Value) {
                     if (!showWarning) {
                         windowRect = GUILayout.Window(587, windowRect, WindowFunction, "Mass Shader Editor", newSkin.window);
+
                         KKAPI.Utilities.IMGUIUtils.EatInputInRect(windowRect);
 
                         helpRect.position = windowRect.position + new Vector2(windowRect.size.x + 3, 0);
@@ -167,7 +173,16 @@ namespace MassShaderEditor.Koikatu {
             if (!(_value is float) && !(_value is Color)) return;
             if (KKAPI.Studio.StudioAPI.InsideStudio) {
                 if (IsDebug.Value) Log.Info($"{(setReset ? "Res" : "S")}etting selected items' properties!");
-                SetProperties(KKAPI.Studio.StudioAPI.GetSelectedObjects().ToList(), _value);
+                var ociList = KKAPI.Studio.StudioAPI.GetSelectedObjects().ToList();
+                var iterateList = new List<ObjectCtrlInfo>(ociList);
+                if (IsDebug.Value) Log.Info("Checking for folders...");
+                foreach (var oci in iterateList) {
+                    if (oci is OCIFolder) {
+                        if (IsDebug.Value) Log.Info($"Found folder: {oci.treeNodeObject.textName}");
+                        oci.AddChildrenRecursive(ociList);
+                    }
+                }
+                SetProperties(ociList, _value);
             } else if (KKAPI.Maker.MakerAPI.InsideMaker) {
                 // TODO
             }
@@ -193,7 +208,7 @@ namespace MassShaderEditor.Koikatu {
                                         if (IsDebug.Value) Log.Info($"Property {setName} set to {_value}!");
                                     }
                                 } catch (Exception e) {
-                                    if (IsDebug.Value) Log.Info($"Unknown error during property value assignment: {e}");
+                                    Log.Error($"Unknown error during property value assignment: {e}");
                                 }
                             } else {
                                 if (IsDebug.Value) Log.Info($"Material {mat.name} did not have the property...");

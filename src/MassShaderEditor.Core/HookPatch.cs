@@ -53,7 +53,7 @@ namespace MassShaderEditor.Koikatu {
                     if ((Object.FindObjectOfType(typeof(MassShaderEditor)) as MassShaderEditor).IsDebug.Value) Log.Info($"Found {txtList.Count} labels!");
                     foreach (var txt in txtList) {
                         var btn = txt.gameObject.AddComponent<Button>();
-                        btn.onClick.AddListener(() => (Object.FindObjectOfType(typeof(MassShaderEditor)) as MassShaderEditor).setName = txt.text.Replace(':',' ').Trim());
+                        btn.onClick.AddListener(() => (Object.FindObjectOfType(typeof(MassShaderEditor)) as MassShaderEditor).setName = txt.text.Replace(':',' ').Replace('*',' ').Trim());
                     }
                     buttonsMade = true;
                 }
