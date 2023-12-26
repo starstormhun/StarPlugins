@@ -133,7 +133,7 @@ namespace MassShaderEditor.Koikatu {
             if (isShown) {
                 if (IntroShown.Value) {
                     if (!showWarning) {
-                        windowRect = GUILayout.Window(587, windowRect, WindowFunction, "Mass Shader Editor", newSkin.window);
+                        windowRect = GUILayout.Window(587, windowRect, WindowFunction, $"Mass Shader Editor v{Version}", newSkin.window);
 
                         KKAPI.Utilities.IMGUIUtils.EatInputInRect(windowRect);
 
@@ -151,7 +151,9 @@ namespace MassShaderEditor.Koikatu {
                             KKAPI.Utilities.IMGUIUtils.EatInputInRect(setRect);
                         }
                         if (showMessage) {
-                            infoRect = GUILayout.Window(589, infoRect, InfoFunction, "", newSkin.window);
+                            var boxStyle = new GUIStyle(newSkin.box);
+                            boxStyle.fontSize = 1;
+                            infoRect = GUILayout.Window(589, infoRect, InfoFunction, "", boxStyle);
                             KKAPI.Utilities.IMGUIUtils.EatInputInRect(infoRect);
                         }
                     }
@@ -195,7 +197,7 @@ namespace MassShaderEditor.Koikatu {
                 if (DiveItems.Value) diveList.Add(typeof(OCIItem));
                 foreach (var oci in iterateList) {
                     if (diveList.Contains(oci.GetType())) {
-                        if (IsDebug.Value) Log.Info($"Found folder: {oci.treeNodeObject.textName}");
+                        if (IsDebug.Value) Log.Info($"Found diveable item: {oci.treeNodeObject.textName}");
                         oci.AddChildrenRecursive(ociList);
                     }
                 }

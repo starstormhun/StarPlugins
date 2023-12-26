@@ -268,37 +268,45 @@ namespace MassShaderEditor.Koikatu {
 
         private void SettingFunction(int WindowID) {
             GUILayout.BeginVertical();
-            GUILayout.Label("GUI Scale", newSkin.label);
 
-            GUILayout.Space(-4); GUILayout.BeginHorizontal();
-            newScaleText = GUILayout.TextField(newScaleText, newSkin.textField, GUILayout.ExpandWidth(false));
-            float newScaleTemp = Studio.Utility.StringToFloat(newScaleText);
-            if (float.TryParse(newScaleText, out _)) {
-                newScale = Mathf.Clamp(newScaleTemp, 1, maxScale);
-                newScaleSlider = newScale;
-                newScaleText = newScale.ToString("0.00");
-            }
+            // GUI Scale
+            {
+                GUILayout.Label("GUI Scale", newSkin.label);
+                GUILayout.Space(-4); GUILayout.BeginHorizontal();
+                newScaleText = GUILayout.TextField(newScaleText, newSkin.textField, GUILayout.ExpandWidth(false));
+                float newScaleTemp = Studio.Utility.StringToFloat(newScaleText);
+                if (float.TryParse(newScaleText, out _)) {
+                    newScale = Mathf.Clamp(newScaleTemp, 1, maxScale);
+                    newScaleSlider = newScale;
+                    newScaleText = newScale.ToString("0.00");
+                }
 
-            GUILayout.BeginVertical(); GUILayout.Space(8);
-            if (Mathf.Abs(newScaleSlider - newScale) > 1E-06) newScaleSlider = newScale;
-            newScaleSlider = GUILayout.HorizontalSlider(newScaleSlider, 1, maxScale, newSkin.horizontalSlider, newSkin.horizontalSliderThumb);
-            if (Mathf.Abs(newScaleSlider - newScale) > 1E-06) newScale = newScaleSlider;
-            if (Mathf.Abs(newScale - newScalePrev) > 1E-06) newScaleText = newScale.ToString("0.00");
-            newScalePrev = newScale;
-            GUILayout.EndVertical();
+                GUILayout.BeginVertical(); GUILayout.Space(8);
+                if (Mathf.Abs(newScaleSlider - newScale) > 1E-06) newScaleSlider = newScale;
+                newScaleSlider = GUILayout.HorizontalSlider(newScaleSlider, 1, maxScale, newSkin.horizontalSlider, newSkin.horizontalSliderThumb);
+                if (Mathf.Abs(newScaleSlider - newScale) > 1E-06) newScale = newScaleSlider;
+                if (Mathf.Abs(newScale - newScalePrev) > 1E-06) newScaleText = newScale.ToString("0.00");
+                newScalePrev = newScale;
+                GUILayout.EndVertical();
 
-            GUILayout.Label("→ " + newScale.ToString("0.00"), newSkin.label, GUILayout.ExpandWidth(false));
+                GUILayout.Label("→ " + newScale.ToString("0.00"), newSkin.label, GUILayout.ExpandWidth(false));
 
-            if (GUILayout.Button("Set", newSkin.button, GUILayout.ExpandWidth(false)))
-                UIScale.Value = newScale;
-            GUILayout.EndHorizontal(); GUILayout.Space(8);
+                if (GUILayout.Button("Set", newSkin.button, GUILayout.ExpandWidth(false)))
+                    UIScale.Value = newScale;
+                GUILayout.EndHorizontal(); GUILayout.Space(8);
+            } // End GUI Scale
 
-            GUILayout.BeginHorizontal();
-            if (GUILayout.Button(new GUIContent($"Dive folders: {(DiveFolders.Value ? "Yes" : "No")}", diveFoldersText), newSkin.button))
-                DiveFolders.Value = !DiveFolders.Value;
-            if (GUILayout.Button(new GUIContent($"Dive items: {(DiveItems.Value ? "Yes" : "No")}", diveItemsText), newSkin.button))
-                DiveItems.Value = !DiveItems.Value;
-            GUILayout.EndHorizontal();
+            // Studio settings
+            {
+                if (KKAPI.Studio.StudioAPI.InsideStudio) {
+                    GUILayout.BeginHorizontal();
+                    if (GUILayout.Button(new GUIContent($"Dive folders: {(DiveFolders.Value ? "Yes" : "No")}", diveFoldersText), newSkin.button))
+                        DiveFolders.Value = !DiveFolders.Value;
+                    if (GUILayout.Button(new GUIContent($"Dive items: {(DiveItems.Value ? "Yes" : "No")}", diveItemsText), newSkin.button))
+                        DiveItems.Value = !DiveItems.Value;
+                    GUILayout.EndHorizontal();
+                }
+            } // End studio settings
 
             GUILayout.FlexibleSpace(); GUILayout.EndVertical();
             GUI.DragWindow();
@@ -366,6 +374,7 @@ namespace MassShaderEditor.Koikatu {
         private void InfoFunction(int windowID) {
             var msgStyle = new GUIStyle(newSkin.label);
             msgStyle.normal.textColor = Color.yellow;
+            msgStyle.fontSize = Math.Max(GUI.skin.font.fontSize, (int)(msgStyle.fontSize * 0.8));
             GUILayout.Label(message, msgStyle);
         }
 
@@ -403,12 +412,13 @@ namespace MassShaderEditor.Koikatu {
 
         private void CalcSizes() {
             helpRect.size = new Vector2(windowRect.size.x, newSkin.label.CalcHeight(new GUIContent(helpText[helpPage]), windowRect.size.x) + newSkin.label.CalcHeight(new GUIContent("temp"), windowRect.size.x) + 10 * UIScale.Value);
-            setRect.size = new Vector2(windowRect.size.x, 4f * newSkin.label.CalcHeight(new GUIContent("TEST"), setRect.size.x) + 10);
-            infoRect.size = new Vector2(windowRect.size.x, newSkin.label.CalcHeight(new GUIContent(message), infoRect.size.x)+10);
+            setRect.size = new Vector2(windowRect.size.x, newSkin.label.CalcHeight(new GUIContent("TEST"), setRect.size.x) + 10);
+            infoRect.size = new Vector2(windowRect.size.x, 10);
         }
 
         private void InitUI() {
             newSkin = new GUISkin {
+                box = new GUIStyle(GUI.skin.box),
                 label = new GUIStyle(GUI.skin.label),
                 button = new GUIStyle(GUI.skin.button),
                 window = new GUIStyle(GUI.skin.window),
@@ -427,6 +437,7 @@ namespace MassShaderEditor.Koikatu {
             newScaleText = scale.ToString("0.00");
             int newSize = (int)(GUI.skin.font.fontSize * scale);
 
+            newSkin.box.fontSize = newSize;
             newSkin.label.fontSize = newSize;
             newSkin.button.fontSize = newSize;
             newSkin.textField.fontSize = newSize;
@@ -455,10 +466,7 @@ namespace MassShaderEditor.Koikatu {
 
         private void DrawTooltip(string _tip) {
             if (!_tip.IsNullOrEmpty()) {
-                var tipStyle = new GUIStyle(newSkin.button);
-                tipStyle.normal.background = new Texture2D(1, 1, TextureFormat.RGBAFloat, false);
-                tipStyle.normal.background.SetPixel(0, 0, new Color(0, 0, 0, 0.5f));
-                tipStyle.normal.background.Apply();
+                var tipStyle = new GUIStyle(newSkin.box);
                 tipStyle.wordWrap = true;
                 tipStyle.alignment = TextAnchor.MiddleCenter;
                 float width = 270f * UIScale.Value;
