@@ -34,9 +34,15 @@ namespace MassShaderEditor.Koikatu {
         private string setValInputString = "";
         private float setValInput = 0;
         private float setValSlider = 0;
-        private List<float> setColNum = new List<float> { 1f, 1f, 1f, 1f };
-        private string setColStringMemory = "ffffffff";
+
+        private float[] setColNum = new float[]{ 1f, 1f, 1f, 1f };
+        private string setColStringInputMemory = "ffffffff";
+        private string setColStringInput = "ffffffff";
         private string setColString = "ffffffff";
+        internal string pickerName = "Mass Shader Editor Color";
+        private bool pickerChanged = false;
+        internal bool isPicker = false;
+        private Color setColPicker = Color.white;
 
         private float newScale = 1;
         private float newScalePrev = 1;
@@ -80,8 +86,6 @@ namespace MassShaderEditor.Koikatu {
             setName = GUILayout.TextField(setName,newSkin.textField);
             GUILayout.EndHorizontal();
 
-            setColNum.FindAll(x => (x > 0));
-
             // Choosing the slider value
             if (tab == SettingType.Float) {
                 GUILayout.BeginHorizontal();
@@ -114,68 +118,84 @@ namespace MassShaderEditor.Koikatu {
             if (tab == SettingType.Color) {
                 GUILayout.BeginHorizontal();
                 GUILayout.Label("Color #", newSkin.label, GUILayout.ExpandWidth(false));
-                if (ColorPicker(setCol)) {
-                    GUILayout.TextField(setColString, newSkin.textField);
-                } else {
-                    if (setCol.maxColorComponent <= 1) {
-                        setColString = GUILayout.TextField(setColString, newSkin.textField);
-                        try {
-                            Color buffer = new Color(setCol.r, setCol.g, setCol.b, setCol.a);
-                            Color colConvert = ColorConverter.ConvertFromString(setColString);
-                            if ((new Vector4(setColNum[0], setColNum[1], setColNum[2], setColNum[3]) - new Vector4(colConvert.r, colConvert.g, colConvert.b, colConvert.a)).magnitude >= 1.2f / 255f) {
-                                setCol = colConvert;
-                                setColNum[0] = setCol.r;
-                                setColNum[1] = setCol.g;
-                                setColNum[2] = setCol.b;
-                                setColNum[3] = setCol.a;
-                                if (IsDebug.Value) {
-                                    Log.Info("Color changed from: " + buffer.ToString());
-                                    Log.Info("Color changed to: " + setCol.ToString());
-                                }
-                            }
-                        } catch {
-                            if (IsDebug.Value && setColStringMemory != setColString) {
-                                Log.Info("Could not convert color code!");
-                            }
-                            setColStringMemory = setColString;
+
+                // Text input
+                {
+                    if (!setCol.Matches(setColString.ToColor()) && setCol.maxColorComponent <= 1) {
+                        setColString = setCol.ToHex();
+                        setColStringInput = setColString;
+                        setColStringInputMemory = setColStringInput;
+                    }
+                    setColStringInput = GUILayout.TextField(setColStringInput, newSkin.textField);
+                    try {
+                        Color colConvert = setColStringInput.ToColor(); // May throw exception if hexcode is faulty
+                        setColString = setColStringInput; // Since hexcode is valid, we store it
+                        if (!colConvert.Matches(setCol)) {
+                            if (IsDebug.Value && !pickerChanged) Log.Info($"Color changed from {setCol} to {colConvert} based on text input!");
+                            pickerChanged = false;
+                            setCol = colConvert;
                         }
-                    } else {
-                        GUILayout.TextField("########", newSkin.textField);
+                    } catch {
+                        if (IsDebug.Value && setColStringInputMemory != setColStringInput) {
+                            Log.Info("Could not convert color code!");
+                        }
                     }
-                }
+                    setColStringInputMemory = setColStringInput;
+                } // End text input
+
                 GUILayout.Label("RGBA →", newSkin.label, GUILayout.ExpandWidth(false));
-                if (GUILayout.Button("Click", Colorbutton(setCol))) {
-                    setCol.r = Mathf.Clamp(setCol.r, 0, 1);
-                    setCol.g = Mathf.Clamp(setCol.g, 0, 1);
-                    setCol.b = Mathf.Clamp(setCol.b, 0, 1);
-                    setCol.a = Mathf.Clamp(setCol.a, 0, 1);
-                    void act4(Color c) {
-                        setCol = c;
-                        setColString = ColorConverter.ConvertToString(setCol);
-                        setColNum[0] = setCol.r;
-                        setColNum[1] = setCol.g;
-                        setColNum[2] = setCol.b;
-                        setColNum[3] = setCol.a;
+
+                // Color picker
+                {
+                    if (!setCol.Matches(setColPicker)) {
+                        setColPicker = setCol;
+                        if (isPicker) ColorPicker(setColPicker, actPicker, true);
                     }
-                    ColorPicker(setCol, act4);
-                }
+                    if (GUILayout.Button("Click", Colorbutton(setColPicker.Clamp()))) {
+                        if (!isPicker) setColPicker = setColPicker.Clamp();
+                        isPicker = !isPicker;
+                        ColorPicker(setColPicker, actPicker);
+                    }
+                    void actPicker(Color c) {
+                        if (IsDebug.Value) Log.Info($"Color changed from {setCol} to {c} based on picker!");
+                        setCol = c;
+                        setColPicker = c;
+                        pickerChanged = true;
+                    }
+                } // End Color picker
+
                 GUILayout.EndHorizontal();
                 GUILayout.BeginHorizontal();
-                if (ColorPicker(setCol)) {
-                    GUILayout.Label("R", newSkin.label); GUILayout.TextField(setCol.r.ToString("0.000"), newSkin.textField);
-                    GUILayout.Label("G", newSkin.label); GUILayout.TextField(setCol.g.ToString("0.000"), newSkin.textField);
-                    GUILayout.Label("B", newSkin.label); GUILayout.TextField(setCol.b.ToString("0.000"), newSkin.textField);
-                    GUILayout.Label("A", newSkin.label); GUILayout.TextField(setCol.a.ToString("0.000"), newSkin.textField);
-                } else {
+
+                // Value input
+                {
+                    if (!setCol.Matches(setColNum.ToColor())) {
+                        setColNum = setCol.ToArray();
+                    }
+                    float[] buffer = (float[])setColNum.Clone();
                     GUILayout.Label("R", newSkin.label); setColNum[0] = Studio.Utility.StringToFloat(GUILayout.TextField(setColNum[0].ToString("0.000"), newSkin.textField));
                     GUILayout.Label("G", newSkin.label); setColNum[1] = Studio.Utility.StringToFloat(GUILayout.TextField(setColNum[1].ToString("0.000"), newSkin.textField));
                     GUILayout.Label("B", newSkin.label); setColNum[2] = Studio.Utility.StringToFloat(GUILayout.TextField(setColNum[2].ToString("0.000"), newSkin.textField));
                     GUILayout.Label("A", newSkin.label); setColNum[3] = Studio.Utility.StringToFloat(GUILayout.TextField(setColNum[3].ToString("0.000"), newSkin.textField));
-                    setCol = new Color(setColNum[0], setColNum[1], setColNum[2], setColNum[3]);
-                    if (setCol.maxColorComponent <= 1) {
-                        setColString = ColorConverter.ConvertToString(setCol);
+                    if (!buffer.Matches(setColNum)) {
+                        if (IsDebug.Value) Log.Info($"Color changed from {setCol} to {setColNum.ToColor()} based on value input!");
+                        setCol = setColNum.ToColor();
+                        if (setCol.maxColorComponent > 1) {
+                            if (isPicker) {
+                                isPicker = false;
+                                ColorPicker(Color.black, null);
+                            }
+                            setColStringInput = "########";
+                            setColStringInputMemory = "########";
+                        }
+                        if (buffer.Max() > 1 && setCol.maxColorComponent <= 1) {
+                            setColString = setCol.ToHex();
+                            setColStringInput = setColString;
+                            setColStringInputMemory = setColStringInput;
+                        }
                     }
-                }
+                } // End value input
+
                 GUILayout.EndHorizontal();
             }
 
@@ -327,33 +347,24 @@ namespace MassShaderEditor.Koikatu {
             GUILayout.FlexibleSpace(); GUILayout.EndVertical(); GUILayout.Space(5 * UIScale.Value); GUILayout.EndHorizontal();
         }
 
-        private bool ColorPicker(Color col, Action<Color> act = null, bool forceClose = false) {
+        private void ColorPicker(Color col, Action<Color> act, bool update = false) {
             if (KoikatuAPI.GetCurrentGameMode() == GameMode.Studio) {
-                if (act == null) {
-                    return studio.colorPalette.visible;
-                }
-                if (studio.colorPalette.visible || forceClose) {
+                if (studio.colorPalette.visible && !update) {
                     studio.colorPalette.visible = false;
                 } else {
                     studio.colorPalette._outsideVisible = true;
-                    studio.colorPalette.Setup("ColorPicker", col, act, true);
+                    studio.colorPalette.Setup(pickerName, col, act, true);
                     studio.colorPalette.visible = true;
                 }
-                return studio.colorPalette.visible;
             }
             if (KoikatuAPI.GetCurrentGameMode() == GameMode.Maker) {
                 CvsColor component = GameObject.Find("CustomScene/CustomRoot/FrontUIGroup/CustomUIGroup/CvsColor/Top").GetComponent<CvsColor>();
-                if (act == null) {
-                    return component.isOpen;
-                }
-                if (component.isOpen || forceClose) {
+                if (component.isOpen && !update) {
                     component.Close();
                 } else {
                     component.Setup("ColorPicker", CvsColor.ConnectColorKind.None, col, act, true);
                 }
-                return component.isOpen;
             }
-            return false;
         }
 
         private GUIStyle Colorbutton(Color col) {

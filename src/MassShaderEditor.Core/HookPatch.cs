@@ -35,6 +35,7 @@ namespace MassShaderEditor.Koikatu {
                     (UnityEngine.Object.FindObjectOfType(typeof(MassShaderEditor)) as MassShaderEditor).setName = propertyName;
             }
 
+            // Sets up buttons on labels in the ME interface for autofilling the property name
             [HarmonyPostfix]
             [HarmonyPatch(typeof(MaterialEditorAPI.MaterialEditorUI), "PopulateList")]
             private static void AddClickableNames() {
@@ -57,6 +58,21 @@ namespace MassShaderEditor.Koikatu {
                     }
                     buttonsMade = true;
                 }
+            }
+
+            // Turns off the color picker updates if the picker gets reset
+            [HarmonyPostfix]
+            [HarmonyPatch(typeof(Studio.ColorPalette), "Setup")]
+            private static void ColorPaletteAfterSetup(string winTitle) {
+                var MSE = (Object.FindObjectOfType(typeof(MassShaderEditor)) as MassShaderEditor);
+                if (winTitle != MSE.pickerName) MSE.isPicker = false;
+            }
+
+            // Turns off the color picker updates if the picker gets closed
+            [HarmonyPostfix]
+            [HarmonyPatch(typeof(Studio.ColorPalette), "Close")]
+            private static void ColorPaletteAfterClose() {
+                (Object.FindObjectOfType(typeof(MassShaderEditor)) as MassShaderEditor).isPicker = false;
             }
         }
 

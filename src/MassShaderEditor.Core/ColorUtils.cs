@@ -2,8 +2,12 @@
 using UnityEngine;
 
 namespace MassShaderEditor.Koikatu {
-	public static class ColorConverter {
-		public static Color ConvertFromString(string _text) {
+	public static class ColorUtils {
+		public static float[] ToArray(this Color c) {
+			return new float[] { c.r, c.g, c.b, c.a };
+		}
+
+		public static Color ToColor(this string _text) {
 			int r = ParseHexChar(_text[0]) * 16 + ParseHexChar(_text[1]);
 			int g = ParseHexChar(_text[2]) * 16 + ParseHexChar(_text[3]);
 			int b = ParseHexChar(_text[4]) * 16 + ParseHexChar(_text[5]);
@@ -11,7 +15,12 @@ namespace MassShaderEditor.Koikatu {
 			return new Color(r/255f, g/255f, b/255f, a/255f);
 		}
 
-		public static string ConvertToString(Color _color) {
+		public static Color ToColor(this float[] a) {
+			if (a.Length != 4) throw new ArgumentException("Array must have 4 members!");
+			return new Color(a[0], a[1], a[2], a[3]);
+		}
+
+		public static string ToHex(this Color _color) {
 			string r = ParseNum((int)(_color.r * 255) / 16) + ParseNum(((int)(_color.r * 255) % 16));
 			string g = ParseNum((int)(_color.g * 255) / 16) + ParseNum(((int)(_color.g * 255) % 16));
 			string b = ParseNum((int)(_color.b * 255) / 16) + ParseNum(((int)(_color.b * 255) % 16));
@@ -19,6 +28,26 @@ namespace MassShaderEditor.Koikatu {
 			return r + g + b + a;
 		}
 
+		public static Color Clamp(this Color c) {
+			float r = Mathf.Clamp(c.r, 0, 1);
+			float g = Mathf.Clamp(c.g, 0, 1);
+			float b = Mathf.Clamp(c.b, 0, 1);
+			float a = Mathf.Clamp(c.a, 0, 1);
+			return new Color(r, g, b, a);
+        }
+
+		public static Color Clone(this Color c) {
+			return new Color(c.r, c.g, c.b, c.a);
+        }
+
+		public static bool Matches(this Color c1, Color c) {
+			return (new Vector4(c1.r, c1.g, c1.b, c1.a) - new Vector4(c.r, c.g, c.b, c.a)).magnitude < 1.2f / 255f;
+        }
+
+		public static bool Matches(this float[] c1, float[] c) {
+			if (!(c1.Length == 4 && c.Length == 4)) throw new ArgumentException("Both arrays must have 4 members!");
+			return (new Vector4(c1[0], c1[1], c1[2], c1[3]) - new Vector4(c[0], c[1], c[2], c[3])).magnitude < 1E-06;
+		}
 		private static int ParseHexChar(char c) {
 			if (c >= '0' && c <= '9') {
 				return (int)(c - '0');

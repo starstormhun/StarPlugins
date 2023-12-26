@@ -9,7 +9,7 @@
     <Import_RootNamespace>MassShaderEditor.Koikatu</Import_RootNamespace>
   </PropertyGroup>
   <ItemGroup>
-    <Compile Include="$(MSBuildThisFileDirectory)ColorConverter.cs" />
+    <Compile Include="..\MassShaderEditor.Core\ColorUtils.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)HookPatch.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)MassShaderEditor.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Extensions.cs" />
