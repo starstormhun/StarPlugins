@@ -14,11 +14,15 @@ namespace MassShaderEditor.Koikatu {
         private bool isSetting = false;
         private bool showWarning = false;
         private bool showMessage = false;
+
         private string message = "";
+        private float messageDur = 1;
+        private float messageTime = 0;
 
         private Rect windowRect = new Rect(200, 40, 240, 170);
         private Rect helpRect = new Rect();
         private Rect setRect = new Rect();
+        private Rect infoRect = new Rect();
         private Rect warnRect = new Rect(0,0,360,200);
         private SettingType tab = SettingType.Float;
         private float prevScale = 1;
@@ -50,12 +54,15 @@ namespace MassShaderEditor.Koikatu {
         private float newScaleSlider = 1;
 
         private int helpPage = 0;
+        private string[] tooltip = new string[]{ "",""};
 
         private List<string> helpText = new List<string>{"To use, first choose whether the property you want to edit is a value, or a color using the buttons at the top of the UI. Afterwards you can input its name, and set the desired value/color using the fields below those.",
             "You can either type in the name of the property you want to edit, or you can click its name in the MaterialEditor UI, or click the timeline integration button that you can enable in the ME settings. Clicking these things will autofill the property name.",
             "After you have the edited-to-be property named, and its desired value set, you can click'Set Selected', or 'Set ALL'. In Studio, 'Set Selected' will modify items you currently have selected in the Workspace. Also in Studio, 'Set ALL' will modify EVERYTHING in the scene.",
             "In Character Maker, 'Set Selected' will affect only the currently edited clothing piece or accessory. When in the face or body menus, the appropriate body part will be affected instead. The 'Set ALL' button in Maker affects all of the currently edited category.",
             "Right-clicking either of these two buttons will reset the specified property of the appropriate items to the default value instead of setting the one you have currently inputted."};
+        private const string diveFoldersText = "Whether 'Set Selected' will affect items that are inside selected folders.";
+        private const string diveItemsText = "Whether 'Set Selected' will affect items that are the children of selected items.";
         private const float maxScale = 3;
 
         private void WindowFunction(int WindowID) {
@@ -215,7 +222,7 @@ namespace MassShaderEditor.Koikatu {
                         else if (tab == SettingType.Float)
                             SetAllProperties(setVal);
                     }
-                }
+                } else ShowMessage("You need to set a property name to edit!");
             }
             if (GUILayout.Button("Set Selected", newSkin.button)) {
                 if (setName != "") {
@@ -223,7 +230,7 @@ namespace MassShaderEditor.Koikatu {
                         SetSelectedProperties(setCol);
                     else if (tab == SettingType.Float)
                         SetSelectedProperties(setVal);
-                }
+                } else ShowMessage("You need to set a property name to edit!");
             }
             GUILayout.EndHorizontal();
 
@@ -245,12 +252,12 @@ namespace MassShaderEditor.Koikatu {
             GUILayout.BeginHorizontal();
             if (GUILayout.Button(" < ", newSkin.button)) {
                 if (--helpPage < 0) helpPage++;
-                CalcHelpSize();
+                CalcSizes();
             }
             GUILayout.FlexibleSpace(); GUILayout.Label($"Page {helpPage+1}/{helpText.Count}", newSkin.label); GUILayout.FlexibleSpace();
             if (GUILayout.Button(" > ", newSkin.button)) {
                 if (++helpPage == helpText.Count) helpPage--;
-                CalcHelpSize();
+                CalcSizes();
             }
             GUILayout.EndHorizontal();
             GUILayout.FlexibleSpace();
@@ -284,10 +291,19 @@ namespace MassShaderEditor.Koikatu {
 
             if (GUILayout.Button("Set", newSkin.button, GUILayout.ExpandWidth(false)))
                 UIScale.Value = newScale;
+            GUILayout.EndHorizontal(); GUILayout.Space(8);
+
+            GUILayout.BeginHorizontal();
+            if (GUILayout.Button(new GUIContent($"Dive folders: {(DiveFolders.Value ? "Yes" : "No")}", diveFoldersText), newSkin.button))
+                DiveFolders.Value = !DiveFolders.Value;
+            if (GUILayout.Button(new GUIContent($"Dive items: {(DiveItems.Value ? "Yes" : "No")}", diveItemsText), newSkin.button))
+                DiveItems.Value = !DiveItems.Value;
             GUILayout.EndHorizontal();
 
             GUILayout.FlexibleSpace(); GUILayout.EndVertical();
             GUI.DragWindow();
+
+            PushTooltip(GUI.tooltip);
         }
 
         private void WarnFunction(int WindowID) {
@@ -347,6 +363,12 @@ namespace MassShaderEditor.Koikatu {
             GUILayout.FlexibleSpace(); GUILayout.EndVertical(); GUILayout.Space(5 * UIScale.Value); GUILayout.EndHorizontal();
         }
 
+        private void InfoFunction(int windowID) {
+            var msgStyle = new GUIStyle(newSkin.label);
+            msgStyle.normal.textColor = Color.yellow;
+            GUILayout.Label(message, msgStyle);
+        }
+
         private void ColorPicker(Color col, Action<Color> act, bool update = false) {
             if (KoikatuAPI.GetCurrentGameMode() == GameMode.Studio) {
                 if (studio.colorPalette.visible && !update) {
@@ -379,12 +401,10 @@ namespace MassShaderEditor.Koikatu {
             return gUIStyle;
         }
 
-        private void CalcHelpSize() {
+        private void CalcSizes() {
             helpRect.size = new Vector2(windowRect.size.x, newSkin.label.CalcHeight(new GUIContent(helpText[helpPage]), windowRect.size.x) + newSkin.label.CalcHeight(new GUIContent("temp"), windowRect.size.x) + 10 * UIScale.Value);
-        }
-
-        private void CalcSettingSize() {
-            setRect.size = new Vector2(windowRect.size.x, 2.5f * newSkin.label.CalcHeight(new GUIContent("TEST"), setRect.size.x) + 10);
+            setRect.size = new Vector2(windowRect.size.x, 4f * newSkin.label.CalcHeight(new GUIContent("TEST"), setRect.size.x) + 10);
+            infoRect.size = new Vector2(windowRect.size.x, newSkin.label.CalcHeight(new GUIContent(message), infoRect.size.x)+10);
         }
 
         private void InitUI() {
@@ -413,9 +433,41 @@ namespace MassShaderEditor.Koikatu {
             newSkin.horizontalSlider.fixedHeight = newSize;
             newSkin.horizontalSliderThumb.fixedHeight = newSize;
 
-            CalcHelpSize();
-            CalcSettingSize();
+            CalcSizes();
+        }
 
+        private void ShowMessage(string _msg, float _dur = 2.5f) {
+            messageTime = Time.time;
+            messageDur = _dur;
+            message = _msg;
+            showMessage = true;
+        }
+
+        private void PushTooltip(string _tip) {
+            if (_tip.IsNullOrEmpty()) {
+                if (tooltip[1] == "") tooltip[0] = "";
+                tooltip[1] = "";
+            } else {
+                tooltip[0] = _tip;
+                tooltip[1] = _tip;
+            }
+        }
+
+        private void DrawTooltip(string _tip) {
+            if (!_tip.IsNullOrEmpty()) {
+                var tipStyle = new GUIStyle(newSkin.button);
+                tipStyle.normal.background = new Texture2D(1, 1, TextureFormat.RGBAFloat, false);
+                tipStyle.normal.background.SetPixel(0, 0, new Color(0, 0, 0, 0.5f));
+                tipStyle.normal.background.Apply();
+                tipStyle.wordWrap = true;
+                tipStyle.alignment = TextAnchor.MiddleCenter;
+                float width = 270f * UIScale.Value;
+                float height = tipStyle.CalcHeight(new GUIContent(_tip), width) + 10f;
+                float x = Input.mousePosition.x;
+                float y = Screen.height - Input.mousePosition.y + 30f;
+                Rect draw = new Rect(x, y, width, height);
+                GUILayout.Window(590, draw, (int id) => GUILayout.Box( _tip, tipStyle), new GUIContent(), GUIStyle.none);
+            }
         }
 
         private enum SettingType {

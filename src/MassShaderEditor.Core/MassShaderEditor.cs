@@ -27,32 +27,39 @@ namespace MassShaderEditor.Koikatu {
         public const string GUID = "starstorm.massshadereditor";
         public const string Version = "0.1.0." + BuildNumber.Version;
 
-        public ConfigEntry<KeyboardShortcut> VisibleHotkey { get; private set; }
+        // General
         public ConfigEntry<float> UIScale { get; private set; }
-        public ConfigEntry<bool> IsDebug { get; private set; }
-        public ConfigEntry<bool> DisableWarning { get; private set; }
+        public ConfigEntry<bool> DiveFolders { get; private set; }
+        public ConfigEntry<bool> DiveItems { get; private set; }
+
+        // Hotkeys
+        public ConfigEntry<KeyboardShortcut> VisibleHotkey { get; private set; }
         public ConfigEntry<KeyboardShortcut> SetSelectedHotkey { get; private set; }
         public ConfigEntry<KeyboardShortcut> ResetSelectedHotkey { get; private set; }
         public ConfigEntry<KeyboardShortcut> SetAllHotkey { get; private set; }
         public ConfigEntry<KeyboardShortcut> ResetAllHotkey { get; private set; }
+
+        // Advanced
+        public ConfigEntry<bool> IsDebug { get; private set; }
+        public ConfigEntry<bool> DisableWarning { get; private set; }
         private ConfigEntry<bool> IntroShown { get; set; }
 
         private Studio.Studio studio;
         private bool inited = false;
         private bool scaled = false;
         private SceneController controller;
-        private float timeStored = 0;
-        private float messageDur = 1;
 
         private void Awake() {
+            UIScale = Config.Bind("General", "UI Scale", 1.5f, new ConfigDescription("Can also be set via the built-in settings panel", new AcceptableValueRange<float>(1f, maxScale), null));
+            UIScale.SettingChanged += (x, y) => scaled = false;
+            DiveFolders = Config.Bind("General", "Dive folders", false, new ConfigDescription(diveFoldersText, null, null));
+            DiveItems = Config.Bind("General", "Dive items", false, new ConfigDescription(diveItemsText, null, null));
+
             VisibleHotkey = Config.Bind("Hotkeys", "UI Toggle", new KeyboardShortcut(KeyCode.M), new ConfigDescription("The key used to toggle the plugin's UI",null,new KKAPI.Utilities.ConfigurationManagerAttributes{ Order = 10}));
             SetSelectedHotkey = Config.Bind("Hotkeys", "Set Selected", new KeyboardShortcut(KeyCode.None), new ConfigDescription("Simulate left-clicking 'Set Selected'", null, null));
             ResetSelectedHotkey = Config.Bind("Hotkeys", "Reset Selected", new KeyboardShortcut(KeyCode.None), new ConfigDescription("Simulate right-clicking 'Set Selected'", null, null));
             SetAllHotkey = Config.Bind("Hotkeys", "Set ALL", new KeyboardShortcut(KeyCode.None), new ConfigDescription("Simulate left-clicking 'Set ALL'", null, null));
             ResetAllHotkey = Config.Bind("Hotkeys", "Reset ALL", new KeyboardShortcut(KeyCode.None), new ConfigDescription("Simulate right-clicking 'Set ALL'", null, null));
-
-            UIScale = Config.Bind("General", "UI Scale", 1.5f, new ConfigDescription("Can also be set via the built-in settings panel", new AcceptableValueRange<float>(1f, maxScale), null));
-            UIScale.SettingChanged += (x, y) => scaled = false;
 
             DisableWarning = Config.Bind("Advanced", "Disable warning", false, new ConfigDescription("Disable the warning screen for the 'Set All' function.", null, new KKAPI.Utilities.ConfigurationManagerAttributes { IsAdvanced = true }));
             IsDebug = Config.Bind("Advanced", "Logging", false, new ConfigDescription("Enable verbose logging for debugging purposes", null, new KKAPI.Utilities.ConfigurationManagerAttributes { IsAdvanced = true }));
@@ -97,8 +104,9 @@ namespace MassShaderEditor.Koikatu {
                     else showWarning = true;
                 }
             }
-            if (showMessage && Time.time - timeStored >= messageDur) showMessage = false;
-            if (!KKAPI.Maker.MakerAPI.InsideMaker && !KKAPI.Studio.StudioAPI.InsideStudio)
+            if (showMessage && Time.time - messageTime >= messageDur) showMessage = false;
+
+            if ((!KKAPI.Maker.MakerAPI.InsideMaker && !KKAPI.Studio.StudioAPI.InsideStudio) || Input.GetKeyDown(KeyCode.F1) || Input.GetKeyDown(KeyCode.Escape))
                 isShown = false;
         }
 
@@ -106,8 +114,7 @@ namespace MassShaderEditor.Koikatu {
             if (!inited) {
                 inited = true;
                 InitUI();
-                CalcSettingSize();
-                CalcHelpSize();
+                CalcSizes();
             }
             if (!scaled) {
                 scaled = true;
@@ -132,6 +139,7 @@ namespace MassShaderEditor.Koikatu {
 
                         helpRect.position = windowRect.position + new Vector2(windowRect.size.x + 3, 0);
                         setRect.position = windowRect.position + new Vector2(windowRect.size.x + 3, 0);
+                        infoRect.position = windowRect.position + new Vector2(0, windowRect.size.y + 3);
 
                         if (isHelp) {
                             helpRect = GUILayout.Window(588, helpRect, HelpFunction, "How to use?", newSkin.window);
@@ -139,7 +147,12 @@ namespace MassShaderEditor.Koikatu {
                         }
                         if (isSetting) {
                             setRect = GUILayout.Window(588, setRect, SettingFunction, "Settings ۞", newSkin.window);
+                            DrawTooltip(tooltip[0]);
                             KKAPI.Utilities.IMGUIUtils.EatInputInRect(setRect);
+                        }
+                        if (showMessage) {
+                            infoRect = GUILayout.Window(589, infoRect, InfoFunction, "", newSkin.window);
+                            KKAPI.Utilities.IMGUIUtils.EatInputInRect(infoRect);
                         }
                     }
                     if (showWarning) {
@@ -157,6 +170,7 @@ namespace MassShaderEditor.Koikatu {
                     KKAPI.Utilities.IMGUIUtils.EatInputInRect(screenRect);
                 }
             }
+
         }
 
         private void SetAllProperties<T>(T _value) {
@@ -176,8 +190,11 @@ namespace MassShaderEditor.Koikatu {
                 var ociList = KKAPI.Studio.StudioAPI.GetSelectedObjects().ToList();
                 var iterateList = new List<ObjectCtrlInfo>(ociList);
                 if (IsDebug.Value) Log.Info("Checking for folders...");
+                var diveList = new List<Type>();
+                if (DiveFolders.Value) diveList.Add(typeof(OCIFolder));
+                if (DiveItems.Value) diveList.Add(typeof(OCIItem));
                 foreach (var oci in iterateList) {
-                    if (oci is OCIFolder) {
+                    if (diveList.Contains(oci.GetType())) {
                         if (IsDebug.Value) Log.Info($"Found folder: {oci.treeNodeObject.textName}");
                         oci.AddChildrenRecursive(ociList);
                     }
