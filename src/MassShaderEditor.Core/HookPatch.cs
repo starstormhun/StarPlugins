@@ -97,7 +97,7 @@ namespace MassShaderEditor.Koikatu {
             }
 
             private static void SetName(MassShaderEditor MSE, MassShaderEditor.SettingType type, string name) {
-                if (MSE.IsDebug.Value) Log.Info($"Property name set: {name}");
+                if (MSE.IsDebug.Value) Log.Info($"Property name set: {name.Replace(':', ' ').Replace('*', ' ').Trim()}");
                 MSE.tab = type;
                 MSE.setName = name.Replace(':', ' ').Replace('*', ' ').Trim();
                 MSE.setNameInput = MSE.setName;

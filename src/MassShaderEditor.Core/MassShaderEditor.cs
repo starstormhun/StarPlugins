@@ -25,7 +25,7 @@ namespace MassShaderEditor.Koikatu {
 	/// </info>
     public partial class MassShaderEditor : BaseUnityPlugin {
         public const string GUID = "starstorm.massshadereditor";
-        public const string Version = "0.1.0." + BuildNumber.Version;
+        public const string Version = "0.2.0." + BuildNumber.Version;
 
         // General
         public ConfigEntry<float> UIScale { get; private set; }
@@ -247,34 +247,38 @@ namespace MassShaderEditor.Koikatu {
                             SetCharaProperties(ctrl.GetController(), ociChar, i, ObjectType.Accessory, _value, x => (x.Contains("hair") && AffectChaHair.Value) || (!x.Contains("hair") && AffectChaAccs.Value));
                     }
                 }
+                MEStudio.Instance.RefreshUI();
             } else if (KKAPI.Maker.MakerAPI.InsideMaker) {
                 // TODO
+                //MEMaker.Instance.RefreshUI();
             }
+            
         }
 
         private void SetItemProperties<T>(SceneController ctrl, OCIItem item, T _value) {
             if (IsDebug.Value) Log.Info($"Looking into {item.NameFormatted()}...");
             foreach (var rend in GetRendererList(item.objectItem)) {
-                if (IsDebug.Value) Log.Info($"Got renderer: {rend.NameFormatted()}");
+                //if (IsDebug.Value) Log.Info($"Got renderer: {rend.NameFormatted()}");
                 foreach (var mat in GetMaterials(item.objectItem, rend)) {
-                    if (IsDebug.Value) Log.Info($"Got material: {mat.NameFormatted()}");
-                    if (mat.HasProperty("_" + setName)) {
-                        try {
-                            if (setReset) {
-                                ctrl.RemoveMaterialFloatProperty(item.objectInfo.dicKey, mat, setName);
-                                ctrl.RemoveMaterialColorProperty(item.objectInfo.dicKey, mat, setName);
-                                if (IsDebug.Value) Log.Info($"Property {item.NameFormatted()}\\{mat.NameFormatted()}\\{setName}({_value.GetType()}) reset!");
-                            } else {
-                                if (_value is float floatval) ctrl.SetMaterialFloatProperty(item.objectInfo.dicKey, mat, setName, floatval);
-                                if (_value is Color colval) ctrl.SetMaterialColorProperty(item.objectInfo.dicKey, mat, setName, colval);
-                                if (IsDebug.Value) Log.Info($"Property {item.NameFormatted()}\\{mat.NameFormatted()}\\{setName} set to {_value}!");
+                    //if (IsDebug.Value) Log.Info($"Got material: {mat.NameFormatted()}");
+                    if (mat.shader.NameFormatted().Contains(filter))
+                        if (mat.HasProperty("_" + setName)) {
+                            try {
+                                if (setReset) {
+                                    ctrl.RemoveMaterialFloatProperty(item.objectInfo.dicKey, mat, setName);
+                                    ctrl.RemoveMaterialColorProperty(item.objectInfo.dicKey, mat, setName);
+                                    if (IsDebug.Value) Log.Info($"Property {item.NameFormatted()}\\{mat.NameFormatted()}\\{setName} reset!");
+                                } else {
+                                    if (_value is float floatval) ctrl.SetMaterialFloatProperty(item.objectInfo.dicKey, mat, setName, floatval);
+                                    if (_value is Color colval) ctrl.SetMaterialColorProperty(item.objectInfo.dicKey, mat, setName, colval);
+                                    if (IsDebug.Value) Log.Info($"Property {item.NameFormatted()}\\{mat.NameFormatted()}\\{setName} set to {_value}!");
+                                }
+                            } catch (Exception e) {
+                                Log.Error($"Unknown error during property value assignment of {item.NameFormatted()}\\{mat.NameFormatted()}\\{setName}: {e}");
                             }
-                        } catch (Exception e) {
-                            Log.Error($"Unknown error during property value assignment of {item.NameFormatted()}\\{mat.NameFormatted()}\\{setName}: {e}");
+                        } else {
+                            if (IsDebug.Value) Log.Info($"Material {item.NameFormatted()}\\{mat.NameFormatted()} did not have the {setName} property...");
                         }
-                    } else {
-                        if (IsDebug.Value) Log.Info($"Material {mat.NameFormatted()} did not have the property...");
-                    }
                 }
             }
         }
@@ -298,9 +302,11 @@ namespace MassShaderEditor.Koikatu {
                 default:
                     go = null; break;
             }
-            foreach (var rend in GetRendererList(go))
-                foreach (var mat in GetMaterials(go, rend))
-                    if (match(mat.shader.NameFormatted().ToLower()))
+            foreach (var rend in GetRendererList(go)) {
+                //if (IsDebug.Value) Log.Info($"Got renderer: {rend.NameFormatted()}");
+                foreach (var mat in GetMaterials(go, rend)) {
+                    //if (IsDebug.Value) Log.Info($"Got material: {mat.NameFormatted()}");
+                    if (match(mat.shader.NameFormatted().ToLower()) && mat.shader.NameFormatted().Contains(filter))
                         if (mat.HasProperty("_" + setName)) {
                             try {
                                 if (setReset) {
@@ -318,6 +324,8 @@ namespace MassShaderEditor.Koikatu {
                         } else {
                             if (IsDebug.Value) Log.Info($"Material {ociChar.NameFormatted()}\\{mat.NameFormatted()} did not have the {setName} property...");
                         }
+                }
+            }
         }
     }
 }

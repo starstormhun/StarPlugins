@@ -269,10 +269,10 @@ namespace MassShaderEditor.Koikatu {
             if (isHelp) windowRect.position = helpRect.position - new Vector2(windowRect.size.x + 3, 0);
             if (isSetting) windowRect.position = setRect.position - new Vector2(windowRect.size.x + 3, 0);
 
-            if (windowRect.position.x < 0) windowRect.position -= new Vector2(windowRect.position.x, 0);
+            if (windowRect.position.x < -windowRect.size.x * 0.9f) windowRect.position -= new Vector2(windowRect.position.x + windowRect.size.x * 0.9f, 0);
             if (windowRect.position.y < 0) windowRect.position -= new Vector2(0, windowRect.position.y);
-            if (windowRect.position.x + windowRect.size.x > Screen.width) windowRect.position -= new Vector2(windowRect.position.x + windowRect.size.x - Screen.width, 0);
-            if (windowRect.position.y + windowRect.size.y > Screen.height) windowRect.position -= new Vector2(0, windowRect.position.y + windowRect.size.y - Screen.height);
+            if (windowRect.position.x + windowRect.size.x * 0.1f > Screen.width) windowRect.position -= new Vector2(windowRect.position.x + windowRect.size.x * 0.1f - Screen.width, 0);
+            if (windowRect.position.y + 18 > Screen.height) windowRect.position -= new Vector2(0, windowRect.position.y + 18 - Screen.height);
 
             PushTooltip(GUI.tooltip);
         }
