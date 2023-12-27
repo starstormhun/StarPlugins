@@ -4,6 +4,7 @@ using KK_Plugins.MaterialEditor;
 using static KK_Plugins.MaterialEditor.MaterialEditorCharaController;
 using static MaterialEditorAPI.MaterialAPI;
 using Studio;
+using ChaCustom;
 using System;
 using System.Linq;
 using System.Collections.Generic;
@@ -57,6 +58,9 @@ namespace MassShaderEditor.Koikatu {
         private bool scaled = false;
         private SceneController controller;
 
+        internal int makerTabID = 0;
+        private CustomChangeMainMenu makerMenu;
+
         private void Awake() {
             UIScale = Config.Bind("General", "UI Scale", 1.5f, new ConfigDescription("Can also be set via the built-in settings panel", new AcceptableValueRange<float>(1f, maxScale), null));
             UIScale.SettingChanged += (x, y) => scaled = false;
@@ -85,7 +89,9 @@ namespace MassShaderEditor.Koikatu {
                 controller = MEStudio.GetSceneController();
             };
             KKAPI.Maker.MakerAPI.MakerFinishedLoading += (x, y) => {
+                makerMenu = (FindObjectOfType(typeof(CustomChangeMainMenu)) as CustomChangeMainMenu);
                 controller = MEStudio.GetSceneController();
+                makerTabID = 0;
             };
             HookPatch.Init();
 
@@ -144,6 +150,7 @@ namespace MassShaderEditor.Koikatu {
                 ScaleUI(UIScale.Value);
             }
 
+            // Set / reset logic
             if (Input.GetMouseButtonDown(1) && windowRect.Contains(Input.mousePosition.InvertScreenY()) && !showWarning) {
                 setReset = true;
                 if (IsDebug.Value) Log.Info($"RMB detected! setReset: {setReset}");
@@ -157,6 +164,7 @@ namespace MassShaderEditor.Koikatu {
                 if (IntroShown.Value) {
                     if (!showWarning) {
                         windowRect = GUILayout.Window(587, windowRect, WindowFunction, $"Mass Shader Editor v{Version}", newSkin.window, GUILayout.MaxWidth(defaultSize[2] * UIScale.Value));
+                        GUI.Window(1587, windowRect, (x) => { }, new GUIContent(), newSkin.window);
                         DrawTooltip(tooltip[0]);
 
                         KKAPI.Utilities.IMGUIUtils.EatInputInRect(windowRect);
@@ -167,10 +175,12 @@ namespace MassShaderEditor.Koikatu {
 
                         if (isHelp) {
                             helpRect = GUILayout.Window(588, helpRect, HelpFunction, "How to use?", newSkin.window, GUILayout.MaxWidth(defaultSize[2]*UIScale.Value));
+                            GUI.Window(1588, helpRect, (x) => { }, new GUIContent(), newSkin.window);
                             KKAPI.Utilities.IMGUIUtils.EatInputInRect(helpRect);
                         }
                         if (isSetting) {
                             setRect = GUILayout.Window(588, setRect, SettingFunction, "Settings ۞", newSkin.window, GUILayout.MaxWidth(defaultSize[2] * UIScale.Value));
+                            GUI.Window(1588, setRect, (x) => { }, new GUIContent(), newSkin.window);
                             DrawTooltip(tooltip[0]);
                             KKAPI.Utilities.IMGUIUtils.EatInputInRect(setRect);
                         }
@@ -179,6 +189,7 @@ namespace MassShaderEditor.Koikatu {
                                 fontSize = 1
                             };
                             infoRect = GUILayout.Window(589, infoRect, InfoFunction, "", boxStyle);
+                            GUI.Window(1589, setRect, (x) => { }, new GUIContent(), boxStyle);
                             KKAPI.Utilities.IMGUIUtils.EatInputInRect(infoRect);
                         }
                     }
@@ -187,6 +198,7 @@ namespace MassShaderEditor.Koikatu {
                         GUI.Box(screenRect, "");
                         warnRect.position = new Vector2((Screen.width - warnRect.size.x) / 2, (Screen.height - warnRect.size.y) / 2);
                         warnRect = GUILayout.Window(590, warnRect, WarnFunction, "", newSkin.window);
+                        GUI.Window(1590, warnRect, (x) => { }, new GUIContent(), newSkin.window);
                         KKAPI.Utilities.IMGUIUtils.EatInputInRect(screenRect);
                     }
                 } else {
@@ -194,6 +206,7 @@ namespace MassShaderEditor.Koikatu {
                     GUI.Box(screenRect, "");
                     warnRect.position = new Vector2((Screen.width - warnRect.size.x) / 2, (Screen.height - warnRect.size.y) / 2);
                     warnRect = GUILayout.Window(591, warnRect, IntroFunction, "", newSkin.window);
+                    GUI.Window(1591, warnRect, (x) => { }, new GUIContent(), newSkin.window);
                     KKAPI.Utilities.IMGUIUtils.EatInputInRect(screenRect);
                 }
             }
@@ -277,7 +290,7 @@ namespace MassShaderEditor.Koikatu {
                                 Log.Error($"Unknown error during property value assignment of {item.NameFormatted()}\\{mat.NameFormatted()}\\{setName}: {e}");
                             }
                         } else {
-                            if (IsDebug.Value) Log.Info($"Material {item.NameFormatted()}\\{mat.NameFormatted()} did not have the {setName} property...");
+                            if (IsDebug.Value) Log.Info($"Material {item.NameFormatted()}\\{mat.NameFormatted()}\\{mat.shader.NameFormatted()} did not have the {setName} property...");
                         }
                 }
             }
@@ -322,7 +335,7 @@ namespace MassShaderEditor.Koikatu {
                                 Log.Error($"Unknown error during property value assignment of {ociChar.NameFormatted()}\\{mat.NameFormatted()}\\{setName}: {e}");
                             }
                         } else {
-                            if (IsDebug.Value) Log.Info($"Material {ociChar.NameFormatted()}\\{mat.NameFormatted()} did not have the {setName} property...");
+                            if (IsDebug.Value) Log.Info($"{ociChar.NameFormatted()}\\{mat.NameFormatted()}\\{mat.shader.NameFormatted()} did not have the {setName} property...");
                         }
                 }
             }

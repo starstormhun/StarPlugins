@@ -5,7 +5,6 @@ using System.Collections.Generic;
 using KKAPI;
 using ChaCustom;
 using UnityEngine;
-using UnityEngine.UI;
 
 namespace MassShaderEditor.Koikatu {
     public partial class MassShaderEditor : BaseUnityPlugin {
@@ -312,8 +311,19 @@ namespace MassShaderEditor.Koikatu {
                             newScaleText = newScale.ToString("0.00");
                             newScaleTextInput = newScaleText;
                         }
-                        newScaleTextInput = GUILayout.TextField(newScaleTextInput, newSkin.textField, new GUILayoutOption[] { GUILayout.ExpandWidth(false), GUILayout.MaxWidth(newSkin.textField.CalcSize(new GUIContent("3.55")).x) });
-                        float newScaleTemp = Studio.Utility.StringToFloat(newScaleTextInput);
+                        GUI.SetNextControlName("MSE_Interface_UIScaleText");
+                        Vector2 textSize = newSkin.textField.CalcSize(new GUIContent("5.55"));
+                        newScaleTextInput = GUILayout.TextArea(newScaleTextInput, newSkin.textField, new GUILayoutOption[] { GUILayout.ExpandWidth(false), GUILayout.MaxHeight(textSize.y), GUILayout.MaxWidth(textSize.x) });
+                        
+                        // The only way I could find to detect enter/return was via making it a TextArea and searching the string
+                        if (newScaleTextInput.Contains("\n")) {
+                            int i = newScaleTextInput.IndexOf('\n');
+                            if (UIScale.Value == newScale)
+                                newScaleTextInput = newScaleTextInput.Remove(i, 1);
+                            UIScale.Value = newScale;
+                        }
+
+                        float newScaleTemp = Studio.Utility.StringToFloat(newScaleTextInput.Trim());
                         if (Mathf.Abs(newScale - newScaleTemp) > 1E-06 && float.TryParse(newScaleTextInput, out _)) {
                             newScale = Mathf.Clamp(newScaleTemp, 1, maxScale);
                             newScaleText = newScaleTextInput;

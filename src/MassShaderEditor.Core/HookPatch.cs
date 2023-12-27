@@ -4,6 +4,7 @@ using UnityEngine;
 using UnityEngine.UI;
 using System.Linq;
 using System.Collections.Generic;
+using ChaCustom;
 
 namespace MassShaderEditor.Koikatu {
     public static class HookPatch {
@@ -13,6 +14,19 @@ namespace MassShaderEditor.Koikatu {
 
         internal static void Deactivate() {
             HookPatch.Hooks.UnregisterHooks();
+        }
+
+        private static void SetName(MassShaderEditor MSE, MassShaderEditor.SettingType type, string name) {
+            if (MSE.IsDebug.Value) Log.Info($"Property name set: {name.Replace(':', ' ').Replace('*', ' ').Trim()}");
+            MSE.tab = type;
+            MSE.setName = name.Replace(':', ' ').Replace('*', ' ').Trim();
+            MSE.setNameInput = MSE.setName;
+        }
+
+        private static void SetFilter(MassShaderEditor MSE, string filter) {
+            if (MSE.IsDebug.Value) Log.Info($"Shader to be filtered: {filter}");
+            MSE.filter = filter.Trim();
+            MSE.filterInput = MSE.filter;
         }
 
         private static class Hooks {
@@ -96,17 +110,11 @@ namespace MassShaderEditor.Koikatu {
                 (Object.FindObjectOfType(typeof(MassShaderEditor)) as MassShaderEditor).isPicker = false;
             }
 
-            private static void SetName(MassShaderEditor MSE, MassShaderEditor.SettingType type, string name) {
-                if (MSE.IsDebug.Value) Log.Info($"Property name set: {name.Replace(':', ' ').Replace('*', ' ').Trim()}");
-                MSE.tab = type;
-                MSE.setName = name.Replace(':', ' ').Replace('*', ' ').Trim();
-                MSE.setNameInput = MSE.setName;
-            }
-
-            private static void SetFilter(MassShaderEditor MSE, string filter) {
-                if (MSE.IsDebug.Value) Log.Info($"Shader to be filtered: {filter}");
-                MSE.filter = filter.Trim();
-                MSE.filterInput = MSE.filter;
+            // Keeps track of the current tab while in maker
+            [HarmonyPostfix]
+            [HarmonyPatch(typeof(CustomChangeMainMenu), "ChangeWindowSetting")]
+            private static void CustomChangeMainMenuAfterChangeWindowSetting(int no) {
+                (Object.FindObjectOfType(typeof(MassShaderEditor)) as MassShaderEditor).makerTabID = no;
             }
         }
 
