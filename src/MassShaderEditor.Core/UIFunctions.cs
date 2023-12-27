@@ -19,17 +19,20 @@ namespace MassShaderEditor.Koikatu {
         private float messageDur = 1;
         private float messageTime = 0;
 
-        private Rect windowRect = new Rect(200, 40, 240, 170);
+        private static float[] defaultSize = new float[] { 200f,40f,250f,170f};
+        private Rect windowRect = new Rect(defaultSize[0], defaultSize[1], defaultSize[2], defaultSize[3]);
         private Rect helpRect = new Rect();
         private Rect setRect = new Rect();
         private Rect infoRect = new Rect();
         private Rect warnRect = new Rect(0,0,360,200);
-        private SettingType tab = SettingType.Float;
+        internal SettingType tab = SettingType.Float;
         private float prevScale = 1;
+        private const float maxScale = 3;
         private GUISkin newSkin;
 
-        internal string setName = "";
         private bool setReset = true;
+        internal string filter = "";
+        internal string setName = "";
         private float setVal = 0;
         private Color setCol = Color.white;
 
@@ -39,6 +42,8 @@ namespace MassShaderEditor.Koikatu {
         private float setValInput = 0;
         private float setValSlider = 0;
 
+        internal string filterInput = "";
+        internal string setNameInput = "";
         private float[] setColNum = new float[]{ 1f, 1f, 1f, 1f };
         private string setColStringInputMemory = "ffffffff";
         private string setColStringInput = "ffffffff";
@@ -49,21 +54,27 @@ namespace MassShaderEditor.Koikatu {
         private Color setColPicker = Color.white;
 
         private float newScale = 1;
-        private float newScalePrev = 1;
+        private string newScaleTextInput = "1.00";
         private string newScaleText = "1.00";
         private float newScaleSlider = 1;
 
         private int helpPage = 0;
-        private string[] tooltip = new string[]{ "",""};
+        private readonly string[] tooltip = new string[]{ "",""};
 
-        private List<string> helpText = new List<string>{"To use, first choose whether the property you want to edit is a value, or a color using the buttons at the top of the UI. Afterwards you can input its name, and set the desired value/color using the fields below those.",
+        private readonly List<string> helpText = new List<string>{"To use, first choose whether the property you want to edit is a value, or a color using the buttons at the top of the UI. Afterwards you can input its name, and set the desired value/color using the fields below those.",
             "You can either type in the name of the property you want to edit, or you can click its name in the MaterialEditor UI, or click the timeline integration button that you can enable in the ME settings. Clicking these things will autofill the property name.",
+            "You can also set up a shader name filter by clicking the 'Shader' label or Timeline button in MaterialEditor next to the dropdown list of the shader, but it can also be inputted manually. The filter doesn't have to be the full name of the shader. If left empty, all shaders will be edited.",
             "After you have the edited-to-be property named, and its desired value set, you can click'Set Selected', or 'Set ALL'. In Studio, 'Set Selected' will modify items you currently have selected in the Workspace. Also in Studio, 'Set ALL' will modify EVERYTHING in the scene.",
             "In Character Maker, 'Set Selected' will affect only the currently edited clothing piece or accessory. When in the face or body menus, the appropriate body part will be affected instead. The 'Set ALL' button in Maker affects all of the currently edited category.",
             "Right-clicking either of these two buttons will reset the specified property of the appropriate items to the default value instead of setting the one you have currently inputted."};
         private const string diveFoldersText = "Whether 'Set Selected' will affect items that are inside selected folders.";
         private const string diveItemsText = "Whether 'Set Selected' will affect items that are the children of selected items.";
-        private const float maxScale = 3;
+        private const string affectCharactersText = "Whether 'Set Selected' and 'Set ALL' will affect characters at all.";
+        private static string AffectChaPartsText(string part) => $"Whether the 'Set ...' buttons will affect characters' {part}.";
+        private readonly string affectChaBodyText = AffectChaPartsText("bodies");
+        private readonly string affectChaHairText = AffectChaPartsText("hair, including hair accs");
+        private readonly string affectChaClothesText = AffectChaPartsText("clothes");
+        private readonly string affectChaAccsText = AffectChaPartsText("accessories, excluding any hair");
 
         private void WindowFunction(int WindowID) {
             GUILayout.BeginVertical();
@@ -74,32 +85,47 @@ namespace MassShaderEditor.Koikatu {
                 tab = SettingType.Float;
             if (GUILayout.Button("Color", newSkin.button))
                 tab = SettingType.Color;
-            if (GUILayout.Button("۞", newSkin.button, GUILayout.ExpandWidth(false))) {
+            if (GUILayout.Button(new GUIContent("۞", "Show settings"), newSkin.button, GUILayout.ExpandWidth(false))) {
                 isSetting = !isSetting;
                 isHelp = false;
             }
             var helpStyle = new GUIStyle(newSkin.button);
             helpStyle.normal.textColor = Color.yellow;
             helpStyle.hover.textColor = Color.yellow;
-            if (GUILayout.Button("?", helpStyle, GUILayout.ExpandWidth(false))) {
+            if (GUILayout.Button(new GUIContent("?", "Show help"), helpStyle, GUILayout.ExpandWidth(false))) {
                 isHelp = !isHelp;
                 isSetting = false;
             }
             GUILayout.EndHorizontal();
 
-            // Property name
+            // Label setup
+            string filterText = "Filter"; float filterWidth = newSkin.label.CalcSize(new GUIContent(filterText)).x;
+            string propertyText = "Property"; float propertyWidth = newSkin.label.CalcSize(new GUIContent(propertyText)).x;
+            string valueText = "Value"; float valueWidth = newSkin.label.CalcSize(new GUIContent(valueText)).x;
+            float commonWidth = Mathf.Max(new float[]{filterWidth, propertyWidth, valueWidth});
+
+            // Filter
             GUILayout.BeginHorizontal();
-            GUILayout.Label("Property Name", newSkin.label, GUILayout.ExpandWidth(false));
-            setName = GUILayout.TextField(setName,newSkin.textField);
+            GUILayout.Label(new GUIContent(filterText, "Only shaders with this in their name will be edited"), newSkin.label, GUILayout.Width(commonWidth));
+            filterInput = GUILayout.TextField(filterInput, newSkin.textField);
+            filter = filterInput.Trim();
+            GUILayout.EndHorizontal();
+
+            // Property
+            GUILayout.BeginHorizontal();
+            GUILayout.Label(new GUIContent(propertyText, "The name of the shader property to be edited"), newSkin.label, GUILayout.Width(commonWidth));
+            setNameInput = GUILayout.TextField(setNameInput,newSkin.textField);
+            setName = setNameInput.Trim();
             GUILayout.EndHorizontal();
 
             // Choosing the slider value
             if (tab == SettingType.Float) {
                 GUILayout.BeginHorizontal();
-                GUILayout.Label("Value", newSkin.label, GUILayout.ExpandWidth(false));
+                GUILayout.Label(valueText, newSkin.label, GUILayout.Width(commonWidth));
                 setValInputString = GUILayout.TextField(setValInputString, newSkin.textField);
                 setValInput = Studio.Utility.StringToFloat(setValInputString);
-                GUILayout.Label("→ " + setVal.ToString("0.000"), newSkin.label, GUILayout.ExpandWidth(false));
+                string indicatorText = "→ " + setVal.ToString("0.000");
+                GUILayout.Label(indicatorText, newSkin.label, GUILayout.Width(newSkin.label.CalcSize(new GUIContent(indicatorText)).x));
                 GUILayout.EndHorizontal();
                 GUILayout.Space(-4);
                 GUILayout.BeginHorizontal();
@@ -124,7 +150,8 @@ namespace MassShaderEditor.Koikatu {
             // Choosing the color
             if (tab == SettingType.Color) {
                 GUILayout.BeginHorizontal();
-                GUILayout.Label("Color #", newSkin.label, GUILayout.ExpandWidth(false));
+                string colorText = "Color #";
+                GUILayout.Label(colorText, newSkin.label, GUILayout.Width(newSkin.label.CalcSize(new GUIContent(colorText)).x));
 
                 // Text input
                 {
@@ -134,23 +161,23 @@ namespace MassShaderEditor.Koikatu {
                         setColStringInputMemory = setColStringInput;
                     }
                     setColStringInput = GUILayout.TextField(setColStringInput, newSkin.textField);
-                    try {
-                        Color colConvert = setColStringInput.ToColor(); // May throw exception if hexcode is faulty
-                        setColString = setColStringInput; // Since hexcode is valid, we store it
-                        if (!colConvert.Matches(setCol)) {
-                            if (IsDebug.Value && !pickerChanged) Log.Info($"Color changed from {setCol} to {colConvert} based on text input!");
-                            pickerChanged = false;
-                            setCol = colConvert;
-                        }
-                    } catch {
-                        if (IsDebug.Value && setColStringInputMemory != setColStringInput) {
+                    if (setColStringInputMemory != setColStringInput) {
+                        try {
+                            Color colConvert = setColStringInput.ToColor(); // May throw exception if hexcode is faulty
+                            setColString = setColStringInput; // Since hexcode is valid, we store it
+                            if (!colConvert.Matches(setCol)) {
+                                if (IsDebug.Value && !pickerChanged) Log.Info($"Color changed from {setCol} to {colConvert} based on text input!");
+                                pickerChanged = false;
+                                setCol = colConvert;
+                            }
+                        } catch {
                             Log.Info("Could not convert color code!");
                         }
                     }
                     setColStringInputMemory = setColStringInput;
                 } // End text input
-
-                GUILayout.Label("RGBA →", newSkin.label, GUILayout.ExpandWidth(false));
+                colorText = "RGBA →";
+                GUILayout.Label(colorText, newSkin.label, GUILayout.Width(newSkin.label.CalcSize(new GUIContent(colorText)).x));
 
                 // Color picker
                 {
@@ -206,13 +233,14 @@ namespace MassShaderEditor.Koikatu {
                 GUILayout.EndHorizontal();
             }
 
+            Spacer(3); GUILayout.FlexibleSpace();
+
             // Action buttons
-            GUILayout.FlexibleSpace();
             GUILayout.BeginHorizontal();
             GUIStyle allStyle = new GUIStyle(newSkin.button);
             allStyle.normal.textColor = Color.red;
             allStyle.hover.textColor = Color.red;
-            if (GUILayout.Button("Set ALL", allStyle)) {
+            if (GUILayout.Button(new GUIContent("Set ALL", "Right click to reset all"), allStyle)) {
                 if (setName != "") {
                     if (!DisableWarning.Value) {
                         showWarning = true;
@@ -224,7 +252,7 @@ namespace MassShaderEditor.Koikatu {
                     }
                 } else ShowMessage("You need to set a property name to edit!");
             }
-            if (GUILayout.Button("Set Selected", newSkin.button)) {
+            if (GUILayout.Button(new GUIContent("Set Selected", "Right click to reset selected"), newSkin.button)) {
                 if (setName != "") {
                     if (tab == SettingType.Color)
                         SetSelectedProperties(setCol);
@@ -245,6 +273,8 @@ namespace MassShaderEditor.Koikatu {
             if (windowRect.position.y < 0) windowRect.position -= new Vector2(0, windowRect.position.y);
             if (windowRect.position.x + windowRect.size.x > Screen.width) windowRect.position -= new Vector2(windowRect.position.x + windowRect.size.x - Screen.width, 0);
             if (windowRect.position.y + windowRect.size.y > Screen.height) windowRect.position -= new Vector2(0, windowRect.position.y + windowRect.size.y - Screen.height);
+
+            PushTooltip(GUI.tooltip);
         }
 
         private void HelpFunction(int WindowID) {
@@ -269,32 +299,53 @@ namespace MassShaderEditor.Koikatu {
         private void SettingFunction(int WindowID) {
             GUILayout.BeginVertical();
 
-            // GUI Scale
+            // General
             {
-                GUILayout.Label("GUI Scale", newSkin.label);
-                GUILayout.Space(-4); GUILayout.BeginHorizontal();
-                newScaleText = GUILayout.TextField(newScaleText, newSkin.textField, GUILayout.ExpandWidth(false));
-                float newScaleTemp = Studio.Utility.StringToFloat(newScaleText);
-                if (float.TryParse(newScaleText, out _)) {
-                    newScale = Mathf.Clamp(newScaleTemp, 1, maxScale);
-                    newScaleSlider = newScale;
-                    newScaleText = newScale.ToString("0.00");
-                }
+                // UI Scale
+                {
+                    GUILayout.Space(-4); GUILayout.BeginHorizontal();
+                    GUILayout.Label("UI Scale", newSkin.label, GUILayout.ExpandWidth(false));
 
-                GUILayout.BeginVertical(); GUILayout.Space(8);
-                if (Mathf.Abs(newScaleSlider - newScale) > 1E-06) newScaleSlider = newScale;
-                newScaleSlider = GUILayout.HorizontalSlider(newScaleSlider, 1, maxScale, newSkin.horizontalSlider, newSkin.horizontalSliderThumb);
-                if (Mathf.Abs(newScaleSlider - newScale) > 1E-06) newScale = newScaleSlider;
-                if (Mathf.Abs(newScale - newScalePrev) > 1E-06) newScaleText = newScale.ToString("0.00");
-                newScalePrev = newScale;
-                GUILayout.EndVertical();
+                    // Text input
+                    {
+                        if (Mathf.Abs(newScale - Studio.Utility.StringToFloat(newScaleText)) > 1E-06) {
+                            newScaleText = newScale.ToString("0.00");
+                            newScaleTextInput = newScaleText;
+                        }
+                        newScaleTextInput = GUILayout.TextField(newScaleTextInput, newSkin.textField, new GUILayoutOption[] { GUILayout.ExpandWidth(false), GUILayout.MaxWidth(newSkin.textField.CalcSize(new GUIContent("3.55")).x) });
+                        float newScaleTemp = Studio.Utility.StringToFloat(newScaleTextInput);
+                        if (Mathf.Abs(newScale - newScaleTemp) > 1E-06 && float.TryParse(newScaleTextInput, out _)) {
+                            newScale = Mathf.Clamp(newScaleTemp, 1, maxScale);
+                            newScaleText = newScaleTextInput;
+                        }
+                    } // End text input
 
-                GUILayout.Label("→ " + newScale.ToString("0.00"), newSkin.label, GUILayout.ExpandWidth(false));
+                    // Slider
+                    {
+                        GUILayout.BeginVertical(); GUILayout.Space(8);
+                        if (Mathf.Abs(newScaleSlider - newScale) > 1E-06) newScaleSlider = newScale;
+                        newScaleSlider = GUILayout.HorizontalSlider(newScaleSlider, 1, maxScale, newSkin.horizontalSlider, newSkin.horizontalSliderThumb);
+                        if (Mathf.Abs(newScaleSlider - newScale) > 1E-06) newScale = newScaleSlider;
+                        GUILayout.EndVertical();
+                    } // End slider
 
-                if (GUILayout.Button("Set", newSkin.button, GUILayout.ExpandWidth(false)))
-                    UIScale.Value = newScale;
-                GUILayout.EndHorizontal(); GUILayout.Space(8);
-            } // End GUI Scale
+                    GUILayout.Label("→ " + newScale.ToString("0.00"), newSkin.label, GUILayout.ExpandWidth(false));
+
+                    // Button
+                    if (GUILayout.Button("Set", newSkin.button, GUILayout.ExpandWidth(false)))
+                        UIScale.Value = newScale;
+
+                    GUILayout.EndHorizontal(); GUILayout.Space(8);
+                } // End UI Scale
+
+                // Show tooltips
+                GUILayout.BeginHorizontal();
+                if (GUILayout.Button($"Show Tooltips: {(ShowTooltips.Value ? "Yes" : "No")}", newSkin.button))
+                    ShowTooltips.Value = !ShowTooltips.Value;
+                GUILayout.FlexibleSpace(); GUILayout.EndHorizontal();
+            } // End general
+
+            Spacer();
 
             // Studio settings
             {
@@ -304,11 +355,29 @@ namespace MassShaderEditor.Koikatu {
                         DiveFolders.Value = !DiveFolders.Value;
                     if (GUILayout.Button(new GUIContent($"Dive items: {(DiveItems.Value ? "Yes" : "No")}", diveItemsText), newSkin.button))
                         DiveItems.Value = !DiveItems.Value;
-                    GUILayout.EndHorizontal();
+                    GUILayout.EndHorizontal(); Spacer();
+                    if (GUILayout.Button(new GUIContent($"Affect characters: {(AffectCharacters.Value ? "Yes" : "No")}", affectCharactersText), newSkin.button)) {
+                        AffectCharacters.Value = !AffectCharacters.Value;
+                        CalcSizes();
+                    }
+                    if (AffectCharacters.Value) {
+                        GUILayout.BeginHorizontal();
+                        if (GUILayout.Button(new GUIContent($"Body: {(AffectChaBody.Value ? "Yes" : "No")}", affectChaBodyText), newSkin.button))
+                            AffectChaBody.Value = !AffectChaBody.Value;
+                        if (GUILayout.Button(new GUIContent($"Hair: {(AffectChaHair.Value ? "Yes" : "No")}", affectChaHairText), newSkin.button))
+                            AffectChaHair.Value = !AffectChaHair.Value;
+                        GUILayout.EndHorizontal();
+                        GUILayout.BeginHorizontal();
+                        if (GUILayout.Button(new GUIContent($"Clothes: {(AffectChaClothes.Value ? "Yes" : "No")}", affectChaClothesText), newSkin.button))
+                            AffectChaClothes.Value = !AffectChaClothes.Value;
+                        if (GUILayout.Button(new GUIContent($"Accessories: {(AffectChaAccs.Value ? "Yes" : "No")}", affectChaAccsText), newSkin.button))
+                            AffectChaAccs.Value = !AffectChaAccs.Value;
+                        GUILayout.EndHorizontal();
+                    }
                 }
             } // End studio settings
 
-            GUILayout.FlexibleSpace(); GUILayout.EndVertical();
+            GUILayout.EndVertical();
             GUI.DragWindow();
 
             PushTooltip(GUI.tooltip);
@@ -426,6 +495,7 @@ namespace MassShaderEditor.Koikatu {
                 horizontalSlider = new GUIStyle(GUI.skin.horizontalSlider),
                 horizontalSliderThumb = new GUIStyle(GUI.skin.horizontalSliderThumb)
             };
+            newSkin.window.stretchWidth = false;
         }
 
         private void ScaleUI(float scale) {
@@ -435,19 +505,22 @@ namespace MassShaderEditor.Koikatu {
             newScale = scale;
             newScaleSlider = scale;
             newScaleText = scale.ToString("0.00");
-            int newSize = (int)(GUI.skin.font.fontSize * scale);
+            newScaleTextInput = newScaleText;
 
+            int newSize = (int)(GUI.skin.font.fontSize * scale);
             newSkin.box.fontSize = newSize;
             newSkin.label.fontSize = newSize;
             newSkin.button.fontSize = newSize;
             newSkin.textField.fontSize = newSize;
             newSkin.horizontalSlider.fixedHeight = newSize;
             newSkin.horizontalSliderThumb.fixedHeight = newSize;
+            newSkin.horizontalSliderThumb.fixedWidth = Math.Max(newSkin.horizontalSliderThumb.fixedHeight * 0.65f, 15);
 
             CalcSizes();
         }
 
         private void ShowMessage(string _msg, float _dur = 2.5f) {
+            infoRect.size = new Vector2(windowRect.size.x, 1);
             messageTime = Time.time;
             messageDur = _dur;
             message = _msg;
@@ -465,20 +538,31 @@ namespace MassShaderEditor.Koikatu {
         }
 
         private void DrawTooltip(string _tip) {
-            if (!_tip.IsNullOrEmpty()) {
-                var tipStyle = new GUIStyle(newSkin.box);
-                tipStyle.wordWrap = true;
-                tipStyle.alignment = TextAnchor.MiddleCenter;
-                float width = 270f * UIScale.Value;
+            if (!_tip.IsNullOrEmpty() && ShowTooltips.Value) {
+                var tipStyle = new GUIStyle(newSkin.box) {
+                    wordWrap = true,
+                    alignment = TextAnchor.MiddleCenter
+                };
+                var winStyle = new GUIStyle(GUIStyle.none);
+                winStyle.normal.background = newSkin.box.normal.background;
+                winStyle.border = newSkin.box.border;
+                winStyle.padding.top = 4;
+
+                float defaultWidth = 270f * UIScale.Value;
+                Vector2 defaultSize = tipStyle.CalcSize(new GUIContent(_tip));
+                float width = defaultSize.x > defaultWidth ? defaultWidth : defaultSize.x;
                 float height = tipStyle.CalcHeight(new GUIContent(_tip), width) + 10f;
+
                 float x = Input.mousePosition.x;
                 float y = Screen.height - Input.mousePosition.y + 30f;
-                Rect draw = new Rect(x, y, width, height);
-                GUILayout.Window(590, draw, (int id) => GUILayout.Box( _tip, tipStyle), new GUIContent(), GUIStyle.none);
+                Rect draw = new Rect(x, y, width+2*winStyle.border.left, height);
+                GUILayout.Window(592, draw, (int id) => { GUILayout.Box(_tip, tipStyle); }, new GUIContent(), winStyle);
             }
         }
 
-        private enum SettingType {
+        private void Spacer(float multiplied = 1) => GUILayout.Space(6 * multiplied * UIScale.Value);
+
+        public enum SettingType {
             Color,
             Float
         }

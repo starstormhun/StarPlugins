@@ -29,8 +29,16 @@ namespace MassShaderEditor.Koikatu {
 
         // General
         public ConfigEntry<float> UIScale { get; private set; }
+        public ConfigEntry<bool> ShowTooltips { get; private set; }
+
+        // Studio options
         public ConfigEntry<bool> DiveFolders { get; private set; }
         public ConfigEntry<bool> DiveItems { get; private set; }
+        public ConfigEntry<bool> AffectCharacters { get; private set; }
+        public ConfigEntry<bool> AffectChaBody { get; private set; }
+        public ConfigEntry<bool> AffectChaHair { get; private set; }
+        public ConfigEntry<bool> AffectChaClothes { get; private set; }
+        public ConfigEntry<bool> AffectChaAccs { get; private set; }
 
         // Hotkeys
         public ConfigEntry<KeyboardShortcut> VisibleHotkey { get; private set; }
@@ -52,8 +60,15 @@ namespace MassShaderEditor.Koikatu {
         private void Awake() {
             UIScale = Config.Bind("General", "UI Scale", 1.5f, new ConfigDescription("Can also be set via the built-in settings panel", new AcceptableValueRange<float>(1f, maxScale), null));
             UIScale.SettingChanged += (x, y) => scaled = false;
-            DiveFolders = Config.Bind("General", "Dive folders", false, new ConfigDescription(diveFoldersText, null, null));
-            DiveItems = Config.Bind("General", "Dive items", false, new ConfigDescription(diveItemsText, null, null));
+            ShowTooltips = Config.Bind("General", "Show tooltips", true, "");
+
+            DiveFolders = Config.Bind("Studio", "Dive folders", false, new ConfigDescription(diveFoldersText, null, null));
+            DiveItems = Config.Bind("Studio", "Dive items", false, new ConfigDescription(diveItemsText, null, null));
+            AffectCharacters = Config.Bind("Studio", "Affect characters", false, new ConfigDescription(affectCharactersText, null, new KKAPI.Utilities.ConfigurationManagerAttributes { Order = 10 }));
+            AffectChaBody = Config.Bind("Studio", "Affect character bodies", false, new ConfigDescription(affectChaBodyText, null, null));
+            AffectChaHair = Config.Bind("Studio", "Affect character hair", false, new ConfigDescription(affectChaHairText, null, null));
+            AffectChaClothes = Config.Bind("Studio", "Affect character clothes", false, new ConfigDescription(affectChaClothesText, null, null));
+            AffectChaAccs = Config.Bind("Studio", "Affect character accessories", false, new ConfigDescription(affectChaAccsText, null, null));
 
             VisibleHotkey = Config.Bind("Hotkeys", "UI Toggle", new KeyboardShortcut(KeyCode.M), new ConfigDescription("The key used to toggle the plugin's UI",null,new KKAPI.Utilities.ConfigurationManagerAttributes{ Order = 10}));
             SetSelectedHotkey = Config.Bind("Hotkeys", "Set Selected", new KeyboardShortcut(KeyCode.None), new ConfigDescription("Simulate left-clicking 'Set Selected'", null, null));
@@ -83,25 +98,33 @@ namespace MassShaderEditor.Koikatu {
                 isShown = !isShown;
             if (isShown) {
                 if (SetSelectedHotkey.Value.IsDown()) {
-                    setReset = false;
-                    if (tab == SettingType.Color) SetSelectedProperties(setCol);
-                    if (tab == SettingType.Float) SetSelectedProperties(setVal);
+                    if (setName != "") {
+                        setReset = false;
+                        if (tab == SettingType.Color) SetSelectedProperties(setCol);
+                        if (tab == SettingType.Float) SetSelectedProperties(setVal);
+                    } else ShowMessage("You need to set a property name to edit!");
                 }
                 if (ResetSelectedHotkey.Value.IsDown()) {
-                    setReset = true;
-                    SetSelectedProperties(0f);
+                    if (setName != "") {
+                        setReset = true;
+                        SetSelectedProperties(0f);
+                    } else ShowMessage("You need to set a property name to edit!");
                 }
                 if (SetAllHotkey.Value.IsDown()) {
-                    setReset = false;
-                    if (DisableWarning.Value) {
-                        if (tab == SettingType.Color) SetAllProperties(setCol);
-                        if (tab == SettingType.Float) SetAllProperties(setVal);
-                    } else showWarning = true;
+                    if (setName != "") {
+                        setReset = false;
+                        if (DisableWarning.Value) {
+                            if (tab == SettingType.Color) SetAllProperties(setCol);
+                            if (tab == SettingType.Float) SetAllProperties(setVal);
+                        } else showWarning = true;
+                    } else ShowMessage("You need to set a property name to edit!");
                 }
                 if (ResetAllHotkey.Value.IsDown()) {
-                    setReset = true;
-                    if (DisableWarning.Value) SetAllProperties(0f);
-                    else showWarning = true;
+                    if (setName != "") {
+                        setReset = true;
+                        if (DisableWarning.Value) SetAllProperties(0f);
+                        else showWarning = true;
+                    } else ShowMessage("You need to set a property name to edit!");
                 }
             }
             if (showMessage && Time.time - messageTime >= messageDur) showMessage = false;
@@ -133,7 +156,8 @@ namespace MassShaderEditor.Koikatu {
             if (isShown) {
                 if (IntroShown.Value) {
                     if (!showWarning) {
-                        windowRect = GUILayout.Window(587, windowRect, WindowFunction, $"Mass Shader Editor v{Version}", newSkin.window);
+                        windowRect = GUILayout.Window(587, windowRect, WindowFunction, $"Mass Shader Editor v{Version}", newSkin.window, GUILayout.MaxWidth(defaultSize[2] * UIScale.Value));
+                        DrawTooltip(tooltip[0]);
 
                         KKAPI.Utilities.IMGUIUtils.EatInputInRect(windowRect);
 
@@ -142,17 +166,18 @@ namespace MassShaderEditor.Koikatu {
                         infoRect.position = windowRect.position + new Vector2(0, windowRect.size.y + 3);
 
                         if (isHelp) {
-                            helpRect = GUILayout.Window(588, helpRect, HelpFunction, "How to use?", newSkin.window);
+                            helpRect = GUILayout.Window(588, helpRect, HelpFunction, "How to use?", newSkin.window, GUILayout.MaxWidth(defaultSize[2]*UIScale.Value));
                             KKAPI.Utilities.IMGUIUtils.EatInputInRect(helpRect);
                         }
                         if (isSetting) {
-                            setRect = GUILayout.Window(588, setRect, SettingFunction, "Settings ۞", newSkin.window);
+                            setRect = GUILayout.Window(588, setRect, SettingFunction, "Settings ۞", newSkin.window, GUILayout.MaxWidth(defaultSize[2] * UIScale.Value));
                             DrawTooltip(tooltip[0]);
                             KKAPI.Utilities.IMGUIUtils.EatInputInRect(setRect);
                         }
                         if (showMessage) {
-                            var boxStyle = new GUIStyle(newSkin.box);
-                            boxStyle.fontSize = 1;
+                            var boxStyle = new GUIStyle(newSkin.box) {
+                                fontSize = 1
+                            };
                             infoRect = GUILayout.Window(589, infoRect, InfoFunction, "", boxStyle);
                             KKAPI.Utilities.IMGUIUtils.EatInputInRect(infoRect);
                         }
@@ -161,14 +186,14 @@ namespace MassShaderEditor.Koikatu {
                         Rect screenRect = new Rect(0, 0, Screen.width, Screen.height);
                         GUI.Box(screenRect, "");
                         warnRect.position = new Vector2((Screen.width - warnRect.size.x) / 2, (Screen.height - warnRect.size.y) / 2);
-                        warnRect = GUILayout.Window(589, warnRect, WarnFunction, "", newSkin.window);
+                        warnRect = GUILayout.Window(590, warnRect, WarnFunction, "", newSkin.window);
                         KKAPI.Utilities.IMGUIUtils.EatInputInRect(screenRect);
                     }
                 } else {
                     Rect screenRect = new Rect(0, 0, Screen.width, Screen.height);
                     GUI.Box(screenRect, "");
                     warnRect.position = new Vector2((Screen.width - warnRect.size.x) / 2, (Screen.height - warnRect.size.y) / 2);
-                    warnRect = GUILayout.Window(589, warnRect, IntroFunction, "", newSkin.window);
+                    warnRect = GUILayout.Window(591, warnRect, IntroFunction, "", newSkin.window);
                     KKAPI.Utilities.IMGUIUtils.EatInputInRect(screenRect);
                 }
             }
@@ -208,34 +233,91 @@ namespace MassShaderEditor.Koikatu {
         }
 
         private void SetProperties<T>(List<ObjectCtrlInfo> _ociList, T _value) {
-            foreach (ObjectCtrlInfo oci in _ociList) {
-                if (oci is OCIItem item) {
-                    if (IsDebug.Value) Log.Info($"Looking into {item.treeNodeObject.transform.GetComponentInChildren<UnityEngine.UI.Text>().text}...");
-                    foreach (var rend in GetRendererList(item.objectItem)) {
-                        if (IsDebug.Value) Log.Info($"Got renderer: {rend.name}");
-                        foreach (var mat in GetMaterials(item.objectItem, rend)) {
-                            if (IsDebug.Value) Log.Info($"Got material: {mat.NameFormatted()}");
-                            if (mat.HasProperty("_"+setName)) {
-                                try {
-                                    if (setReset) {
-                                        controller.RemoveMaterialFloatProperty(item.objectInfo.dicKey, mat, setName);
-                                        controller.RemoveMaterialColorProperty(item.objectInfo.dicKey, mat, setName);
-                                        if (IsDebug.Value) Log.Info($"Property {setName}({_value.GetType()}) reset!");
-                                    } else {
-                                        if (_value is float floatval) controller.SetMaterialFloatProperty(item.objectInfo.dicKey, mat, setName, floatval);
-                                        if (_value is Color colval) controller.SetMaterialColorProperty(item.objectInfo.dicKey, mat, setName, colval);
-                                        if (IsDebug.Value) Log.Info($"Property {setName} set to {_value}!");
-                                    }
-                                } catch (Exception e) {
-                                    Log.Error($"Unknown error during property value assignment: {e}");
-                                }
+            if (KKAPI.Studio.StudioAPI.InsideStudio) {
+                foreach (ObjectCtrlInfo oci in _ociList) {
+                    if (oci is OCIItem item) {
+                        SetItemProperties(controller, item, _value);
+                    } else if (oci is OCIChar ociChar && AffectCharacters.Value) {
+                        if (IsDebug.Value) Log.Info($"Looking into character: {ociChar.treeNodeObject.textName}");
+                        var ctrl = KKAPI.Studio.StudioObjectExtensions.GetChaControl(ociChar);
+                        if (AffectChaBody.Value) SetCharaProperties(ctrl.GetController(), ociChar, 0, ObjectType.Character, _value);
+                        if (AffectChaHair.Value) for(int i = 0; i<ctrl.objHair.Length; i++) SetCharaProperties(ctrl.GetController(), ociChar, i, ObjectType.Hair, _value);
+                        if (AffectChaClothes.Value) for (int i = 0; i < ctrl.objClothes.Length; i++) SetCharaProperties(ctrl.GetController(), ociChar, i, ObjectType.Clothing, _value);
+                        for (int i = 0; i < ctrl.objAccessory.Length; i++)
+                            SetCharaProperties(ctrl.GetController(), ociChar, i, ObjectType.Accessory, _value, x => (x.Contains("hair") && AffectChaHair.Value) || (!x.Contains("hair") && AffectChaAccs.Value));
+                    }
+                }
+            } else if (KKAPI.Maker.MakerAPI.InsideMaker) {
+                // TODO
+            }
+        }
+
+        private void SetItemProperties<T>(SceneController ctrl, OCIItem item, T _value) {
+            if (IsDebug.Value) Log.Info($"Looking into {item.NameFormatted()}...");
+            foreach (var rend in GetRendererList(item.objectItem)) {
+                if (IsDebug.Value) Log.Info($"Got renderer: {rend.NameFormatted()}");
+                foreach (var mat in GetMaterials(item.objectItem, rend)) {
+                    if (IsDebug.Value) Log.Info($"Got material: {mat.NameFormatted()}");
+                    if (mat.HasProperty("_" + setName)) {
+                        try {
+                            if (setReset) {
+                                ctrl.RemoveMaterialFloatProperty(item.objectInfo.dicKey, mat, setName);
+                                ctrl.RemoveMaterialColorProperty(item.objectInfo.dicKey, mat, setName);
+                                if (IsDebug.Value) Log.Info($"Property {item.NameFormatted()}\\{mat.NameFormatted()}\\{setName}({_value.GetType()}) reset!");
                             } else {
-                                if (IsDebug.Value) Log.Info($"Material {mat.name} did not have the property...");
+                                if (_value is float floatval) ctrl.SetMaterialFloatProperty(item.objectInfo.dicKey, mat, setName, floatval);
+                                if (_value is Color colval) ctrl.SetMaterialColorProperty(item.objectInfo.dicKey, mat, setName, colval);
+                                if (IsDebug.Value) Log.Info($"Property {item.NameFormatted()}\\{mat.NameFormatted()}\\{setName} set to {_value}!");
                             }
+                        } catch (Exception e) {
+                            Log.Error($"Unknown error during property value assignment of {item.NameFormatted()}\\{mat.NameFormatted()}\\{setName}: {e}");
                         }
+                    } else {
+                        if (IsDebug.Value) Log.Info($"Material {mat.NameFormatted()} did not have the property...");
                     }
                 }
             }
+        }
+
+        private void SetCharaProperties<T>(MaterialEditorCharaController ctrl, OCIChar ociChar, int slot, ObjectType type, T _value) {
+            SetCharaProperties<T>(ctrl, ociChar, slot, type, _value, x => true);
+        }
+
+        private void SetCharaProperties<T>(MaterialEditorCharaController ctrl, OCIChar ociChar, int slot, ObjectType type, T _value, Predicate<string> match) {
+            var chaCtrl = ctrl.ChaControl;
+            GameObject go;
+            switch (type) {
+                case ObjectType.Character:
+                    go = ctrl.gameObject; break;
+                case ObjectType.Hair:
+                    go = chaCtrl.objHair[slot]; break;
+                case ObjectType.Clothing:
+                    go = chaCtrl.objClothes[slot]; break;
+                case ObjectType.Accessory:
+                    go = KKAPI.Maker.AccessoriesApi.GetAccessoryObject(chaCtrl, slot); break;
+                default:
+                    go = null; break;
+            }
+            foreach (var rend in GetRendererList(go))
+                foreach (var mat in GetMaterials(go, rend))
+                    if (match(mat.shader.NameFormatted().ToLower()))
+                        if (mat.HasProperty("_" + setName)) {
+                            try {
+                                if (setReset) {
+                                    ctrl.RemoveMaterialFloatProperty(slot, type, mat, setName, go);
+                                    ctrl.RemoveMaterialColorProperty(slot, type, mat, setName, go);
+                                    if (IsDebug.Value) Log.Info($"Property {ociChar.NameFormatted()}\\{mat.NameFormatted()}\\{setName} reset!");
+                                } else {
+                                    if (_value is float floatval) ctrl.SetMaterialFloatProperty(slot, type, mat, setName, floatval, go);
+                                    if (_value is Color colval) ctrl.SetMaterialColorProperty(slot, type, mat, setName, colval, go);
+                                    if (IsDebug.Value) Log.Info($"Property {ociChar.NameFormatted()}\\{mat.NameFormatted()}\\{setName} set to {_value}!");
+                                }
+                            } catch (Exception e) {
+                                Log.Error($"Unknown error during property value assignment of {ociChar.NameFormatted()}\\{mat.NameFormatted()}\\{setName}: {e}");
+                            }
+                        } else {
+                            if (IsDebug.Value) Log.Info($"Material {ociChar.NameFormatted()}\\{mat.NameFormatted()} did not have the {setName} property...");
+                        }
         }
     }
 }

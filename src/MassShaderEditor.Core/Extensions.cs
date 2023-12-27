@@ -4,7 +4,8 @@ using Studio;
 
 namespace MassShaderEditor.Koikatu {
     public static class Extensions {
-        private static Dictionary<TreeNodeObject, ObjectCtrlInfo> ociDict = new Dictionary<TreeNodeObject, ObjectCtrlInfo>();
+        private static readonly Dictionary<TreeNodeObject, ObjectCtrlInfo> ociDict = new Dictionary<TreeNodeObject, ObjectCtrlInfo>();
+        public static string NameFormatted(this ObjectCtrlInfo go) => go == null ? "" : go.treeNodeObject.textName.Trim();
         public static string NameFormatted(this GameObject go) => go == null ? "" : go.name.Replace("(Instance)", "").Replace(" Instance", "").Trim();
         public static string NameFormatted(this Material go) => go == null ? "" : go.name.Replace("(Instance)", "").Replace(" Instance", "").Trim();
         public static string NameFormatted(this Renderer go) => go == null ? "" : go.name.Replace("(Instance)", "").Replace(" Instance", "").Trim();
@@ -34,6 +35,12 @@ namespace MassShaderEditor.Koikatu {
                 if (!ociDict.TryGetValue(node, out ObjectCtrlInfo oci)) return null;
                 return oci;
             }
+        }
+
+        public static KK_Plugins.MaterialEditor.MaterialEditorCharaController GetController(this ChaControl chaControl) {
+            if (chaControl == null || chaControl.gameObject == null)
+                return null;
+            return chaControl.gameObject.GetComponent<KK_Plugins.MaterialEditor.MaterialEditorCharaController>();
         }
     }
 }

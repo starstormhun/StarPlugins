@@ -36,10 +36,6 @@ namespace MassShaderEditor.Koikatu {
 			return new Color(r, g, b, a);
         }
 
-		public static Color Clone(this Color c) {
-			return new Color(c.r, c.g, c.b, c.a);
-        }
-
 		public static bool Matches(this Color c1, Color c) {
 			return (new Vector4(c1.r, c1.g, c1.b, c1.a) - new Vector4(c.r, c.g, c.b, c.a)).magnitude < 1.2f / 255f;
         }
@@ -48,6 +44,7 @@ namespace MassShaderEditor.Koikatu {
 			if (!(c1.Length == 4 && c.Length == 4)) throw new ArgumentException("Both arrays must have 4 members!");
 			return (new Vector4(c1[0], c1[1], c1[2], c1[3]) - new Vector4(c[0], c[1], c[2], c[3])).magnitude < 1E-06;
 		}
+		
 		private static int ParseHexChar(char c) {
 			if (c >= '0' && c <= '9') {
 				return (int)(c - '0');
