@@ -46,7 +46,7 @@ namespace MassShaderEditor.Koikatu {
             // Makes OnObjectVisibilityToggled fire for folders
             [HarmonyPostfix]
             [HarmonyPatch(typeof(MaterialEditorAPI.MaterialEditorUI), "SelectInterpolableButtonOnClick")]
-            private static void FillNameOnClick(GameObject go, RowItemType rowType, string propertyName, string materialName, string rendererName) {
+            private static void FillNameOnClick(GameObject go, RowItemType rowType, string propertyName, string materialName) {
                 var MSE = (Object.FindObjectOfType(typeof(MassShaderEditor)) as MassShaderEditor);
                 if (rowType == RowItemType.FloatProperty) SetName(MSE, MassShaderEditor.SettingType.Float, propertyName);
                 if (rowType == RowItemType.ColorProperty) SetName(MSE, MassShaderEditor.SettingType.Color, propertyName);

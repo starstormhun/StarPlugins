@@ -7,9 +7,31 @@ namespace MassShaderEditor.Koikatu {
         private static readonly Dictionary<TreeNodeObject, ObjectCtrlInfo> ociDict = new Dictionary<TreeNodeObject, ObjectCtrlInfo>();
         public static string NameFormatted(this ObjectCtrlInfo go) => go == null ? "" : go.treeNodeObject.textName.Trim();
         public static string NameFormatted(this Material go) => go == null ? "" : go.name.Replace("(Instance)", "").Replace(" Instance", "").Trim();
+        public static string NameFormatted(this Renderer go) => go == null ? "" : go.name.Replace("(Instance)", "").Replace(" Instance", "").Trim();
         public static string NameFormatted(this Shader go) => go == null ? "" : go.name.Replace("(Instance)", "").Replace(" Instance", "").Trim();
-
         public static Vector3 InvertScreenY(this Vector3 _vec) => new Vector3(_vec.x, Screen.height - _vec.y, _vec.z);
+
+        public static bool TryGetFloat(this Material mat, string name, out float property) {
+            // Currently always succeeds
+            try {
+                property = mat.GetFloat("_" + name);
+                return true;
+            } catch {
+                property = 0f;
+                return false;
+            }
+        }
+
+        public static bool TryGetColor(this Material mat, string name, out Color property) {
+            // Currently always succeeds
+            try {
+                property = mat.GetColor(Shader.PropertyToID("_" + name));
+                return true;
+            } catch {
+                property = Color.black;
+                return false;
+            }
+        }
 
         public static void AddChildrenRecursive(this ObjectCtrlInfo _oci, List<ObjectCtrlInfo> _list) {
             ConstructDictionary();

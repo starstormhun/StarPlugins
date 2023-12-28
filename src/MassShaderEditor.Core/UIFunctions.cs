@@ -8,7 +8,7 @@ using UnityEngine;
 
 namespace MassShaderEditor.Koikatu {
     public partial class MassShaderEditor : BaseUnityPlugin {
-        private bool isShown = false;
+        public bool IsShown { get; private set; } = false;
         private bool isHelp = false;
         private bool isSetting = false;
         private bool showWarning = false;
@@ -18,7 +18,7 @@ namespace MassShaderEditor.Koikatu {
         private float messageDur = 1;
         private float messageTime = 0;
 
-        private static float[] defaultSize = new float[] { 200f,40f,250f,170f};
+        private static readonly float[] defaultSize = new float[] { 200f,40f,250f,170f};
         private Rect windowRect = new Rect(defaultSize[0], defaultSize[1], defaultSize[2], defaultSize[3]);
         private Rect helpRect = new Rect();
         private Rect setRect = new Rect();
@@ -75,6 +75,9 @@ namespace MassShaderEditor.Koikatu {
         private readonly string affectChaHairText = AffectChaPartsText("hair, including hair accs");
         private readonly string affectChaClothesText = AffectChaPartsText("clothes");
         private readonly string affectChaAccsText = AffectChaPartsText("accessories, excluding any hair");
+
+        private const string hairAccIsHairText = "Whether 'Set ALL' will affect hair accessories while editing hair and skip them while editing accessories.";
+        private const string affectMiscBodyPartsText = "Whether the miscellaneous body parts like eyes/tongue should be affected or just the body/face. In Maker and if enabled, only 'Set ALL' will affect them.";
 
         private void WindowFunction(int WindowID) {
             GUILayout.BeginVertical();
@@ -384,9 +387,24 @@ namespace MassShaderEditor.Koikatu {
                         if (GUILayout.Button(new GUIContent($"Accessories: {(AffectChaAccs.Value ? "Yes" : "No")}", affectChaAccsText), newSkin.button))
                             AffectChaAccs.Value = !AffectChaAccs.Value;
                         GUILayout.EndHorizontal();
+                        GUILayout.BeginHorizontal();
+                        if (GUILayout.Button(new GUIContent($"Misc body parts: {(AffectMiscBodyParts.Value ? "Yes" : "No")}", affectMiscBodyPartsText), newSkin.button))
+                            AffectMiscBodyParts.Value = !AffectMiscBodyParts.Value;
+                        GUILayout.FlexibleSpace();
+                        GUILayout.EndHorizontal();
                     }
                 }
             } // End studio settings
+
+            // Maker settings
+            {
+                GUILayout.BeginHorizontal();
+                if (GUILayout.Button(new GUIContent($"Misc body parts: {(AffectMiscBodyParts.Value ? "Yes" : "No")}", affectMiscBodyPartsText), newSkin.button))
+                    AffectMiscBodyParts.Value = !AffectMiscBodyParts.Value;
+                if (GUILayout.Button(new GUIContent($"Hair accs are hair: {(HairAccIsHair.Value ? "Yes" : "No")}", hairAccIsHairText), newSkin.button))
+                    HairAccIsHair.Value = !HairAccIsHair.Value;
+                GUILayout.EndHorizontal();
+            } // End maker settings
 
             GUILayout.EndVertical();
             GUI.DragWindow();
@@ -568,6 +586,7 @@ namespace MassShaderEditor.Koikatu {
                 float y = Screen.height - Input.mousePosition.y + 30f;
                 Rect draw = new Rect(x, y, width+2*winStyle.border.left, height);
                 GUILayout.Window(592, draw, (int id) => { GUILayout.Box(_tip, tipStyle); }, new GUIContent(), winStyle);
+                Redraw(1592, draw, redrawNum - 1, true);
             }
         }
 

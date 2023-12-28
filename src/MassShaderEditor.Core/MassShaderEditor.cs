@@ -9,6 +9,7 @@ using System;
 using System.Linq;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.UI;
 
 [assembly: System.Reflection.AssemblyFileVersion(MassShaderEditor.Koikatu.MassShaderEditor.Version)]
 
@@ -41,6 +42,10 @@ namespace MassShaderEditor.Koikatu {
         public ConfigEntry<bool> AffectChaClothes { get; private set; }
         public ConfigEntry<bool> AffectChaAccs { get; private set; }
 
+        // Maker options
+        public ConfigEntry<bool> AffectMiscBodyParts { get; private set; }
+        public ConfigEntry<bool> HairAccIsHair { get; private set; }
+
         // Hotkeys
         public ConfigEntry<KeyboardShortcut> VisibleHotkey { get; private set; }
         public ConfigEntry<KeyboardShortcut> SetSelectedHotkey { get; private set; }
@@ -65,6 +70,7 @@ namespace MassShaderEditor.Koikatu {
             UIScale = Config.Bind("General", "UI Scale", 1.5f, new ConfigDescription("Can also be set via the built-in settings panel", new AcceptableValueRange<float>(1f, maxScale), null));
             UIScale.SettingChanged += (x, y) => scaled = false;
             ShowTooltips = Config.Bind("General", "Show tooltips", true, "");
+            AffectMiscBodyParts = Config.Bind("General", "Affect misc body parts", false, new ConfigDescription(affectMiscBodyPartsText, null, null));
 
             DiveFolders = Config.Bind("Studio", "Dive folders", false, new ConfigDescription(diveFoldersText, null, null));
             DiveItems = Config.Bind("Studio", "Dive items", false, new ConfigDescription(diveItemsText, null, null));
@@ -73,6 +79,8 @@ namespace MassShaderEditor.Koikatu {
             AffectChaHair = Config.Bind("Studio", "Affect character hair", false, new ConfigDescription(affectChaHairText, null, null));
             AffectChaClothes = Config.Bind("Studio", "Affect character clothes", false, new ConfigDescription(affectChaClothesText, null, null));
             AffectChaAccs = Config.Bind("Studio", "Affect character accessories", false, new ConfigDescription(affectChaAccsText, null, null));
+
+            HairAccIsHair = Config.Bind("Maker", "Hair accs are hair", false, new ConfigDescription(hairAccIsHairText, null, null));
 
             VisibleHotkey = Config.Bind("Hotkeys", "UI Toggle", new KeyboardShortcut(KeyCode.M), new ConfigDescription("The key used to toggle the plugin's UI",null,new KKAPI.Utilities.ConfigurationManagerAttributes{ Order = 10}));
             SetSelectedHotkey = Config.Bind("Hotkeys", "Set Selected", new KeyboardShortcut(KeyCode.None), new ConfigDescription("Simulate left-clicking 'Set Selected'", null, null));
@@ -101,8 +109,8 @@ namespace MassShaderEditor.Koikatu {
 
         private void Update() {
             if (VisibleHotkey.Value.IsDown())
-                isShown = !isShown;
-            if (isShown) {
+                IsShown = !IsShown;
+            if (IsShown) {
                 if (SetSelectedHotkey.Value.IsDown()) {
                     if (setName != "") {
                         setReset = false;
@@ -136,7 +144,7 @@ namespace MassShaderEditor.Koikatu {
             if (showMessage && Time.time - messageTime >= messageDur) showMessage = false;
 
             if ((!KKAPI.Maker.MakerAPI.InsideMaker && !KKAPI.Studio.StudioAPI.InsideStudio) || Input.GetKeyDown(KeyCode.F1) || Input.GetKeyDown(KeyCode.Escape))
-                isShown = false;
+                IsShown = false;
         }
 
         private void OnGUI() {
@@ -160,7 +168,7 @@ namespace MassShaderEditor.Koikatu {
                 if (IsDebug.Value) Log.Info($"LMB detected! setReset: {setReset}");
             }
 
-            if (isShown) {
+            if (IsShown) {
                 if (IntroShown.Value) {
                     if (!showWarning) {
                         windowRect = GUILayout.Window(587, windowRect, WindowFunction, $"Mass Shader Editor v{Version}", newSkin.window, GUILayout.MaxWidth(defaultSize[2] * UIScale.Value));
@@ -215,10 +223,29 @@ namespace MassShaderEditor.Koikatu {
         private void SetAllProperties<T>(T _value) {
             if (KKAPI.Studio.StudioAPI.InsideStudio) {
                 if (IsDebug.Value) Log.Info($"{(setReset?"Res":"S")}etting ALL items' properties!");
-                SetProperties(studio.dicObjectCtrl.Values.ToList(), _value);
+                SetStudioProperties(studio.dicObjectCtrl.Values.ToList(), _value);
             }
             else if (KKAPI.Maker.MakerAPI.InsideMaker) {
-                // TODO
+                if (MakerGetType(out ObjectType type)) {
+                    var chaCtrl = KKAPI.Maker.MakerAPI.GetCharacterControl();
+                    int limit = 1;
+                    if (type == ObjectType.Hair) limit = chaCtrl.objHair.Length;
+                    if (type == ObjectType.Clothing) limit = chaCtrl.objClothes.Length;
+                    if (type == ObjectType.Accessory) limit = chaCtrl.objAccessory.Length;
+
+                    Predicate<Material> filter = (x) => true;
+                    if (type == ObjectType.Character && !AffectMiscBodyParts.Value) filter =
+                            (Material x) => new List<string> { "cf_m_body", "cm_m_body", "cf_m_face_00" }.Contains(x.NameFormatted());
+                    if (type == ObjectType.Accessory && HairAccIsHair.Value) filter =
+                            (Material x) => !x.shader.NameFormatted().ToLower().Contains("hair");
+
+                    for (int i = 0; i < limit; i++) SetCharaProperties(chaCtrl.GetController(), null, i, type, _value, filter);
+                    if (type == ObjectType.Hair && HairAccIsHair.Value)
+                        for (int i = 0; i < chaCtrl.objAccessory.Length; i++)
+                            SetCharaProperties(chaCtrl.GetController(), null, i, ObjectType.Accessory, _value, (Material x) => x.shader.NameFormatted().ToLower().Contains("hair"));
+
+                    if (MaterialEditorAPI.MaterialEditorUI.MaterialEditorWindow.gameObject.activeSelf) MEMaker.Instance.RefreshUI();
+                } else ShowMessage("Please select a valid item category.");
             }
         }
 
@@ -227,28 +254,44 @@ namespace MassShaderEditor.Koikatu {
             if (KKAPI.Studio.StudioAPI.InsideStudio) {
                 if (IsDebug.Value) Log.Info($"{(setReset ? "Res" : "S")}etting selected items' properties!");
                 var ociList = KKAPI.Studio.StudioAPI.GetSelectedObjects().ToList();
-                var iterateList = new List<ObjectCtrlInfo>(ociList);
-                if (IsDebug.Value) Log.Info("Checking for folders...");
-                var diveList = new List<Type>();
-                if (DiveFolders.Value) diveList.Add(typeof(OCIFolder));
-                if (DiveItems.Value) diveList.Add(typeof(OCIItem));
-                foreach (var oci in iterateList) {
-                    if (diveList.Contains(oci.GetType())) {
-                        if (IsDebug.Value) Log.Info($"Found diveable item: {oci.treeNodeObject.textName}");
-                        oci.AddChildrenRecursive(ociList);
-                    }
-                }
-                SetProperties(ociList, _value);
+                if (ociList.Count > 0) {
+                    var iterateList = new List<ObjectCtrlInfo>(ociList);
+                    if (IsDebug.Value) Log.Info("Checking for dives...");
+                    var diveList = new List<Type>();
+                    if (DiveFolders.Value) diveList.Add(typeof(OCIFolder));
+                    if (DiveItems.Value) diveList.Add(typeof(OCIItem));
+                    foreach (var oci in iterateList)
+                        if (diveList.Contains(oci.GetType())) {
+                            if (IsDebug.Value) Log.Info($"Found diveable item: {oci.treeNodeObject.textName}");
+                            oci.AddChildrenRecursive(ociList);
+                        }
+                    SetStudioProperties(ociList, _value);
+                } else ShowMessage("Please select at least one item!");
             } else if (KKAPI.Maker.MakerAPI.InsideMaker) {
-                // TODO
+                if (MakerGetType(out ObjectType type)) {
+                    var chaCtrl = KKAPI.Maker.MakerAPI.GetCharacterControl();
+                    int slot = 0;
+                    if (type == ObjectType.Hair) slot = makerMenu.ccHairMenu.GetSelectIndex();
+                    if (type == ObjectType.Clothing) slot = makerMenu.ccClothesMenu.GetSelectIndex();
+                    if (type == ObjectType.Accessory) slot = makerMenu.ccAcsMenu.GetSelectIndex();
+
+                    Predicate<Material> filter = (Material x) => true;
+                    if (type == ObjectType.Character)
+                        if (makerTabID == 0) filter = (Material x) => x.NameFormatted() == "cf_m_face_00";
+                        else if (makerTabID == 1) filter = (Material x) => x.NameFormatted() == "cf_m_body" || x.NameFormatted() == "cm_m_body";
+
+                    SetCharaProperties(chaCtrl.GetController(), null, slot, type, _value, filter);
+
+                    if (MaterialEditorAPI.MaterialEditorUI.MaterialEditorWindow.gameObject.activeSelf) MEMaker.Instance.RefreshUI();
+                } else ShowMessage("Please select a valid item category.");
             }
         }
 
-        private void SetProperties<T>(List<ObjectCtrlInfo> _ociList, T _value) {
+        private void SetStudioProperties<T>(List<ObjectCtrlInfo> _ociList, T _value) {
             if (KKAPI.Studio.StudioAPI.InsideStudio) {
                 foreach (ObjectCtrlInfo oci in _ociList) {
                     if (oci is OCIItem item) {
-                        SetItemProperties(controller, item, _value);
+                        SetStudioItemProperties(controller, item, _value);
                     } else if (oci is OCIChar ociChar && AffectCharacters.Value) {
                         if (IsDebug.Value) Log.Info($"Looking into character: {ociChar.treeNodeObject.textName}");
                         var ctrl = KKAPI.Studio.StudioObjectExtensions.GetChaControl(ociChar);
@@ -256,18 +299,20 @@ namespace MassShaderEditor.Koikatu {
                         if (AffectChaHair.Value) for(int i = 0; i<ctrl.objHair.Length; i++) SetCharaProperties(ctrl.GetController(), ociChar, i, ObjectType.Hair, _value);
                         if (AffectChaClothes.Value) for (int i = 0; i < ctrl.objClothes.Length; i++) SetCharaProperties(ctrl.GetController(), ociChar, i, ObjectType.Clothing, _value);
                         for (int i = 0; i < ctrl.objAccessory.Length; i++)
-                            SetCharaProperties(ctrl.GetController(), ociChar, i, ObjectType.Accessory, _value, x => (x.Contains("hair") && AffectChaHair.Value) || (!x.Contains("hair") && AffectChaAccs.Value));
+                            SetCharaProperties(
+                                ctrl.GetController(), ociChar, i, ObjectType.Accessory, _value, (Material x) =>
+                                (x.shader.NameFormatted().ToLower().Contains("hair") && AffectChaHair.Value) ||
+                                (!x.shader.NameFormatted().ToLower().Contains("hair") && AffectChaAccs.Value)
+                                );
                     }
                 }
-                MEStudio.Instance.RefreshUI();
+                if (MaterialEditorAPI.MaterialEditorUI.MaterialEditorWindow.gameObject.activeSelf) MEStudio.Instance.RefreshUI();
             } else if (KKAPI.Maker.MakerAPI.InsideMaker) {
-                // TODO
-                //MEMaker.Instance.RefreshUI();
+                Log.Info("SetStudioProperties should not be called inside Maker!");
             }
-            
         }
 
-        private void SetItemProperties<T>(SceneController ctrl, OCIItem item, T _value) {
+        private void SetStudioItemProperties<T>(SceneController ctrl, OCIItem item, T _value) {
             if (IsDebug.Value) Log.Info($"Looking into {item.NameFormatted()}...");
             foreach (var rend in GetRendererList(item.objectItem)) {
                 //if (IsDebug.Value) Log.Info($"Got renderer: {rend.NameFormatted()}");
@@ -281,9 +326,18 @@ namespace MassShaderEditor.Koikatu {
                                     ctrl.RemoveMaterialColorProperty(item.objectInfo.dicKey, mat, setName);
                                     if (IsDebug.Value) Log.Info($"Property {item.NameFormatted()}\\{mat.NameFormatted()}\\{setName} reset!");
                                 } else {
-                                    if (_value is float floatval) ctrl.SetMaterialFloatProperty(item.objectInfo.dicKey, mat, setName, floatval);
-                                    if (_value is Color colval) ctrl.SetMaterialColorProperty(item.objectInfo.dicKey, mat, setName, colval);
-                                    if (IsDebug.Value) Log.Info($"Property {item.NameFormatted()}\\{mat.NameFormatted()}\\{setName} set to {_value}!");
+                                    if (_value is float floatval)
+                                        if (mat.TryGetFloat(setName, out _)) {
+                                            ctrl.SetMaterialFloatProperty(item.objectInfo.dicKey, mat, setName, floatval);
+                                            if (IsDebug.Value) Log.Info($"Property {item.NameFormatted()}\\{mat.NameFormatted()}\\{setName} set to {_value}!");
+                                        } else { if (IsDebug.Value) Log.Info($"Tried setting float property {item.NameFormatted()}\\{mat.NameFormatted()}\\{setName} to color value!"); }
+                                    else if (_value is Color colval)
+                                        if (mat.TryGetColor(setName, out _)) {
+                                            ctrl.SetMaterialColorProperty(item.objectInfo.dicKey, mat, setName, colval);
+                                            if (IsDebug.Value) Log.Info($"Property {item.NameFormatted()}\\{mat.NameFormatted()}\\{setName} set to {_value}!");
+                                        } else { if (IsDebug.Value) Log.Info($"Tried setting color property {item.NameFormatted()}\\{mat.NameFormatted()}\\{setName} to float value!"); }
+                                    else { if (IsDebug.Value) Log.Info($"Tried setting a item property to erroneous type: {_value.GetType()}"); }
+
                                 }
                             } catch (Exception e) {
                                 Log.Error($"Unknown error during property value assignment of {item.NameFormatted()}\\{mat.NameFormatted()}\\{setName}: {e}");
@@ -296,11 +350,24 @@ namespace MassShaderEditor.Koikatu {
         }
 
         private void SetCharaProperties<T>(MaterialEditorCharaController ctrl, OCIChar ociChar, int slot, ObjectType type, T _value) {
-            SetCharaProperties<T>(ctrl, ociChar, slot, type, _value, x => true);
+            SetCharaProperties<T>(ctrl, ociChar, slot, type, _value, x => true, x => true);
         }
 
-        private void SetCharaProperties<T>(MaterialEditorCharaController ctrl, OCIChar ociChar, int slot, ObjectType type, T _value, Predicate<string> match) {
+        private void SetCharaProperties<T>(MaterialEditorCharaController ctrl, OCIChar ociChar, int slot, ObjectType type, T _value, Predicate<Material> materialFilter) {
+            SetCharaProperties<T>(ctrl, ociChar, slot, type, _value, materialFilter, x => true);
+        }
+
+        private void SetCharaProperties<T>(MaterialEditorCharaController ctrl, OCIChar ociChar, int slot, ObjectType type, T _value, Predicate<Renderer> rendererFilter) {
+            SetCharaProperties<T>(ctrl, ociChar, slot, type, _value, x => true, rendererFilter);
+        }
+
+        private void SetCharaProperties<T>(MaterialEditorCharaController ctrl, OCIChar ociChar, int slot, ObjectType type, T _value, Predicate<Material> materialFilter, Predicate<Renderer> rendererFilter) {
             var chaCtrl = ctrl.ChaControl;
+
+            string chaName;
+            if (ociChar != null) chaName = ociChar.NameFormatted();
+            else chaName = $"{chaCtrl.fileParam.lastname} {chaCtrl.fileParam.firstname}";
+
             GameObject go;
             switch (type) {
                 case ObjectType.Character:
@@ -314,30 +381,60 @@ namespace MassShaderEditor.Koikatu {
                 default:
                     go = null; break;
             }
-            foreach (var rend in GetRendererList(go)) {
-                //if (IsDebug.Value) Log.Info($"Got renderer: {rend.NameFormatted()}");
-                foreach (var mat in GetMaterials(go, rend)) {
-                    //if (IsDebug.Value) Log.Info($"Got material: {mat.NameFormatted()}");
-                    if (match(mat.shader.NameFormatted().ToLower()) && mat.shader.NameFormatted().Contains(filter))
+            foreach (var rend in GetRendererList(go).Where(x => rendererFilter(x))) {
+                if (IsDebug.Value) Log.Info($"Got renderer: {rend.NameFormatted()}");
+                foreach (var mat in GetMaterials(go, rend).Where(x => materialFilter(x))) {
+                    if (IsDebug.Value) Log.Info($"Got material: {mat.NameFormatted()}");
+                    if (mat.shader.NameFormatted().ToLower().Contains(filter.ToLower()))
                         if (mat.HasProperty("_" + setName)) {
                             try {
                                 if (setReset) {
                                     ctrl.RemoveMaterialFloatProperty(slot, type, mat, setName, go);
                                     ctrl.RemoveMaterialColorProperty(slot, type, mat, setName, go);
-                                    if (IsDebug.Value) Log.Info($"Property {ociChar.NameFormatted()}\\{mat.NameFormatted()}\\{setName} reset!");
+                                    if (IsDebug.Value) Log.Info($"Property {chaName}\\{mat.NameFormatted()}\\{setName} reset!");
                                 } else {
-                                    if (_value is float floatval) ctrl.SetMaterialFloatProperty(slot, type, mat, setName, floatval, go);
-                                    if (_value is Color colval) ctrl.SetMaterialColorProperty(slot, type, mat, setName, colval, go);
-                                    if (IsDebug.Value) Log.Info($"Property {ociChar.NameFormatted()}\\{mat.NameFormatted()}\\{setName} set to {_value}!");
+                                    if (_value is float floatval)
+                                        if (mat.TryGetFloat(setName, out _)) {
+                                            ctrl.SetMaterialFloatProperty(slot, type, mat, setName, floatval, go);
+                                            if (IsDebug.Value) Log.Info($"Property {chaName}\\{mat.NameFormatted()}\\{setName} set to {_value}!");
+                                        } else { if (IsDebug.Value) Log.Info($"Tried setting color property {chaName}\\{mat.NameFormatted()}\\{setName} to float value!"); }
+                                    else if (_value is Color colval)
+                                        if (mat.TryGetColor(setName, out _)) {
+                                            ctrl.SetMaterialColorProperty(slot, type, mat, setName, colval, go);
+                                            if (IsDebug.Value) Log.Info($"Property {chaName}\\{mat.NameFormatted()}\\{setName} set to {_value}!");
+                                        } else { if (IsDebug.Value) Log.Info($"Tried setting float property {chaName}\\{mat.NameFormatted()}\\{setName} to color value!"); }
+                                    else { if (IsDebug.Value) Log.Info($"Tried setting a character property to erroneous type: {_value.GetType()}"); }
                                 }
                             } catch (Exception e) {
-                                Log.Error($"Unknown error during property value assignment of {ociChar.NameFormatted()}\\{mat.NameFormatted()}\\{setName}: {e}");
+                                Log.Error($"Unknown error during property value assignment of {chaName}\\{mat.NameFormatted()}\\{mat.shader.NameFormatted()}\\{setName}: {e}");
                             }
                         } else {
-                            if (IsDebug.Value) Log.Info($"{ociChar.NameFormatted()}\\{mat.NameFormatted()}\\{mat.shader.NameFormatted()} did not have the {setName} property...");
+                            if (IsDebug.Value) Log.Info($"{chaName}\\{mat.NameFormatted()}\\{mat.shader.NameFormatted()} did not have the {setName} property...");
                         }
                 }
             }
+        }
+
+        private bool MakerGetType(out ObjectType type) {
+            switch (makerTabID) {
+                case 0:
+                    type = ObjectType.Character; break;
+                case 1:
+                    type = ObjectType.Character; break;
+                case 2:
+                    type = ObjectType.Hair; break;
+                case 3:
+                    type = ObjectType.Clothing; break;
+                case 4:
+                    type = ObjectType.Accessory; break;
+                case 5:
+                    type = ObjectType.Unknown; break;
+                case 6:
+                    type = ObjectType.Unknown; break;
+                default:
+                    type = ObjectType.Unknown; break;
+            }
+            return type != ObjectType.Unknown;
         }
     }
 }
