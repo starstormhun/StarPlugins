@@ -164,10 +164,9 @@ namespace MassShaderEditor.Koikatu {
                 if (IntroShown.Value) {
                     if (!showWarning) {
                         windowRect = GUILayout.Window(587, windowRect, WindowFunction, $"Mass Shader Editor v{Version}", newSkin.window, GUILayout.MaxWidth(defaultSize[2] * UIScale.Value));
-                        GUI.Window(1587, windowRect, (x) => { }, new GUIContent(), newSkin.window);
                         DrawTooltip(tooltip[0]);
-
                         KKAPI.Utilities.IMGUIUtils.EatInputInRect(windowRect);
+                        Redraw(1587, windowRect, redrawNum);
 
                         helpRect.position = windowRect.position + new Vector2(windowRect.size.x + 3, 0);
                         setRect.position = windowRect.position + new Vector2(windowRect.size.x + 3, 0);
@@ -175,22 +174,22 @@ namespace MassShaderEditor.Koikatu {
 
                         if (isHelp) {
                             helpRect = GUILayout.Window(588, helpRect, HelpFunction, "How to use?", newSkin.window, GUILayout.MaxWidth(defaultSize[2]*UIScale.Value));
-                            GUI.Window(1588, helpRect, (x) => { }, new GUIContent(), newSkin.window);
                             KKAPI.Utilities.IMGUIUtils.EatInputInRect(helpRect);
+                            Redraw(1588, helpRect, redrawNum);
                         }
                         if (isSetting) {
                             setRect = GUILayout.Window(588, setRect, SettingFunction, "Settings ۞", newSkin.window, GUILayout.MaxWidth(defaultSize[2] * UIScale.Value));
-                            GUI.Window(1588, setRect, (x) => { }, new GUIContent(), newSkin.window);
                             DrawTooltip(tooltip[0]);
                             KKAPI.Utilities.IMGUIUtils.EatInputInRect(setRect);
+                            Redraw(1588, setRect, redrawNum);
                         }
                         if (showMessage) {
                             var boxStyle = new GUIStyle(newSkin.box) {
                                 fontSize = 1
                             };
                             infoRect = GUILayout.Window(589, infoRect, InfoFunction, "", boxStyle);
-                            GUI.Window(1589, setRect, (x) => { }, new GUIContent(), boxStyle);
                             KKAPI.Utilities.IMGUIUtils.EatInputInRect(infoRect);
+                            Redraw(1589, infoRect, redrawNum, true);
                         }
                     }
                     if (showWarning) {
@@ -198,16 +197,16 @@ namespace MassShaderEditor.Koikatu {
                         GUI.Box(screenRect, "");
                         warnRect.position = new Vector2((Screen.width - warnRect.size.x) / 2, (Screen.height - warnRect.size.y) / 2);
                         warnRect = GUILayout.Window(590, warnRect, WarnFunction, "", newSkin.window);
-                        GUI.Window(1590, warnRect, (x) => { }, new GUIContent(), newSkin.window);
                         KKAPI.Utilities.IMGUIUtils.EatInputInRect(screenRect);
+                        Redraw(1590, warnRect, redrawNum);
                     }
                 } else {
                     Rect screenRect = new Rect(0, 0, Screen.width, Screen.height);
                     GUI.Box(screenRect, "");
                     warnRect.position = new Vector2((Screen.width - warnRect.size.x) / 2, (Screen.height - warnRect.size.y) / 2);
                     warnRect = GUILayout.Window(591, warnRect, IntroFunction, "", newSkin.window);
-                    GUI.Window(1591, warnRect, (x) => { }, new GUIContent(), newSkin.window);
                     KKAPI.Utilities.IMGUIUtils.EatInputInRect(screenRect);
+                    Redraw(1591, warnRect, redrawNum);
                 }
             }
 

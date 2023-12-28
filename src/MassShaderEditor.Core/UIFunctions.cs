@@ -27,6 +27,7 @@ namespace MassShaderEditor.Koikatu {
         internal SettingType tab = SettingType.Float;
         private float prevScale = 1;
         private const float maxScale = 3;
+        private const int redrawNum = 2;
         private GUISkin newSkin;
 
         private bool setReset = true;
@@ -568,6 +569,11 @@ namespace MassShaderEditor.Koikatu {
                 Rect draw = new Rect(x, y, width+2*winStyle.border.left, height);
                 GUILayout.Window(592, draw, (int id) => { GUILayout.Box(_tip, tipStyle); }, new GUIContent(), winStyle);
             }
+        }
+
+        private void Redraw(int id, Rect rect, int num, bool box = false) {
+            for (int i = 0; i<num; i++)
+                GUI.Window(id+9277*i, rect, (x) => { }, "", (box ? newSkin.box : newSkin.window));
         }
 
         private void Spacer(float multiplied = 1) => GUILayout.Space(6 * multiplied * UIScale.Value);
