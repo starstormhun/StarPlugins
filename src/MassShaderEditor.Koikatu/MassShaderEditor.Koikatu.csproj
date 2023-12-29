@@ -18,6 +18,7 @@
     <PackageReference Include="IllusionLibs.Koikatu.Assembly-CSharp-firstpass" Version="2019.4.27.4" />
     <PackageReference Include="IllusionLibs.Koikatu.UnityEngine" Version="5.6.2.4" />
     <PackageReference Include="IllusionLibs.Koikatu.UnityEngine.UI" Version="5.6.2.4" />
+    <PackageReference Include="IllusionModdingAPI.KKAPI" Version="1.36.0" />
   </ItemGroup>
   <ItemGroup>
     <Reference Include="KKAPI">
