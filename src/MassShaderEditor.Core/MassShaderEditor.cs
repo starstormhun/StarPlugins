@@ -27,7 +27,7 @@ namespace MassShaderEditor.Koikatu {
 	/// </info>
     public partial class MassShaderEditor : BaseUnityPlugin {
         public const string GUID = "starstorm.massshadereditor";
-        public const string Version = "0.2.0." + BuildNumber.Version;
+        public const string Version = "0.3.0." + BuildNumber.Version;
 
         // General
         public ConfigEntry<float> UIScale { get; private set; }
@@ -83,12 +83,12 @@ namespace MassShaderEditor.Koikatu {
             HairAccIsHair = Config.Bind("Maker", "Hair accs are hair", false, new ConfigDescription(hairAccIsHairText, null, null));
 
             VisibleHotkey = Config.Bind("Hotkeys", "UI Toggle", new KeyboardShortcut(KeyCode.M), new ConfigDescription("The key used to toggle the plugin's UI",null,new KKAPI.Utilities.ConfigurationManagerAttributes{ Order = 10}));
-            SetSelectedHotkey = Config.Bind("Hotkeys", "Set Selected", new KeyboardShortcut(KeyCode.None), new ConfigDescription("Simulate left-clicking 'Set Selected'", null, null));
-            ResetSelectedHotkey = Config.Bind("Hotkeys", "Reset Selected", new KeyboardShortcut(KeyCode.None), new ConfigDescription("Simulate right-clicking 'Set Selected'", null, null));
-            SetAllHotkey = Config.Bind("Hotkeys", "Set ALL", new KeyboardShortcut(KeyCode.None), new ConfigDescription("Simulate left-clicking 'Set ALL'", null, null));
-            ResetAllHotkey = Config.Bind("Hotkeys", "Reset ALL", new KeyboardShortcut(KeyCode.None), new ConfigDescription("Simulate right-clicking 'Set ALL'", null, null));
+            SetSelectedHotkey = Config.Bind("Hotkeys", "Modify Selected", new KeyboardShortcut(KeyCode.None), new ConfigDescription("Simulate left-clicking 'Modify Selected'", null, null));
+            ResetSelectedHotkey = Config.Bind("Hotkeys", "Reset Selected", new KeyboardShortcut(KeyCode.None), new ConfigDescription("Simulate right-clicking 'Modify Selected'", null, null));
+            SetAllHotkey = Config.Bind("Hotkeys", "Modify ALL", new KeyboardShortcut(KeyCode.None), new ConfigDescription("Simulate left-clicking 'Modify ALL'", null, null));
+            ResetAllHotkey = Config.Bind("Hotkeys", "Reset ALL", new KeyboardShortcut(KeyCode.None), new ConfigDescription("Simulate right-clicking 'Modify ALL'", null, null));
 
-            DisableWarning = Config.Bind("Advanced", "Disable warning", false, new ConfigDescription("Disable the warning screen for the 'Set All' function.", null, new KKAPI.Utilities.ConfigurationManagerAttributes { IsAdvanced = true }));
+            DisableWarning = Config.Bind("Advanced", "Disable warning", false, new ConfigDescription("Disable the warning screen for the 'Modify ALL' function.", null, new KKAPI.Utilities.ConfigurationManagerAttributes { IsAdvanced = true }));
             IsDebug = Config.Bind("Advanced", "Logging", false, new ConfigDescription("Enable verbose logging for debugging purposes", null, new KKAPI.Utilities.ConfigurationManagerAttributes { IsAdvanced = true }));
             IntroShown = Config.Bind("Advanced", "Intro Shown", false, new ConfigDescription("Whether the intro message has been shown already", null, new KKAPI.Utilities.ConfigurationManagerAttributes { IsAdvanced = true }));
 
@@ -142,7 +142,6 @@ namespace MassShaderEditor.Koikatu {
                 }
             }
             if (showMessage && Time.time - messageTime >= messageDur) showMessage = false;
-
             if ((!KKAPI.Maker.MakerAPI.InsideMaker && !KKAPI.Studio.StudioAPI.InsideStudio) || Input.GetKeyDown(KeyCode.F1) || Input.GetKeyDown(KeyCode.Escape))
                 IsShown = false;
         }
@@ -327,8 +326,8 @@ namespace MassShaderEditor.Koikatu {
                                     if (IsDebug.Value) Log.Info($"Property {item.NameFormatted()}\\{mat.NameFormatted()}\\{setName} reset!");
                                 } else {
                                     if (_value is float floatval)
-                                        if (mat.TryGetFloat(setName, out _)) {
-                                            ctrl.SetMaterialFloatProperty(item.objectInfo.dicKey, mat, setName, floatval);
+                                        if (mat.TryGetFloat(setName, out float current)) {
+                                            ctrl.SetMaterialFloatProperty(item.objectInfo.dicKey, mat, setName, GetModifiedFloat(current, floatval));
                                             if (IsDebug.Value) Log.Info($"Property {item.NameFormatted()}\\{mat.NameFormatted()}\\{setName} set to {_value}!");
                                         } else { if (IsDebug.Value) Log.Info($"Tried setting float property {item.NameFormatted()}\\{mat.NameFormatted()}\\{setName} to color value!"); }
                                     else if (_value is Color colval)
@@ -394,8 +393,8 @@ namespace MassShaderEditor.Koikatu {
                                     if (IsDebug.Value) Log.Info($"Property {chaName}\\{mat.NameFormatted()}\\{setName} reset!");
                                 } else {
                                     if (_value is float floatval)
-                                        if (mat.TryGetFloat(setName, out _)) {
-                                            ctrl.SetMaterialFloatProperty(slot, type, mat, setName, floatval, go);
+                                        if (mat.TryGetFloat(setName, out float current)) {
+                                            ctrl.SetMaterialFloatProperty(slot, type, mat, setName, GetModifiedFloat(current, floatval), go);
                                             if (IsDebug.Value) Log.Info($"Property {chaName}\\{mat.NameFormatted()}\\{setName} set to {_value}!");
                                         } else { if (IsDebug.Value) Log.Info($"Tried setting color property {chaName}\\{mat.NameFormatted()}\\{setName} to float value!"); }
                                     else if (_value is Color colval)
@@ -413,6 +412,23 @@ namespace MassShaderEditor.Koikatu {
                         }
                 }
             }
+        }
+
+        private float GetModifiedFloat(float current, float floatVal) {
+            float newVal = 0;
+            switch (setMode) {
+                case 0:
+                    newVal = floatVal; break;
+                case 1:
+                    newVal = current + floatVal; break;
+                case 2:
+                    newVal = current * floatVal; break;
+                case 3:
+                    newVal = Math.Max(current, floatVal); break;
+                case 4:
+                    newVal = Math.Min(current, floatVal); break;
+            }
+            return newVal;
         }
 
         private bool MakerGetType(out ObjectType type) {

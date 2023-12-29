@@ -34,6 +34,7 @@ namespace MassShaderEditor.Koikatu {
         internal string filter = "";
         internal string setName = "";
         private float setVal = 0;
+        private int setMode = 0;
         private Color setCol = Color.white;
 
         private float leftLim = -1;
@@ -64,23 +65,25 @@ namespace MassShaderEditor.Koikatu {
         private readonly List<string> helpText = new List<string>{"To use, first choose whether the property you want to edit is a value, or a color using the buttons at the top of the UI. Afterwards you can input its name, and set the desired value/color using the fields below those.",
             "You can either type in the name of the property you want to edit, or you can click its name in the MaterialEditor UI, or click the timeline integration button that you can enable in the ME settings. Clicking these things will autofill the property name.",
             "You can also set up a shader name filter by clicking the 'Shader' label or Timeline button in MaterialEditor next to the dropdown list of the shader, but it can also be inputted manually. The filter doesn't have to be the full name of the shader. If left empty, all shaders will be edited.",
-            "After you have the edited-to-be property named, and its desired value set, you can click'Set Selected', or 'Set ALL'. In Studio, 'Set Selected' will modify items you currently have selected in the Workspace. Also in Studio, 'Set ALL' will modify EVERYTHING in the scene.",
-            "In Character Maker, 'Set Selected' will affect only the currently edited clothing piece or accessory. When in the face or body menus, the appropriate body part will be affected instead. The 'Set ALL' button in Maker affects all of the currently edited category.",
+            "After you have the edited-to-be property named, and its desired value set, you can click'Modify Selected', or 'Modify ALL'. In Studio, 'Modify Selected' will modify items you currently have selected in the Workspace. Also in Studio, 'Modify ALL' will modify EVERYTHING in the scene.",
+            "In Character Maker, 'Modify Selected' will affect only the currently edited clothing piece or accessory. When in the face or body menus, the appropriate body part will be affected instead. The 'Modify ALL' button in Maker affects all of the currently edited category.",
             "Right-clicking either of these two buttons will reset the specified property of the appropriate items to the default value instead of setting the one you have currently inputted."};
-        private const string diveFoldersText = "Whether 'Set Selected' will affect items that are inside selected folders.";
-        private const string diveItemsText = "Whether 'Set Selected' will affect items that are the children of selected items.";
-        private const string affectCharactersText = "Whether 'Set Selected' and 'Set ALL' will affect characters at all.";
+        private const string diveFoldersText = "Whether 'Modify Selected' will affect items that are inside selected folders.";
+        private const string diveItemsText = "Whether 'Modify Selected' will affect items that are the children of selected items.";
+        private const string affectCharactersText = "Whether 'Modify Selected' and 'Modify ALL' will affect characters at all.";
         private static string AffectChaPartsText(string part) => $"Whether the 'Set ...' buttons will affect characters' {part}.";
         private readonly string affectChaBodyText = AffectChaPartsText("bodies");
         private readonly string affectChaHairText = AffectChaPartsText("hair, including hair accs");
         private readonly string affectChaClothesText = AffectChaPartsText("clothes");
         private readonly string affectChaAccsText = AffectChaPartsText("accessories, excluding any hair");
 
-        private const string hairAccIsHairText = "Whether 'Set ALL' will affect hair accessories while editing hair and skip them while editing accessories.";
-        private const string affectMiscBodyPartsText = "Whether the miscellaneous body parts like eyes/tongue should be affected or just the body/face. In Maker and if enabled, only 'Set ALL' will affect them.";
+        private const string hairAccIsHairText = "Whether 'Modify ALL' will affect hair accessories while editing hair and skip them while editing accessories.";
+        private const string affectMiscBodyPartsText = "Whether the miscellaneous body parts like eyes/tongue should be affected or just the body/face. In Maker and if enabled, only 'Modify ALL' will affect them.";
 
         private void WindowFunction(int WindowID) {
             GUILayout.BeginVertical();
+
+            float halfWidth = (windowRect.width - newSkin.window.border.left - newSkin.window.border.right) / 2;
 
             // Changing tabs
             GUILayout.BeginHorizontal();
@@ -121,10 +124,10 @@ namespace MassShaderEditor.Koikatu {
             setName = setNameInput.Trim();
             GUILayout.EndHorizontal();
 
-            // Choosing the slider value
+            // Float value
             if (tab == SettingType.Float) {
                 GUILayout.BeginHorizontal();
-                GUILayout.Label(valueText, newSkin.label, GUILayout.Width(commonWidth));
+                GUILayout.Label(new GUIContent(valueText, "The value to be used in the modification, according to the method chosen below"), newSkin.label, GUILayout.Width(commonWidth));
                 setValInputString = GUILayout.TextField(setValInputString, newSkin.textField);
                 setValInput = Studio.Utility.StringToFloat(setValInputString);
                 string indicatorText = "→ " + setVal.ToString("0.000");
@@ -148,9 +151,18 @@ namespace MassShaderEditor.Koikatu {
                     setValInputString = setVal.ToString();
                 }
                 GUILayout.EndHorizontal();
+                GUILayout.Space(4);
+                GUILayout.BeginHorizontal();
+
+                var buttonContents = new GUIContent[] { new GUIContent(" = ","Set the property to this value"), new GUIContent(" + ","Add to the property's existing value"),
+                    new GUIContent(" × ","Multiply the property's existing value"), new GUIContent("Min","Set any property lower than the set value to the value"),
+                    new GUIContent("Max", "Set any property higher than the set value to the value")};
+                setMode = GUILayout.SelectionGrid(setMode, buttonContents, buttonContents.Length, newSkin.button);
+
+                GUILayout.EndHorizontal();
             }
 
-            // Choosing the color
+            // Color value
             if (tab == SettingType.Color) {
                 GUILayout.BeginHorizontal();
                 string colorText = "Color #";
@@ -234,16 +246,18 @@ namespace MassShaderEditor.Koikatu {
                 } // End value input
 
                 GUILayout.EndHorizontal();
+
+                GUILayout.Label(" ", newSkin.label);
             }
 
-            Spacer(3); GUILayout.FlexibleSpace();
+            GUILayout.FlexibleSpace();
 
             // Action buttons
             GUILayout.BeginHorizontal();
             GUIStyle allStyle = new GUIStyle(newSkin.button);
             allStyle.normal.textColor = Color.red;
             allStyle.hover.textColor = Color.red;
-            if (GUILayout.Button(new GUIContent("Set ALL", "Right click to reset all"), allStyle)) {
+            if (GUILayout.Button(new GUIContent("Modify ALL", "Right click to reModify ALL"), allStyle, GUILayout.MaxWidth(halfWidth))) {
                 if (setName != "") {
                     if (!DisableWarning.Value) {
                         showWarning = true;
@@ -255,7 +269,7 @@ namespace MassShaderEditor.Koikatu {
                     }
                 } else ShowMessage("You need to set a property name to edit!");
             }
-            if (GUILayout.Button(new GUIContent("Set Selected", "Right click to reset selected"), newSkin.button)) {
+            if (GUILayout.Button(new GUIContent("Modify Selected", "Right click to reset selected"), newSkin.button, GUILayout.MaxWidth(halfWidth))) {
                 if (setName != "") {
                     if (tab == SettingType.Color)
                         SetSelectedProperties(setCol);
@@ -301,6 +315,8 @@ namespace MassShaderEditor.Koikatu {
 
         private void SettingFunction(int WindowID) {
             GUILayout.BeginVertical();
+
+            float halfWidth = (windowRect.width - newSkin.window.border.left - newSkin.window.border.right) / 2;
 
             // General
             {
@@ -354,7 +370,7 @@ namespace MassShaderEditor.Koikatu {
 
                 // Show tooltips
                 GUILayout.BeginHorizontal();
-                if (GUILayout.Button($"Show Tooltips: {(ShowTooltips.Value ? "Yes" : "No")}", newSkin.button))
+                if (GUILayout.Button($"Tooltips: {(ShowTooltips.Value ? "Yes" : "No")}", newSkin.button, GUILayout.Width(halfWidth)))
                     ShowTooltips.Value = !ShowTooltips.Value;
                 GUILayout.FlexibleSpace(); GUILayout.EndHorizontal();
             } // End general
@@ -362,42 +378,40 @@ namespace MassShaderEditor.Koikatu {
             Spacer();
 
             // Studio settings
-            {
-                if (KKAPI.Studio.StudioAPI.InsideStudio) {
+            if (KKAPI.Studio.StudioAPI.InsideStudio) {
+                GUILayout.BeginHorizontal();
+                if (GUILayout.Button(new GUIContent($"Dive folders: {(DiveFolders.Value ? "Yes" : "No")}", diveFoldersText), newSkin.button, GUILayout.MaxWidth(halfWidth)))
+                    DiveFolders.Value = !DiveFolders.Value;
+                if (GUILayout.Button(new GUIContent($"Dive items: {(DiveItems.Value ? "Yes" : "No")}", diveItemsText), newSkin.button, GUILayout.MaxWidth(halfWidth)))
+                    DiveItems.Value = !DiveItems.Value;
+                GUILayout.EndHorizontal(); Spacer();
+                if (GUILayout.Button(new GUIContent($"Affect characters: {(AffectCharacters.Value ? "Yes" : "No")}", affectCharactersText), newSkin.button)) {
+                    AffectCharacters.Value = !AffectCharacters.Value;
+                    CalcSizes();
+                }
+                if (AffectCharacters.Value) {
                     GUILayout.BeginHorizontal();
-                    if (GUILayout.Button(new GUIContent($"Dive folders: {(DiveFolders.Value ? "Yes" : "No")}", diveFoldersText), newSkin.button))
-                        DiveFolders.Value = !DiveFolders.Value;
-                    if (GUILayout.Button(new GUIContent($"Dive items: {(DiveItems.Value ? "Yes" : "No")}", diveItemsText), newSkin.button))
-                        DiveItems.Value = !DiveItems.Value;
-                    GUILayout.EndHorizontal(); Spacer();
-                    if (GUILayout.Button(new GUIContent($"Affect characters: {(AffectCharacters.Value ? "Yes" : "No")}", affectCharactersText), newSkin.button)) {
-                        AffectCharacters.Value = !AffectCharacters.Value;
-                        CalcSizes();
-                    }
-                    if (AffectCharacters.Value) {
-                        GUILayout.BeginHorizontal();
-                        if (GUILayout.Button(new GUIContent($"Body: {(AffectChaBody.Value ? "Yes" : "No")}", affectChaBodyText), newSkin.button))
-                            AffectChaBody.Value = !AffectChaBody.Value;
-                        if (GUILayout.Button(new GUIContent($"Hair: {(AffectChaHair.Value ? "Yes" : "No")}", affectChaHairText), newSkin.button))
-                            AffectChaHair.Value = !AffectChaHair.Value;
-                        GUILayout.EndHorizontal();
-                        GUILayout.BeginHorizontal();
-                        if (GUILayout.Button(new GUIContent($"Clothes: {(AffectChaClothes.Value ? "Yes" : "No")}", affectChaClothesText), newSkin.button))
-                            AffectChaClothes.Value = !AffectChaClothes.Value;
-                        if (GUILayout.Button(new GUIContent($"Accessories: {(AffectChaAccs.Value ? "Yes" : "No")}", affectChaAccsText), newSkin.button))
-                            AffectChaAccs.Value = !AffectChaAccs.Value;
-                        GUILayout.EndHorizontal();
-                        GUILayout.BeginHorizontal();
-                        if (GUILayout.Button(new GUIContent($"Misc body parts: {(AffectMiscBodyParts.Value ? "Yes" : "No")}", affectMiscBodyPartsText), newSkin.button))
-                            AffectMiscBodyParts.Value = !AffectMiscBodyParts.Value;
-                        GUILayout.FlexibleSpace();
-                        GUILayout.EndHorizontal();
-                    }
+                    if (GUILayout.Button(new GUIContent($"Body: {(AffectChaBody.Value ? "Yes" : "No")}", affectChaBodyText), newSkin.button, GUILayout.MaxWidth(halfWidth)))
+                        AffectChaBody.Value = !AffectChaBody.Value;
+                    if (GUILayout.Button(new GUIContent($"Hair: {(AffectChaHair.Value ? "Yes" : "No")}", affectChaHairText), newSkin.button, GUILayout.MaxWidth(halfWidth)))
+                        AffectChaHair.Value = !AffectChaHair.Value;
+                    GUILayout.EndHorizontal();
+                    GUILayout.BeginHorizontal();
+                    if (GUILayout.Button(new GUIContent($"Clothes: {(AffectChaClothes.Value ? "Yes" : "No")}", affectChaClothesText), newSkin.button, GUILayout.MaxWidth(halfWidth)))
+                        AffectChaClothes.Value = !AffectChaClothes.Value;
+                    if (GUILayout.Button(new GUIContent($"Accs: {(AffectChaAccs.Value ? "Yes" : "No")}", affectChaAccsText), newSkin.button, GUILayout.MaxWidth(halfWidth)))
+                        AffectChaAccs.Value = !AffectChaAccs.Value;
+                    GUILayout.EndHorizontal();
+                    GUILayout.BeginHorizontal();
+                    if (GUILayout.Button(new GUIContent($"Misc parts: {(AffectMiscBodyParts.Value ? "Yes" : "No")}", affectMiscBodyPartsText), newSkin.button, GUILayout.MaxWidth(halfWidth)))
+                        AffectMiscBodyParts.Value = !AffectMiscBodyParts.Value;
+                    GUILayout.FlexibleSpace();
+                    GUILayout.EndHorizontal();
                 }
             } // End studio settings
 
             // Maker settings
-            {
+            if (KKAPI.Maker.MakerAPI.InsideMaker) {
                 GUILayout.BeginHorizontal();
                 if (GUILayout.Button(new GUIContent($"Misc body parts: {(AffectMiscBodyParts.Value ? "Yes" : "No")}", affectMiscBodyPartsText), newSkin.button))
                     AffectMiscBodyParts.Value = !AffectMiscBodyParts.Value;
