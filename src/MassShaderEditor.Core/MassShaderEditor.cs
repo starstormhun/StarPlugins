@@ -294,7 +294,11 @@ namespace MassShaderEditor.Koikatu {
                     } else if (oci is OCIChar ociChar && AffectCharacters.Value) {
                         if (IsDebug.Value) Log.Info($"Looking into character: {ociChar.treeNodeObject.textName}");
                         var ctrl = KKAPI.Studio.StudioObjectExtensions.GetChaControl(ociChar);
-                        if (AffectChaBody.Value) SetCharaProperties(ctrl.GetController(), ociChar, 0, ObjectType.Character, _value);
+                        if (AffectChaBody.Value && AffectMiscBodyParts.Value) SetCharaProperties(ctrl.GetController(), ociChar, 0, ObjectType.Character, _value);
+                        else if (AffectChaBody.Value) SetCharaProperties(ctrl.GetController(), ociChar, 0, ObjectType.Character, _value,
+                            (Material x) => new List<string> { "cf_m_body", "cm_m_body", "cf_m_face_00" }.Contains(x.NameFormatted().ToLower()));
+                        else if (AffectMiscBodyParts.Value) SetCharaProperties(ctrl.GetController(), ociChar, 0, ObjectType.Character, _value,
+                            (Material x) => !new List<string> { "cf_m_body", "cm_m_body", "cf_m_face_00" }.Contains(x.NameFormatted().ToLower()));
                         if (AffectChaHair.Value) for(int i = 0; i<ctrl.objHair.Length; i++) SetCharaProperties(ctrl.GetController(), ociChar, i, ObjectType.Hair, _value);
                         if (AffectChaClothes.Value) for (int i = 0; i < ctrl.objClothes.Length; i++) SetCharaProperties(ctrl.GetController(), ociChar, i, ObjectType.Clothing, _value);
                         for (int i = 0; i < ctrl.objAccessory.Length; i++)

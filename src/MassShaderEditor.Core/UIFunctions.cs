@@ -65,9 +65,12 @@ namespace MassShaderEditor.Koikatu {
         private readonly List<string> helpText = new List<string>{"To use, first choose whether the property you want to edit is a value, or a color using the buttons at the top of the UI. Afterwards you can input its name, and set the desired value/color using the fields below those.",
             "You can either type in the name of the property you want to edit, or you can click its name in the MaterialEditor UI, or click the timeline integration button that you can enable in the ME settings. Clicking these things will autofill the property name.",
             "You can also set up a shader name filter by clicking the 'Shader' label or Timeline button in MaterialEditor next to the dropdown list of the shader, but it can also be inputted manually. The filter doesn't have to be the full name of the shader. If left empty, all shaders will be edited.",
-            "After you have the edited-to-be property named, and its desired value set, you can click'Modify Selected', or 'Modify ALL'. In Studio, 'Modify Selected' will modify items you currently have selected in the Workspace. Also in Studio, 'Modify ALL' will modify EVERYTHING in the scene.",
+            "When modifying color properties, the old values will always replaced the the specified color, but when modifying slider properties, you can choose from 5 operations to perform on the old value with the button row that appears: Replace, Add, Multiply, Minimum, or Maximum",
+            "After filtering and naming the property, and choosing the operation, you can click 'Modify Selected', or 'Modify ALL'. In Studio, 'Modify Selected' will modify items you currently have selected in the Workspace. Also in Studio, 'Modify ALL' will modify EVERYTHING in the scene.",
             "In Character Maker, 'Modify Selected' will affect only the currently edited clothing piece or accessory. When in the face or body menus, the appropriate body part will be affected instead. The 'Modify ALL' button in Maker affects all of the currently edited category.",
-            "Right-clicking either of these two buttons will reset the specified property of the appropriate items to the default value instead of setting the one you have currently inputted."};
+            "Right-clicking either of these two buttons will reset the specified property of the appropriate items to the default value instead of setting the one you have currently inputted.",
+            "SHADERS"};
+        private const string valueExplainText = "The value to be used in the modification, according to the method chosen below";
         private const string diveFoldersText = "Whether 'Modify Selected' will affect items that are inside selected folders.";
         private const string diveItemsText = "Whether 'Modify Selected' will affect items that are the children of selected items.";
         private const string affectCharactersText = "Whether 'Modify Selected' and 'Modify ALL' will affect characters at all.";
@@ -78,206 +81,223 @@ namespace MassShaderEditor.Koikatu {
         private readonly string affectChaAccsText = AffectChaPartsText("accessories, excluding any hair");
 
         private const string hairAccIsHairText = "Whether 'Modify ALL' will affect hair accessories while editing hair and skip them while editing accessories.";
-        private const string affectMiscBodyPartsText = "Whether the miscellaneous body parts like eyes/tongue should be affected or just the body/face. In Maker and if enabled, only 'Modify ALL' will affect them.";
+        private const string affectMiscBodyPartsText = "Whether the miscellaneous body parts like eyes/tongue/noseline/penis/etc should be affected. In Maker and if enabled, only 'Modify ALL' will affect them.";
 
         private void WindowFunction(int WindowID) {
             GUILayout.BeginVertical();
 
             float halfWidth = (windowRect.width - newSkin.window.border.left - newSkin.window.border.right) / 2;
 
-            // Changing tabs
-            GUILayout.BeginHorizontal();
-            if (GUILayout.Button("Value", newSkin.button))
-                tab = SettingType.Float;
-            if (GUILayout.Button("Color", newSkin.button))
-                tab = SettingType.Color;
-            if (GUILayout.Button(new GUIContent("۞", "Show settings"), newSkin.button, GUILayout.ExpandWidth(false))) {
-                isSetting = !isSetting;
-                isHelp = false;
-            }
-            var helpStyle = new GUIStyle(newSkin.button);
-            helpStyle.normal.textColor = Color.yellow;
-            helpStyle.hover.textColor = Color.yellow;
-            if (GUILayout.Button(new GUIContent("?", "Show help"), helpStyle, GUILayout.ExpandWidth(false))) {
-                isHelp = !isHelp;
-                isSetting = false;
-            }
-            GUILayout.EndHorizontal();
-
-            // Label setup
-            string filterText = "Filter"; float filterWidth = newSkin.label.CalcSize(new GUIContent(filterText)).x;
-            string propertyText = "Property"; float propertyWidth = newSkin.label.CalcSize(new GUIContent(propertyText)).x;
-            string valueText = "Value"; float valueWidth = newSkin.label.CalcSize(new GUIContent(valueText)).x;
-            float commonWidth = Mathf.Max(new float[]{filterWidth, propertyWidth, valueWidth});
-
-            // Filter
-            GUILayout.BeginHorizontal();
-            GUILayout.Label(new GUIContent(filterText, "Only shaders with this in their name will be edited"), newSkin.label, GUILayout.Width(commonWidth));
-            filterInput = GUILayout.TextField(filterInput, newSkin.textField);
-            filter = filterInput.Trim();
-            GUILayout.EndHorizontal();
-
-            // Property
-            GUILayout.BeginHorizontal();
-            GUILayout.Label(new GUIContent(propertyText, "The name of the shader property to be edited"), newSkin.label, GUILayout.Width(commonWidth));
-            setNameInput = GUILayout.TextField(setNameInput,newSkin.textField);
-            setName = setNameInput.Trim();
-            GUILayout.EndHorizontal();
-
-            // Float value
-            if (tab == SettingType.Float) {
+            // Menu bar
+            {
+                // Changing tabs
                 GUILayout.BeginHorizontal();
-                GUILayout.Label(new GUIContent(valueText, "The value to be used in the modification, according to the method chosen below"), newSkin.label, GUILayout.Width(commonWidth));
-                setValInputString = GUILayout.TextField(setValInputString, newSkin.textField);
-                setValInput = Studio.Utility.StringToFloat(setValInputString);
-                string indicatorText = "→ " + setVal.ToString("0.000");
-                GUILayout.Label(indicatorText, newSkin.label, GUILayout.Width(newSkin.label.CalcSize(new GUIContent(indicatorText)).x));
-                GUILayout.EndHorizontal();
-                GUILayout.Space(-4);
-                GUILayout.BeginHorizontal();
-                leftLim = Studio.Utility.StringToFloat(GUILayout.TextField(leftLim.ToString("0.0"), newSkin.textField, GUILayout.ExpandWidth(false)));
-                GUILayout.BeginVertical(); GUILayout.Space(8);
-                setValSlider = GUILayout.HorizontalSlider(setValSlider, leftLim, rightLim, newSkin.horizontalSlider, newSkin.horizontalSliderThumb);
-                GUILayout.EndVertical();
-                rightLim = Studio.Utility.StringToFloat(GUILayout.TextField(rightLim.ToString("0.0"), newSkin.textField, GUILayout.ExpandWidth(false)));
-                if (Mathf.Abs(setValInput - setVal) > 1E-06) {
-                    if (float.TryParse(setValInputString, out _)) {
-                        setVal = setValInput;
-                        setValSlider = setValInput;
-                    }
-                } else if (Mathf.Abs(setValSlider - setVal) > 1E-06) {
-                    setVal = setValSlider;
-                    setValInput = setValSlider;
-                    setValInputString = setVal.ToString();
+                var activeStyle = new GUIStyle(newSkin.button);
+                activeStyle.normal = activeStyle.active;
+                if (GUILayout.Button("Value", (tab == SettingType.Float ? activeStyle : newSkin.button)))
+                    tab = SettingType.Float;
+                if (GUILayout.Button("Color", (tab == SettingType.Color ? activeStyle : newSkin.button)))
+                    tab = SettingType.Color;
+                if (GUILayout.Button("Shader", (tab == SettingType.Shader ? activeStyle : newSkin.button)))
+                    tab = SettingType.Shader;
+                if (GUILayout.Button(new GUIContent("۞", "Show settings"), newSkin.button, GUILayout.ExpandWidth(false))) {
+                    isSetting = !isSetting;
+                    isHelp = false;
+                }
+                var helpStyle = new GUIStyle(newSkin.button);
+                helpStyle.normal.textColor = Color.yellow;
+                helpStyle.hover.textColor = Color.yellow;
+                if (GUILayout.Button(new GUIContent("?", "Show help"), helpStyle, GUILayout.ExpandWidth(false))) {
+                    isHelp = !isHelp;
+                    isSetting = false;
                 }
                 GUILayout.EndHorizontal();
-                GUILayout.Space(4);
-                GUILayout.BeginHorizontal();
-
-                var buttonContents = new GUIContent[] { new GUIContent(" = ","Set the property to this value"), new GUIContent(" + ","Add to the property's existing value"),
-                    new GUIContent(" × ","Multiply the property's existing value"), new GUIContent("Min","Set any property lower than the set value to the value"),
-                    new GUIContent("Max", "Set any property higher than the set value to the value")};
-                setMode = GUILayout.SelectionGrid(setMode, buttonContents, buttonContents.Length, newSkin.button);
-
-                GUILayout.EndHorizontal();
             }
 
-            // Color value
-            if (tab == SettingType.Color) {
+            // Shader property editing
+            if (new List<SettingType> { SettingType.Float, SettingType.Color }.Contains(tab)) {
+                // Label setup
+                string filterText = "Filter"; float filterWidth = newSkin.label.CalcSize(new GUIContent(filterText)).x;
+                string propertyText = "Property"; float propertyWidth = newSkin.label.CalcSize(new GUIContent(propertyText)).x;
+                string valueText = "Value"; float valueWidth = newSkin.label.CalcSize(new GUIContent(valueText)).x;
+                float commonWidth = Mathf.Max(new float[] { filterWidth, propertyWidth, valueWidth });
+
+                // Filter
                 GUILayout.BeginHorizontal();
-                string colorText = "Color #";
-                GUILayout.Label(colorText, newSkin.label, GUILayout.Width(newSkin.label.CalcSize(new GUIContent(colorText)).x));
-
-                // Text input
-                {
-                    if (!setCol.Matches(setColString.ToColor()) && setCol.maxColorComponent <= 1) {
-                        setColString = setCol.ToHex();
-                        setColStringInput = setColString;
-                        setColStringInputMemory = setColStringInput;
-                    }
-                    setColStringInput = GUILayout.TextField(setColStringInput, newSkin.textField);
-                    if (setColStringInputMemory != setColStringInput) {
-                        try {
-                            Color colConvert = setColStringInput.ToColor(); // May throw exception if hexcode is faulty
-                            setColString = setColStringInput; // Since hexcode is valid, we store it
-                            if (!colConvert.Matches(setCol)) {
-                                if (IsDebug.Value && !pickerChanged) Log.Info($"Color changed from {setCol} to {colConvert} based on text input!");
-                                pickerChanged = false;
-                                setCol = colConvert;
-                            }
-                        } catch {
-                            Log.Info("Could not convert color code!");
-                        }
-                    }
-                    setColStringInputMemory = setColStringInput;
-                } // End text input
-                colorText = "RGBA →";
-                GUILayout.Label(colorText, newSkin.label, GUILayout.Width(newSkin.label.CalcSize(new GUIContent(colorText)).x));
-
-                // Color picker
-                {
-                    if (!setCol.Matches(setColPicker)) {
-                        setColPicker = setCol;
-                        if (isPicker) ColorPicker(setColPicker, actPicker, true);
-                    }
-                    if (GUILayout.Button("Click", Colorbutton(setColPicker.Clamp()))) {
-                        if (!isPicker) setColPicker = setColPicker.Clamp();
-                        isPicker = !isPicker;
-                        ColorPicker(setColPicker, actPicker);
-                    }
-                    void actPicker(Color c) {
-                        if (IsDebug.Value) Log.Info($"Color changed from {setCol} to {c} based on picker!");
-                        setCol = c;
-                        setColPicker = c;
-                        pickerChanged = true;
-                    }
-                } // End Color picker
-
+                GUILayout.Label(new GUIContent(filterText, "Only shaders with this in their name will be edited"), newSkin.label, GUILayout.Width(commonWidth));
+                filterInput = GUILayout.TextField(filterInput, newSkin.textField);
+                filter = filterInput.Trim();
                 GUILayout.EndHorizontal();
-                GUILayout.BeginHorizontal();
 
-                // Value input
-                {
-                    if (!setCol.Matches(setColNum.ToColor())) {
-                        setColNum = setCol.ToArray();
-                    }
-                    float[] buffer = (float[])setColNum.Clone();
-                    GUILayout.Label("R", newSkin.label); setColNum[0] = Studio.Utility.StringToFloat(GUILayout.TextField(setColNum[0].ToString("0.000"), newSkin.textField));
-                    GUILayout.Label("G", newSkin.label); setColNum[1] = Studio.Utility.StringToFloat(GUILayout.TextField(setColNum[1].ToString("0.000"), newSkin.textField));
-                    GUILayout.Label("B", newSkin.label); setColNum[2] = Studio.Utility.StringToFloat(GUILayout.TextField(setColNum[2].ToString("0.000"), newSkin.textField));
-                    GUILayout.Label("A", newSkin.label); setColNum[3] = Studio.Utility.StringToFloat(GUILayout.TextField(setColNum[3].ToString("0.000"), newSkin.textField));
-                    if (!buffer.Matches(setColNum)) {
-                        if (IsDebug.Value) Log.Info($"Color changed from {setCol} to {setColNum.ToColor()} based on value input!");
-                        setCol = setColNum.ToColor();
-                        if (setCol.maxColorComponent > 1) {
-                            if (isPicker) {
-                                isPicker = false;
-                                ColorPicker(Color.black, null);
-                            }
-                            setColStringInput = "########";
-                            setColStringInputMemory = "########";
+                // Property
+                GUILayout.BeginHorizontal();
+                GUILayout.Label(new GUIContent(propertyText, "The name of the shader property to be edited"), newSkin.label, GUILayout.Width(commonWidth));
+                setNameInput = GUILayout.TextField(setNameInput, newSkin.textField);
+                setName = setNameInput.Trim();
+                GUILayout.EndHorizontal();
+
+                // Float value
+                if (tab == SettingType.Float) {
+                    GUILayout.BeginHorizontal();
+                    GUILayout.Label(new GUIContent(valueText, valueExplainText), newSkin.label, GUILayout.Width(commonWidth));
+                    setValInputString = GUILayout.TextField(setValInputString, newSkin.textField);
+                    setValInput = Studio.Utility.StringToFloat(setValInputString);
+                    string indicatorText = "→ " + setVal.ToString("0.000");
+                    GUILayout.Label(new GUIContent(indicatorText, valueExplainText), newSkin.label, GUILayout.Width(newSkin.label.CalcSize(new GUIContent(indicatorText)).x));
+                    GUILayout.EndHorizontal();
+                    GUILayout.Space(-4);
+                    GUILayout.BeginHorizontal();
+                    leftLim = Studio.Utility.StringToFloat(GUILayout.TextField(leftLim.ToString("0.0"), newSkin.textField, GUILayout.ExpandWidth(false)));
+                    GUILayout.BeginVertical(); GUILayout.Space(8);
+                    setValSlider = GUILayout.HorizontalSlider(setValSlider, leftLim, rightLim, newSkin.horizontalSlider, newSkin.horizontalSliderThumb);
+                    GUILayout.EndVertical();
+                    rightLim = Studio.Utility.StringToFloat(GUILayout.TextField(rightLim.ToString("0.0"), newSkin.textField, GUILayout.ExpandWidth(false)));
+                    if (Mathf.Abs(setValInput - setVal) > 1E-06) {
+                        if (float.TryParse(setValInputString, out _)) {
+                            setVal = setValInput;
+                            setValSlider = setValInput;
                         }
-                        if (buffer.Max() > 1 && setCol.maxColorComponent <= 1) {
+                    } else if (Mathf.Abs(setValSlider - setVal) > 1E-06) {
+                        setVal = setValSlider;
+                        setValInput = setValSlider;
+                        setValInputString = setVal.ToString();
+                    }
+                    GUILayout.EndHorizontal();
+                    GUILayout.Space(4);
+                    GUILayout.BeginHorizontal();
+
+                    var buttonContents = new GUIContent[] { new GUIContent(" = ","Set the property to this value"), new GUIContent(" + ","Add to the property's existing value"),
+                        new GUIContent(" × ","Multiply the property's existing value"), new GUIContent("Min","Set any property lower than the set value to the value"),
+                        new GUIContent("Max", "Set any property higher than the set value to the value")};
+                    setMode = GUILayout.SelectionGrid(setMode, buttonContents, buttonContents.Length, newSkin.button);
+
+                    GUILayout.EndHorizontal();
+                }
+
+                // Color value
+                if (tab == SettingType.Color) {
+                    GUILayout.BeginHorizontal();
+                    string colorText = "Color #";
+                    GUILayout.Label(colorText, newSkin.label, GUILayout.Width(newSkin.label.CalcSize(new GUIContent(colorText)).x));
+
+                    // Text input
+                    {
+                        if (!setCol.Matches(setColString.ToColor()) && setCol.maxColorComponent <= 1) {
                             setColString = setCol.ToHex();
                             setColStringInput = setColString;
                             setColStringInputMemory = setColStringInput;
                         }
-                    }
-                } // End value input
+                        setColStringInput = GUILayout.TextField(setColStringInput, newSkin.textField);
+                        if (setColStringInputMemory != setColStringInput) {
+                            try {
+                                Color colConvert = setColStringInput.ToColor(); // May throw exception if hexcode is faulty
+                                setColString = setColStringInput; // Since hexcode is valid, we store it
+                                if (!colConvert.Matches(setCol)) {
+                                    if (IsDebug.Value && !pickerChanged) Log.Info($"Color changed from {setCol} to {colConvert} based on text input!");
+                                    pickerChanged = false;
+                                    setCol = colConvert;
+                                }
+                            } catch {
+                                Log.Info("Could not convert color code!");
+                            }
+                        }
+                        setColStringInputMemory = setColStringInput;
+                    } // End text input
+                    colorText = "RGBA →";
+                    GUILayout.Label(colorText, newSkin.label, GUILayout.Width(newSkin.label.CalcSize(new GUIContent(colorText)).x));
 
-                GUILayout.EndHorizontal();
+                    // Color picker
+                    {
+                        if (!setCol.Matches(setColPicker)) {
+                            setColPicker = setCol;
+                            if (isPicker) ColorPicker(setColPicker, actPicker, true);
+                        }
+                        if (GUILayout.Button("Click", Colorbutton(setColPicker.Clamp()))) {
+                            if (!isPicker) setColPicker = setColPicker.Clamp();
+                            isPicker = !isPicker;
+                            ColorPicker(setColPicker, actPicker);
+                        }
+                        void actPicker(Color c) {
+                            if (IsDebug.Value) Log.Info($"Color changed from {setCol} to {c} based on picker!");
+                            setCol = c;
+                            setColPicker = c;
+                            pickerChanged = true;
+                        }
+                    } // End Color picker
 
-                GUILayout.Label(" ", newSkin.label);
+                    GUILayout.EndHorizontal();
+                    GUILayout.BeginHorizontal();
+
+                    // Value input
+                    {
+                        if (!setCol.Matches(setColNum.ToColor())) {
+                            setColNum = setCol.ToArray();
+                        }
+                        float[] buffer = (float[])setColNum.Clone();
+                        GUILayout.Label("R", newSkin.label); setColNum[0] = Studio.Utility.StringToFloat(GUILayout.TextField(setColNum[0].ToString("0.000"), newSkin.textField));
+                        GUILayout.Label("G", newSkin.label); setColNum[1] = Studio.Utility.StringToFloat(GUILayout.TextField(setColNum[1].ToString("0.000"), newSkin.textField));
+                        GUILayout.Label("B", newSkin.label); setColNum[2] = Studio.Utility.StringToFloat(GUILayout.TextField(setColNum[2].ToString("0.000"), newSkin.textField));
+                        GUILayout.Label("A", newSkin.label); setColNum[3] = Studio.Utility.StringToFloat(GUILayout.TextField(setColNum[3].ToString("0.000"), newSkin.textField));
+                        if (!buffer.Matches(setColNum)) {
+                            if (IsDebug.Value) Log.Info($"Color changed from {setCol} to {setColNum.ToColor()} based on value input!");
+                            setCol = setColNum.ToColor();
+                            if (setCol.maxColorComponent > 1) {
+                                if (isPicker) {
+                                    isPicker = false;
+                                    ColorPicker(Color.black, null);
+                                }
+                                setColStringInput = "########";
+                                setColStringInputMemory = "########";
+                            }
+                            if (buffer.Max() > 1 && setCol.maxColorComponent <= 1) {
+                                setColString = setCol.ToHex();
+                                setColStringInput = setColString;
+                                setColStringInputMemory = setColStringInput;
+                            }
+                        }
+                    } // End value input
+
+                    GUILayout.EndHorizontal();
+
+                    GUILayout.Label(" ", newSkin.label);
+                }
+            }
+
+            // Shader swapping
+            if (tab == SettingType.Shader) {
+                // TODO
             }
 
             GUILayout.FlexibleSpace();
 
             // Action buttons
-            GUILayout.BeginHorizontal();
-            GUIStyle allStyle = new GUIStyle(newSkin.button);
-            allStyle.normal.textColor = Color.red;
-            allStyle.hover.textColor = Color.red;
-            if (GUILayout.Button(new GUIContent("Modify ALL", "Right click to reModify ALL"), allStyle, GUILayout.MaxWidth(halfWidth))) {
-                if (setName != "") {
-                    if (!DisableWarning.Value) {
-                        showWarning = true;
-                    } else {
+            {
+                GUILayout.BeginHorizontal();
+                GUIStyle allStyle = new GUIStyle(newSkin.button);
+                allStyle.normal.textColor = Color.red;
+                allStyle.hover.textColor = Color.red;
+                if (GUILayout.Button(new GUIContent("Modify ALL", "Right click to reModify ALL"), allStyle, GUILayout.MaxWidth(halfWidth))) {
+                    if (setName != "") {
+                        if (!DisableWarning.Value) {
+                            showWarning = true;
+                        } else {
+                            if (tab == SettingType.Color)
+                                SetAllProperties(setCol);
+                            else if (tab == SettingType.Float)
+                                SetAllProperties(setVal);
+                        }
+                    } else ShowMessage("You need to set a property name to edit!");
+                }
+                if (GUILayout.Button(new GUIContent("Modify Selected", "Right click to reset selected"), newSkin.button, GUILayout.MaxWidth(halfWidth))) {
+                    if (setName != "") {
                         if (tab == SettingType.Color)
-                            SetAllProperties(setCol);
+                            SetSelectedProperties(setCol);
                         else if (tab == SettingType.Float)
-                            SetAllProperties(setVal);
-                    }
-                } else ShowMessage("You need to set a property name to edit!");
+                            SetSelectedProperties(setVal);
+                    } else ShowMessage("You need to set a property name to edit!");
+                }
+                GUILayout.EndHorizontal();
             }
-            if (GUILayout.Button(new GUIContent("Modify Selected", "Right click to reset selected"), newSkin.button, GUILayout.MaxWidth(halfWidth))) {
-                if (setName != "") {
-                    if (tab == SettingType.Color)
-                        SetSelectedProperties(setCol);
-                    else if (tab == SettingType.Float)
-                        SetSelectedProperties(setVal);
-                } else ShowMessage("You need to set a property name to edit!");
-            }
-            GUILayout.EndHorizontal();
 
             GUILayout.EndVertical();
 
@@ -413,7 +433,7 @@ namespace MassShaderEditor.Koikatu {
             // Maker settings
             if (KKAPI.Maker.MakerAPI.InsideMaker) {
                 GUILayout.BeginHorizontal();
-                if (GUILayout.Button(new GUIContent($"Misc body parts: {(AffectMiscBodyParts.Value ? "Yes" : "No")}", affectMiscBodyPartsText), newSkin.button))
+                if (GUILayout.Button(new GUIContent($"Misc parts: {(AffectMiscBodyParts.Value ? "Yes" : "No")}", affectMiscBodyPartsText), newSkin.button))
                     AffectMiscBodyParts.Value = !AffectMiscBodyParts.Value;
                 if (GUILayout.Button(new GUIContent($"Hair accs are hair: {(HairAccIsHair.Value ? "Yes" : "No")}", hairAccIsHairText), newSkin.button))
                     HairAccIsHair.Value = !HairAccIsHair.Value;
@@ -612,8 +632,9 @@ namespace MassShaderEditor.Koikatu {
         private void Spacer(float multiplied = 1) => GUILayout.Space(6 * multiplied * UIScale.Value);
 
         public enum SettingType {
+            Float,
             Color,
-            Float
+            Shader
         }
     }
 }
