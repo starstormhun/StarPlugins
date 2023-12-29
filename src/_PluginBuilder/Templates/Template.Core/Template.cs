@@ -1,11 +1,5 @@
 ﻿using BepInEx;
 using BepInEx.Configuration;
-#if KKS
-using Common.KoikatsuSunshine;
-#else
-using Common.Koikatu;
-#endif
-using System.Linq;
 using UnityEngine;
 
 [assembly: System.Reflection.AssemblyFileVersion($nsname$.$safeprojectname$.Version)]

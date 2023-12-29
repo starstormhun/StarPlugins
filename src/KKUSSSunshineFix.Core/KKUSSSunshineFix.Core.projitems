@@ -9,6 +9,7 @@
     <Import_RootNamespace>KKUSSSunshineFix</Import_RootNamespace>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="$(MSBuildThisFileDirectory)HookPatch.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)KKUSSSunshineFix.cs" />
   </ItemGroup>
 </Project>

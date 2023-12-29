@@ -1,10 +1,7 @@
 using BepInEx;
-using BepInEx.Configuration;
-#if KKS
-using Common.KoikatsuSunshine;
-#else
-using Common.Koikatu;
-#endif
+using KK_Plugins.MaterialEditor;
+using static KK_Plugins.MaterialEditor.MaterialEditorCharaController;
+using static MaterialEditorAPI.MaterialAPI;
 using System.Linq;
 using UnityEngine;
 
@@ -12,7 +9,8 @@ using UnityEngine;
 
 namespace KKUSSFix {
     [BepInDependency(KKAPI.KoikatuAPI.GUID)]
-	[BepInProcess(KKAPI.KoikatuAPI.StudioProcessName)]
+    [BepInDependency(MaterialEditorPlugin.PluginGUID, MaterialEditorPlugin.PluginVersion)]
+    [BepInProcess(KKAPI.KoikatuAPI.StudioProcessName)]
 	[BepInProcess(KKAPI.KoikatuAPI.GameProcessName)]
 #if KK
 	[BepInProcess(KKAPI.KoikatuAPI.GameProcessNameSteam)]
