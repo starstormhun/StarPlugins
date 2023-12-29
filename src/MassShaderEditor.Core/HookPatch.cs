@@ -43,7 +43,7 @@ namespace MassShaderEditor.Koikatu {
                 _harmony.UnpatchSelf();
             }
 
-            // Makes OnObjectVisibilityToggled fire for folders
+            // Fills appropriate fields in plugin UI when clicking the ME - Timeline interpolable button
             [HarmonyPostfix]
             [HarmonyPatch(typeof(MaterialEditorAPI.MaterialEditorUI), "SelectInterpolableButtonOnClick")]
             private static void FillFieldsOnClick(GameObject go, RowItemType rowType, string propertyName, string materialName) {
