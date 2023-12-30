@@ -26,7 +26,7 @@ namespace MassShaderEditor.Koikatu {
 	/// </info>
     public partial class MassShaderEditor : BaseUnityPlugin {
         public const string GUID = "starstorm.massshadereditor";
-        public const string Version = "0.5.0." + BuildNumber.Version;
+        public const string Version = "1.0.0." + BuildNumber.Version;
 
         // General
         public ConfigEntry<float> UIScale { get; private set; }

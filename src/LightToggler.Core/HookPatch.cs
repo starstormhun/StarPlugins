@@ -104,7 +104,7 @@ namespace LightToggler.Koikatu {
             private static void StudioSaveScene() {
                 foreach (KeyValuePair<int,ObjectCtrlInfo> keyValuePair in Singleton<Studio.Studio>.Instance.dicObjectCtrl) {
                     Light[] lights;
-                    lights = keyValuePair.Value.GetObject().GetComponentsInChildren<Light>();
+                    lights = keyValuePair.Value.GetObject().GetComponentsInChildren<Light>(true);
                     if (lights.Length > 0) {
                         foreach (Light light in lights) {
                             light.enabled = keyValuePair.Value.treeNodeObject.visible && keyValuePair.Value.treeNodeObject.m_ButtonVisible.interactable;
