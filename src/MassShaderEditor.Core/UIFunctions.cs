@@ -20,6 +20,7 @@ namespace MassShaderEditor.Koikatu {
 
         private static readonly float[] defaultSize = new float[] { 200f,40f,250f,170f};
         private Rect windowRect = new Rect(defaultSize[0], defaultSize[1], defaultSize[2], defaultSize[3]);
+        private Rect mixRect = new Rect();
         private Rect helpRect = new Rect();
         private Rect setRect = new Rect();
         private Rect infoRect = new Rect();
@@ -36,10 +37,12 @@ namespace MassShaderEditor.Koikatu {
         internal string filter = "";
         internal string setName = "";
         private float setVal = 0;
-        private int setMode = 0;
+        private int setModeFloat = 0;
+        private int setModeColor = 0;
         private Color setCol = Color.white;
         internal string setShader = "";
         private int setQueue = 0;
+        private float setMix = 0.5f;
 
         private float leftLim = -1;
         private float rightLim = 1;
@@ -76,7 +79,9 @@ namespace MassShaderEditor.Koikatu {
         private readonly List<string> helpText = new List<string>{"To use, first choose whether the property you want to edit is a value, or a color using the buttons at the top of the UI. Afterwards you can input its name, and set the desired value/color using the fields below those.",
             "You can either type in the name of the property you want to edit, or you can click its name in the MaterialEditor UI, or click the timeline integration button that you can enable in the ME settings. Clicking these things will autofill the property name.",
             "You can also set up a shader name filter by clicking the 'Shader' label or Timeline button in MaterialEditor next to the dropdown list of the shader, but it can also be inputted manually. The filter doesn't have to be the full name of the shader. If left empty, all shaders will be edited.",
-            "When modifying color properties, the old values will always replaced the the specified color, but when modifying slider properties, you can choose from 5 operations to perform on the old value with the button row that appears: Replace, Add, Multiply, Minimum, or Maximum",
+            "When modifying slider properties, you can choose from 5 operations to perform on the old value with the button row that appears: Replace, Add, Multiply, Minimum (Every affedted value will be at LEAST the set amount), or Maximum (Every affected value will be at MOST the set amount)",
+            "When modifying color properties, you can also choose from 5 operations: Set(Replaces colors), Mix (Averages colors), Add 1 (Adds the individual color values and caps them at 1), Add 2 (Adds the values without capping), or Subtract(Does not subtract below 0)",
+            "While mixing colors, an additional slider will appear to the left of the window which controls how much the set value is taken into consideration. At 1, the mix operation is the same as Set, and at 0, it does nothing.",
             "After filtering and naming the property, and choosing the operation, you can click 'Modify Selected', or 'Modify ALL'. In Studio, 'Modify Selected' will modify items you currently have selected in the Workspace. Also in Studio, 'Modify ALL' will modify EVERYTHING in the scene.",
             "In Character Maker, 'Modify Selected' will affect only the currently edited clothing piece or accessory. When in the face or body menus, the appropriate body part will be affected instead. The 'Modify ALL' button in Maker affects all of the currently edited category.",
             "Right-clicking either of these two buttons will reset the specified property of the appropriate items to the default value instead of setting the one you have currently inputted.",
@@ -185,10 +190,10 @@ namespace MassShaderEditor.Koikatu {
                     GUILayout.Space(4);
                     GUILayout.BeginHorizontal();
 
-                    var buttonContents = new GUIContent[] { new GUIContent(" = ","Set the property to this value"), new GUIContent(" + ","Add to the property's existing value"),
-                        new GUIContent(" × ","Multiply the property's existing value"), new GUIContent("Min","Set any property lower than the set value to the value"),
-                        new GUIContent("Max", "Set any property higher than the set value to the value")};
-                    setMode = GUILayout.SelectionGrid(setMode, buttonContents, buttonContents.Length, newSkin.button);
+                    var buttonContents = new GUIContent[] { new GUIContent(" = ", "Set the property to this value."), new GUIContent(" + ", "Add to the property's existing value."),
+                        new GUIContent(" × ", "Multiply the property's existing value."), new GUIContent("Min", "Set any property lower than the set value to the value."),
+                        new GUIContent("Max", "Set any property higher than the set value to the value.")};
+                    setModeFloat = GUILayout.SelectionGrid(setModeFloat, buttonContents, buttonContents.Length, newSkin.button);
 
                     GUILayout.EndHorizontal();
                 }
@@ -278,7 +283,12 @@ namespace MassShaderEditor.Koikatu {
 
                     GUILayout.EndHorizontal();
 
-                    GUILayout.Label(" ", newSkin.label);
+                    var buttonContents = new GUIContent[] { new GUIContent("Set", "Replace the color."), new GUIContent("Mix", "Average the existing and set color. The ratio is controlled by the slider that appears to the left."),
+                        new GUIContent("Add1", "Add the set color, capping values at 1."), new GUIContent("Add2", "Add the set color, without capping values."),
+                        new GUIContent("Sub", "Subtract the set color, but not below 0.")};
+                    setModeColor = GUILayout.SelectionGrid(setModeColor, buttonContents, buttonContents.Length, newSkin.button);
+
+                    GUILayout.Space(1);
                 }
             }
 
@@ -327,8 +337,6 @@ namespace MassShaderEditor.Koikatu {
 
                 GUILayout.Label(" ", newSkin.label); GUILayout.Label(" ", newSkin.label);
             }
-
-            GUILayout.FlexibleSpace();
 
             // Action buttons
             {
@@ -613,6 +621,17 @@ namespace MassShaderEditor.Koikatu {
             GUILayout.EndScrollView();
         }
 
+        private void MixFunction(int windowID) {
+            var numStyle = new GUIStyle(newSkin.label) {
+                alignment = TextAnchor.MiddleCenter,
+            };
+            GUILayout.BeginVertical();
+            GUILayout.Label("1",numStyle);
+            setMix = GUILayout.VerticalSlider(setMix, 1, 0, newSkin.verticalSlider, newSkin.verticalSliderThumb);
+            GUILayout.Label("0", numStyle);
+            GUILayout.EndVertical();
+        }
+
         private void ColorPicker(Color col, Action<Color> act, bool update = false) {
             if (KoikatuAPI.GetCurrentGameMode() == GameMode.Studio) {
                 if (studio.colorPalette.visible && !update) {
@@ -665,8 +684,10 @@ namespace MassShaderEditor.Koikatu {
             newSkin.window = new GUIStyle(GUI.skin.window);
             newSkin.textField = new GUIStyle(GUI.skin.textField);
             newSkin.scrollView = new GUIStyle(GUI.skin.scrollView);
+            newSkin.verticalSlider = new GUIStyle(GUI.skin.verticalSlider);
             newSkin.horizontalSlider = new GUIStyle(GUI.skin.horizontalSlider);
             newSkin.verticalScrollbar = new GUIStyle(GUI.skin.verticalScrollbar);
+            newSkin.verticalSliderThumb = new GUIStyle(GUI.skin.verticalSliderThumb);
             newSkin.horizontalSliderThumb = new GUIStyle(GUI.skin.horizontalSliderThumb);
 
             newSkin.window.stretchWidth = false;
@@ -680,8 +701,9 @@ namespace MassShaderEditor.Koikatu {
         }
 
         private void ScaleUI(float scale) {
-            windowRect.size = new Vector2(windowRect.size.x * scale / prevScale, (windowRect.size.y + (prevScale - 1) * 90) * scale / prevScale - (scale - 1) * 90);
+            windowRect.size = new Vector2(windowRect.size.x * scale / prevScale, 1);
             dropRect.size = new Vector2(dropRect.size.x, windowRect.size.y * 1.3f);
+            mixRect.size = new Vector2(1, windowRect.size.y);
             warnRect.size *= scale / prevScale;
             prevScale = scale;
             newScale = scale;
@@ -695,11 +717,12 @@ namespace MassShaderEditor.Koikatu {
             newSkin.button.fontSize = newSize;
             newSkin.textField.fontSize = newSize;
             newSkin.scrollView.fontSize = newSize;
+            newSkin.verticalSlider.fixedWidth = newSize;
             newSkin.horizontalSlider.fixedHeight = newSize;
+            newSkin.verticalSliderThumb.fixedWidth = newSize;
             newSkin.horizontalSliderThumb.fixedHeight = newSize;
+            newSkin.verticalSliderThumb.fixedHeight = Math.Max(newSkin.verticalSliderThumb.fixedWidth * 0.65f, 15);
             newSkin.horizontalSliderThumb.fixedWidth = Math.Max(newSkin.horizontalSliderThumb.fixedHeight * 0.65f, 15);
-            newSkin.verticalScrollbar.fixedWidth = newSkin.button.CalcSize(new GUIContent("TEST")).y / 1.5f;
-            newSkin.verticalScrollbar.stretchWidth = true;
 
             CalcSizes();
         }

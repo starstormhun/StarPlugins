@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Linq;
 using UnityEngine;
 
 namespace MassShaderEditor.Koikatu {
@@ -18,6 +19,12 @@ namespace MassShaderEditor.Koikatu {
 		public static Color ToColor(this float[] a) {
 			if (a.Length != 4) throw new ArgumentException("Array must have 4 members!");
 			return new Color(a[0], a[1], a[2], a[3]);
+		}
+
+		public static Color AddClamp(this Color c1, Color c2, float min, float max) {
+			var a1 = c1.ToArray();
+			var a2 = c2.ToArray();
+			return Enumerable.Range(0, a1.Length).Select(i => Mathf.Clamp(a1[i] + a2[i], min, max)).ToArray().ToColor();
 		}
 
 		public static string ToHex(this Color _color) {

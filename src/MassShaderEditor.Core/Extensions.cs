@@ -1,5 +1,4 @@
-﻿using static KKAPI.Studio.StudioObjectExtensions;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using UnityEngine;
 using Studio;
 

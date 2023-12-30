@@ -9,7 +9,6 @@ using System;
 using System.Linq;
 using System.Collections.Generic;
 using UnityEngine;
-using UnityEngine.UI;
 
 [assembly: System.Reflection.AssemblyFileVersion(MassShaderEditor.Koikatu.MassShaderEditor.Version)]
 
@@ -188,6 +187,14 @@ namespace MassShaderEditor.Koikatu {
                         setRect.position = windowRect.position + new Vector2(windowRect.size.x + 3, 0);
                         infoRect.position = windowRect.position + new Vector2(0, windowRect.size.y + 3);
 
+                        mixRect.position = windowRect.position - new Vector2(mixRect.size.x + 3, 0);
+                        mixRect.size = new Vector2(mixRect.size.x, windowRect.size.y);
+
+                        if (tab == SettingType.Color && setModeColor == 1) {
+                            mixRect = GUILayout.Window(586, mixRect, MixFunction, "", newSkin.box);
+                            KKAPI.Utilities.IMGUIUtils.EatInputInRect(mixRect);
+                            Redraw(1586, mixRect, redrawNum-1, true);
+                        }
                         if (isHelp) {
                             helpRect = GUILayout.Window(588, helpRect, HelpFunction, "How to use?", newSkin.window, GUILayout.MaxWidth(defaultSize[2]*UIScale.Value));
                             KKAPI.Utilities.IMGUIUtils.EatInputInRect(helpRect);
@@ -352,12 +359,12 @@ namespace MassShaderEditor.Koikatu {
                                         if (_value is float floatval)
                                             if (mat.TryGetFloat(setName, out float current)) {
                                                 ctrl.SetMaterialFloatProperty(item.objectInfo.dicKey, mat, setName, GetModifiedFloat(current, floatval));
-                                                if (IsDebug.Value) Log.Info($"Property {item.NameFormatted()}\\{mat.NameFormatted()}\\{setName} set to {_value}!");
+                                                if (IsDebug.Value) Log.Info($"Property {item.NameFormatted()}\\{mat.NameFormatted()}\\{setName} set to {GetModifiedFloat(current, floatval)}!");
                                             } else { if (IsDebug.Value) Log.Info($"Tried setting float property {item.NameFormatted()}\\{mat.NameFormatted()}\\{setName} to color value!"); }
                                         else if (_value is Color colval)
-                                            if (mat.TryGetColor(setName, out _)) {
-                                                ctrl.SetMaterialColorProperty(item.objectInfo.dicKey, mat, setName, colval);
-                                                if (IsDebug.Value) Log.Info($"Property {item.NameFormatted()}\\{mat.NameFormatted()}\\{setName} set to {_value}!");
+                                            if (mat.TryGetColor(setName, out Color current)) {
+                                                ctrl.SetMaterialColorProperty(item.objectInfo.dicKey, mat, setName, GetModifiedColor(current, colval));
+                                                if (IsDebug.Value) Log.Info($"Property {item.NameFormatted()}\\{mat.NameFormatted()}\\{setName} set to {GetModifiedColor(current, colval)}!");
                                             } else { if (IsDebug.Value) Log.Info($"Tried setting color property {item.NameFormatted()}\\{mat.NameFormatted()}\\{setName} to float value!"); }
                                         else { if (IsDebug.Value) Log.Info($"Tried setting a item property or shader to erroneous type: {_value.GetType()}"); }
                                     }
@@ -444,12 +451,12 @@ namespace MassShaderEditor.Koikatu {
                                         if (_value is float floatval)
                                             if (mat.TryGetFloat(setName, out float current)) {
                                                 ctrl.SetMaterialFloatProperty(slot, type, mat, setName, GetModifiedFloat(current, floatval), go);
-                                                if (IsDebug.Value) Log.Info($"Property {chaName}\\{mat.NameFormatted()}\\{setName} set to {_value}!");
+                                                if (IsDebug.Value) Log.Info($"Property {chaName}\\{mat.NameFormatted()}\\{setName} set to {GetModifiedFloat(current, floatval)}!");
                                             } else { if (IsDebug.Value) Log.Info($"Tried setting color property {chaName}\\{mat.NameFormatted()}\\{setName} to float value!"); }
                                         else if (_value is Color colval)
-                                            if (mat.TryGetColor(setName, out _)) {
-                                                ctrl.SetMaterialColorProperty(slot, type, mat, setName, colval, go);
-                                                if (IsDebug.Value) Log.Info($"Property {chaName}\\{mat.NameFormatted()}\\{setName} set to {_value}!");
+                                            if (mat.TryGetColor(setName, out Color current)) {
+                                                ctrl.SetMaterialColorProperty(slot, type, mat, setName, GetModifiedColor(current, colval), go);
+                                                if (IsDebug.Value) Log.Info($"Property {chaName}\\{mat.NameFormatted()}\\{setName} set to {GetModifiedColor(current, colval)}!");
                                             } else { if (IsDebug.Value) Log.Info($"Tried setting float property {chaName}\\{mat.NameFormatted()}\\{setName} to color value!"); }
                                         else { if (IsDebug.Value) Log.Info($"Tried setting a character property to erroneous type: {_value.GetType()}"); }
                                     }
@@ -485,7 +492,7 @@ namespace MassShaderEditor.Koikatu {
 
         private float GetModifiedFloat(float current, float floatVal) {
             float newVal = 0;
-            switch (setMode) {
+            switch (setModeFloat) {
                 case 0:
                     newVal = floatVal; break;
                 case 1:
@@ -498,6 +505,23 @@ namespace MassShaderEditor.Koikatu {
                     newVal = Math.Min(current, floatVal); break;
             }
             return newVal;
+        }
+
+        private Color GetModifiedColor(Color current, Color colval) {
+            Color newCol = new Color();
+            switch (setModeColor) {
+                case 0:
+                    newCol = colval; break;
+                case 1:
+                    newCol = current * (1 - setMix) + colval * setMix; break;
+                case 2:
+                    newCol = current.AddClamp(colval, 0f, 1f); break;
+                case 3:
+                    newCol = current + colval; break;
+                case 4:
+                    newCol = current - colval; break;
+            }
+            return newCol;
         }
 
         private bool MakerGetType(out ObjectType type) {
