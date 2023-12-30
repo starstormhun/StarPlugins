@@ -5,18 +5,6 @@ VisualStudioVersion = 16.0.34301.259
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{D954291E-2A0B-460D-934E-DC6B0785DB48}") = "Common.Core", "src\Common.Core\Common.Core.shproj", "{DD7D6945-54A6-4190-8F49-46A189EE32CD}"
 EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "archive", "archive", "{AD19F107-FED6-4ABD-B57E-1D584CCF0EC1}"
-	ProjectSection(SolutionItems) = preProject
-		archive\AssetHelper.cs = archive\AssetHelper.cs
-		archive\BoundsUtils.cs = archive\BoundsUtils.cs
-		archive\DragManager.cs = archive\DragManager.cs
-		archive\FreeHControl.cs = archive\FreeHControl.cs
-		archive\SelfieCam.cs = archive\SelfieCam.cs
-		archive\ShadowRealm.cs = archive\ShadowRealm.cs
-		archive\StudioUX.cs = archive\StudioUX.cs
-		archive\Unlocker.cs = archive\Unlocker.cs
-	EndProjectSection
-EndProject
 Project("{D954291E-2A0B-460D-934E-DC6B0785DB48}") = "UIUtility", "src\UIUtility\UIUtility.shproj", "{7F30866A-1B8B-40F1-8960-0E203EEDE225}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{BA55B5E5-B0FD-465F-93F2-D73BD193AC86}"

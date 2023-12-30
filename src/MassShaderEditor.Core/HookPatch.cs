@@ -71,7 +71,7 @@ namespace MassShaderEditor.Koikatu {
                     var txtList = content.GetComponentsInChildren<Text>(true).ToList();
                     if (MSE.IsDebug.Value) Log.Info($"Found {txtList.Count} text components...");
 
-                    var accepted = new List<string> { "FloatLabel", "ColorLabel", "ShaderLabel" };
+                    var accepted = new List<string> { "FloatLabel", "ColorLabel", "ShaderLabel", "ShaderRenderQueueLabel" };
                     txtList = txtList.FindAll(x => accepted.Contains(x.gameObject.name));
                     if (MSE.IsDebug.Value) Log.Info($"Found {txtList.Count} labels!");
 
@@ -88,6 +88,9 @@ namespace MassShaderEditor.Koikatu {
                                 GameObject shaderDropdown = null;
                                 foreach (Transform tr in txt.transform.parent.GetComponentsInChildren<Transform>(true)) if (tr.name == "ShaderDropdown") { shaderDropdown = tr.gameObject; break; }
                                 btn.onClick.AddListener(() => SetFilter(MSE, shaderDropdown.GetComponentInChildren<Text>().text));
+                                break;
+                            case "ShaderRenderQueueLabel":
+                                btn.onClick.AddListener(() => SetName(MSE, MassShaderEditor.SettingType.Float, "Render Queue"));
                                 break;
                         }
                     }

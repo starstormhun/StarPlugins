@@ -63,5 +63,10 @@ namespace MassShaderEditor.Koikatu {
                 return null;
             return chaControl.gameObject.GetComponent<KK_Plugins.MaterialEditor.MaterialEditorCharaController>();
         }
+
+        public static int ToInt(this string s) {
+            if (!int.TryParse(s, out int i)) return 0;
+            return i;
+        }
     }
 }
