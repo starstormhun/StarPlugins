@@ -81,6 +81,7 @@ namespace MassShaderEditor.Koikatu {
             "In Character Maker, 'Modify Selected' will affect only the currently edited clothing piece or accessory. When in the face or body menus, the appropriate body part will be affected instead. The 'Modify ALL' button in Maker affects all of the currently edited category.",
             "Right-clicking either of these two buttons will reset the specified property of the appropriate items to the default value instead of setting the one you have currently inputted.",
             "Apart from modifying float and color values of shaders, you can also replace shaders with other shaders by choosing the Shader tab in the menu bar. You can filter for shaders to be modified like in the previous cases, and you can select the desired shader from the dropdown list.",
+            "Autofilling the shader filter works the same in all three tabs. Additionally, you can autofill the shader to be set by SHIFT + clicking the Shader: label or timeline integration button.",
             "While replacing shaders, you can also specify the render queue of the shader. If left blank, invalid, or 0, the render queue will not be modified. Render queue can also be modified in the Value tab, by inputting its name in the property field, or clicking 'Render Queue:' in Material Editor, which autofills it for you."};
         private const string introText = "Welcome to Mass Shader Editor! To get started, I first recommend checking out the Help section, which will tell you how to best use this plugin, and any specifics on what each of the buttons and options do.\n\nTo access the help section, click the yellow '?' symbol in the top right corner of the plugin window.\n\nAfterwards, you should check out the various settings of the plugin, accessible either in the F1 menu or by clicking the cogwheel icon next to the help button. The available settings are differen in Maker and in Studio!\n\nHappy creating!";
         private const string shaderNameWrongMessage = "You need to input the full name (CASE-sensitive) of the shader to be set! The name has to be from the dropdown list.";
@@ -354,7 +355,7 @@ namespace MassShaderEditor.Koikatu {
                             } else {
                                 SetAllProperties(setShader);
                             }
-                        } else ShowMessage(shaderNameWrongMessage, 5);
+                        } else ShowMessage(shaderNameWrongMessage, 6);
                 }
                 if (GUILayout.Button(new GUIContent("Modify Selected", "Right click to reset selected"), newSkin.button, GUILayout.MaxWidth(halfWidth))) {
                     if (new List<SettingType> { SettingType.Float, SettingType.Color }.Contains(tab))
@@ -367,7 +368,7 @@ namespace MassShaderEditor.Koikatu {
                     else if (tab == SettingType.Shader)
                         if (shaders.Contains(setShader) || setReset) {
                             SetSelectedProperties(setShader);
-                        } else ShowMessage(shaderNameWrongMessage, 5);
+                        } else ShowMessage(shaderNameWrongMessage, 6);
                 }
                 GUILayout.EndHorizontal();
             }
@@ -703,7 +704,7 @@ namespace MassShaderEditor.Koikatu {
             CalcSizes();
         }
 
-        private void ShowMessage(string _msg, float _dur = 2.5f) {
+        private void ShowMessage(string _msg, float _dur = 3f) {
             infoRect.size = new Vector2(windowRect.size.x, 1);
             messageTime = Time.time;
             messageDur = _dur;

@@ -3,17 +3,20 @@ using HarmonyLib;
 using UnityEngine;
 using UnityEngine.UI;
 using System.Linq;
+using System.Reflection;
 using System.Collections.Generic;
 using ChaCustom;
 
 namespace MassShaderEditor.Koikatu {
     public static class HookPatch {
         internal static void Init() {
-            HookPatch.Hooks.SetupHooks();
+            HookPatch.AlwaysHooks.SetupHooks();
+            HookPatch.ConditionalHooks.SetupHooks();
         }
 
         internal static void Deactivate() {
-            HookPatch.Hooks.UnregisterHooks();
+            HookPatch.AlwaysHooks.UnregisterHooks();
+            HookPatch.ConditionalHooks.UnregisterHooks();
         }
 
         private static void SetName(MassShaderEditor MSE, MassShaderEditor.SettingType type, string name) {
@@ -24,37 +27,29 @@ namespace MassShaderEditor.Koikatu {
         }
 
         private static void SetFilter(MassShaderEditor MSE, string filter) {
-            if (MSE.IsDebug.Value) Log.Info($"Shader to be filtered: {filter}");
-            MSE.filter = filter.Trim();
-            MSE.filterInput = MSE.filter;
+            if (MSE.IsDebug.Value) Log.Info($"Shader name to be autofilled: {filter}");
+            if (Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCode.RightShift)) {
+                MSE.tab = MassShaderEditor.SettingType.Shader;
+                MSE.setShader = filter;
+                MSE.setShaderInput = filter;
+            } else {
+                MSE.filter = filter.Trim();
+                MSE.filterInput = MSE.filter;
+            }
         }
 
-        private static class Hooks {
+        private static class AlwaysHooks {
             private static Harmony _harmony;
             private static bool buttonsMade = false;
 
             // Setup Harmony and patch methods
             public static void SetupHooks() {
-                _harmony = Harmony.CreateAndPatchAll(typeof(HookPatch.Hooks), null);
+                _harmony = Harmony.CreateAndPatchAll(typeof(HookPatch.AlwaysHooks), null);
             }
 
             // Disable Harmony patches of this plugin
             public static void UnregisterHooks() {
                 _harmony.UnpatchSelf();
-            }
-
-            // Fills appropriate fields in plugin UI when clicking the ME - Timeline interpolable button
-            [HarmonyPostfix]
-            [HarmonyPatch(typeof(MaterialEditorAPI.MaterialEditorUI), "SelectInterpolableButtonOnClick")]
-            private static void FillFieldsOnClick(GameObject go, RowItemType rowType, string propertyName, string materialName) {
-                var MSE = (Object.FindObjectOfType(typeof(MassShaderEditor)) as MassShaderEditor);
-                if (rowType == RowItemType.FloatProperty) SetName(MSE, MassShaderEditor.SettingType.Float, propertyName);
-                if (rowType == RowItemType.ColorProperty) SetName(MSE, MassShaderEditor.SettingType.Color, propertyName);
-                if (rowType == RowItemType.Shader)
-                    foreach (var rend in GetRendererList(go))
-                        foreach (var mat in GetMaterials(go, rend))
-                            if (mat.NameFormatted() == materialName)
-                                SetFilter(MSE, mat.shader.NameFormatted());
             }
 
             // Sets up buttons on labels in the ME interface for autofilling the property name
@@ -118,6 +113,39 @@ namespace MassShaderEditor.Koikatu {
             [HarmonyPatch(typeof(CustomChangeMainMenu), "ChangeWindowSetting")]
             private static void CustomChangeMainMenuAfterChangeWindowSetting(int no) {
                 (Object.FindObjectOfType(typeof(MassShaderEditor)) as MassShaderEditor).makerTabID = no;
+            }
+        }
+
+        private static class ConditionalHooks {
+            private static Harmony _harmony;
+
+            public static void SetupHooks() {
+                var MSE = (Object.FindObjectOfType(typeof(MassShaderEditor)) as MassShaderEditor);
+
+                if (MSE.IsDebug.Value) Log.Info("Attempting to patch timeline buttons...");
+                if (typeof(MaterialEditorAPI.MaterialEditorUI).GetMethod("SelectInterpolableButtonOnClick", BindingFlags.NonPublic | BindingFlags.Instance) != null) {
+                    _harmony = Harmony.CreateAndPatchAll(typeof(HookPatch.ConditionalHooks), null);
+                    if (MSE.IsDebug.Value) Log.Info("Patched timeline buttons!");
+                }
+            }
+
+            // Disable Harmony patches of this plugin
+            public static void UnregisterHooks() {
+                _harmony.UnpatchSelf();
+            }
+
+            // Fills appropriate fields in plugin UI when clicking the ME - Timeline interpolable button
+            [HarmonyPostfix]
+            [HarmonyPatch(typeof(MaterialEditorAPI.MaterialEditorUI), "SelectInterpolableButtonOnClick")]
+            private static void FillFieldsOnClick(GameObject go, RowItemType rowType, string propertyName, string materialName) {
+                var MSE = (Object.FindObjectOfType(typeof(MassShaderEditor)) as MassShaderEditor);
+                if (rowType == RowItemType.FloatProperty) SetName(MSE, MassShaderEditor.SettingType.Float, propertyName);
+                if (rowType == RowItemType.ColorProperty) SetName(MSE, MassShaderEditor.SettingType.Color, propertyName);
+                if (rowType == RowItemType.Shader)
+                    foreach (var rend in GetRendererList(go))
+                        foreach (var mat in GetMaterials(go, rend))
+                            if (mat.NameFormatted() == materialName)
+                                SetFilter(MSE, mat.shader.NameFormatted());
             }
         }
 
