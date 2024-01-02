@@ -55,11 +55,21 @@ Project("{D954291E-2A0B-460D-934E-DC6B0785DB48}") = "KKUSSSunshineFix.Core", "sr
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "KKUSSSunshineFix.KoikatsuSunshine", "src\KKUSSSunshineFix.KoikatsuSunshine\KKUSSSunshineFix.KoikatsuSunshine.csproj", "{6126DB87-FA2A-4A34-9CAF-4FBC866BA92C}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "BetterScaling", "BetterScaling", "{64501AB3-0DE5-4972-904C-539467140363}"
+EndProject
+Project("{D954291E-2A0B-460D-934E-DC6B0785DB48}") = "BetterScaling.Core", "src\BetterScaling.Core\BetterScaling.Core.shproj", "{6C9E0956-133B-47C3-9F24-4D17F134CCDF}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "BetterScaling.Koikatu", "src\BetterScaling.Koikatu\BetterScaling.Koikatu.csproj", "{AF8BC6D8-91AF-41EB-8247-975D7632B851}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "BetterScaling.KoikatsuSunshine", "src\BetterScaling.KoikatsuSunshine\BetterScaling.KoikatsuSunshine.csproj", "{48E9A9FD-5F8B-4F1C-B8E1-07139E5211EA}"
+EndProject
 Global
 	GlobalSection(SharedMSBuildProjectFiles) = preSolution
 		src\Common.Core\Common.Core.projitems*{398d13b4-5014-4eea-8aa8-0e709ee9daa3}*SharedItemsImports = 5
 		src\LightToggler.Core\LightToggler.Core.projitems*{398d13b4-5014-4eea-8aa8-0e709ee9daa3}*SharedItemsImports = 5
 		src\KKUSSSunshineFix.Core\KKUSSSunshineFix.Core.projitems*{42328b54-c615-4ee3-a50f-dbb7ff37227b}*SharedItemsImports = 13
+		src\BetterScaling.Core\BetterScaling.Core.projitems*{48e9a9fd-5f8b-4f1c-b8e1-07139e5211ea}*SharedItemsImports = 5
+		src\Common.Core\Common.Core.projitems*{48e9a9fd-5f8b-4f1c-b8e1-07139e5211ea}*SharedItemsImports = 5
 		src\AxisUnlocker.Core\AxisUnlocker.Core.projitems*{4d1f9342-05c3-4b51-a466-d2b70951147f}*SharedItemsImports = 13
 		src\LightToggler.Core\LightToggler.Core.projitems*{5dc1b6b6-264f-41ea-b079-5777f0503cde}*SharedItemsImports = 13
 		src\AxisUnlocker.Core\AxisUnlocker.Core.projitems*{5e472017-3d7d-4872-8a55-81c4d45e385d}*SharedItemsImports = 5
@@ -68,7 +78,10 @@ Global
 		src\KKUSSSunshineFix.Core\KKUSSSunshineFix.Core.projitems*{6126db87-fa2a-4a34-9caf-4fbc866ba92c}*SharedItemsImports = 5
 		src\Common.Core\Common.Core.projitems*{6c7097ed-8929-4f45-af0f-e8253d981724}*SharedItemsImports = 5
 		src\LightToggler.Core\LightToggler.Core.projitems*{6c7097ed-8929-4f45-af0f-e8253d981724}*SharedItemsImports = 5
+		src\BetterScaling.Core\BetterScaling.Core.projitems*{6c9e0956-133b-47c3-9f24-4d17f134ccdf}*SharedItemsImports = 13
 		src\UIUtility\UIUtility.projitems*{7f30866a-1b8b-40f1-8960-0e203eede225}*SharedItemsImports = 13
+		src\BetterScaling.Core\BetterScaling.Core.projitems*{af8bc6d8-91af-41eb-8247-975d7632b851}*SharedItemsImports = 5
+		src\Common.Core\Common.Core.projitems*{af8bc6d8-91af-41eb-8247-975d7632b851}*SharedItemsImports = 5
 		src\MassShaderEditor.Core\MassShaderEditor.Core.projitems*{bb145cbe-97f1-463d-9432-1a8532f002d6}*SharedItemsImports = 13
 		src\Common.Core\Common.Core.projitems*{bb4e453f-3eb9-45db-8cda-f69b095dbd75}*SharedItemsImports = 5
 		src\MassShaderEditor.Core\MassShaderEditor.Core.projitems*{bb4e453f-3eb9-45db-8cda-f69b095dbd75}*SharedItemsImports = 5
@@ -111,6 +124,14 @@ Global
 		{6126DB87-FA2A-4A34-9CAF-4FBC866BA92C}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{6126DB87-FA2A-4A34-9CAF-4FBC866BA92C}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{6126DB87-FA2A-4A34-9CAF-4FBC866BA92C}.Release|Any CPU.Build.0 = Release|Any CPU
+		{AF8BC6D8-91AF-41EB-8247-975D7632B851}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{AF8BC6D8-91AF-41EB-8247-975D7632B851}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{AF8BC6D8-91AF-41EB-8247-975D7632B851}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{AF8BC6D8-91AF-41EB-8247-975D7632B851}.Release|Any CPU.Build.0 = Release|Any CPU
+		{48E9A9FD-5F8B-4F1C-B8E1-07139E5211EA}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{48E9A9FD-5F8B-4F1C-B8E1-07139E5211EA}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{48E9A9FD-5F8B-4F1C-B8E1-07139E5211EA}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{48E9A9FD-5F8B-4F1C-B8E1-07139E5211EA}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -133,6 +154,10 @@ Global
 		{DA3CCD70-A89E-4B36-987A-8468764E35B2} = {BA55B5E5-B0FD-465F-93F2-D73BD193AC86}
 		{42328B54-C615-4EE3-A50F-DBB7FF37227B} = {DA3CCD70-A89E-4B36-987A-8468764E35B2}
 		{6126DB87-FA2A-4A34-9CAF-4FBC866BA92C} = {DA3CCD70-A89E-4B36-987A-8468764E35B2}
+		{64501AB3-0DE5-4972-904C-539467140363} = {BA55B5E5-B0FD-465F-93F2-D73BD193AC86}
+		{6C9E0956-133B-47C3-9F24-4D17F134CCDF} = {64501AB3-0DE5-4972-904C-539467140363}
+		{AF8BC6D8-91AF-41EB-8247-975D7632B851} = {64501AB3-0DE5-4972-904C-539467140363}
+		{48E9A9FD-5F8B-4F1C-B8E1-07139E5211EA} = {64501AB3-0DE5-4972-904C-539467140363}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {CECC9C6B-8041-49A1-B7FD-DC89264B7393}
