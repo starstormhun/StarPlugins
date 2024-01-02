@@ -1,14 +1,14 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <PropertyGroup>
     <MSBuildAllProjects Condition="'$(MSBuildVersion)' == '' Or '$(MSBuildVersion)' &lt; '16.0'">$(MSBuildAllProjects);$(MSBuildThisFileFullPath)</MSBuildAllProjects>
     <HasSharedItems>true</HasSharedItems>
-    <SharedGUID>$uuid$</SharedGUID>
+    <SharedGUID>6c9e0956-133b-47c3-9f24-4d17f134ccdf</SharedGUID>
   </PropertyGroup>
   <PropertyGroup Label="Configuration">
-    <Import_RootNamespace>$nsname$</Import_RootNamespace>
+    <Import_RootNamespace>BetterScaling</Import_RootNamespace>
   </PropertyGroup>
   <ItemGroup>
-    <Compile Include="$(MSBuildThisFileDirectory)$safeprojectname$.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)BetterScaling.cs" />
   </ItemGroup>
 </Project>
