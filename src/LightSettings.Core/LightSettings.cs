@@ -15,10 +15,12 @@ namespace LightSettings.Koikatu {
         public const string GUID = "starstorm.lightsettings";
         public const string Version = "1.0.0." + BuildNumber.Version;
 
+        public ConfigEntry<bool> IsDebug { get; private set; }
+        public ConfigEntry<bool> Enabled { get; private set; }
+
         private void Awake() {
-#if DEBUG
-            Logger.LogInfo($"Plugin {GUID} is loaded!");
-#endif
+            Log.SetLogSource(Logger);
+            if (IsDebug.Value) Log.Info($"Plugin {GUID} has awoken!");
         }
 
         private void Update() {
