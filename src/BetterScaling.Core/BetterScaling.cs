@@ -62,8 +62,11 @@ namespace BetterScaling.Koikatu {
                 Transform child = tf.GetChild(i);
                 Vector3 nextScale = currentScale.ScaleImmut(tf.lossyScale.ScaleImmut(tf.localScale.Invert()));
                 if (child.TryGetComponent<MeshRenderer>(out _)) {
-                    if (reset) child.localScale = Vector3.one;
-                    else child.localScale = nextScale;
+                    if (reset) {
+                        child.localScale = Vector3.one;
+                    } else {
+                        child.localScale = nextScale;
+                    }
                 } else ScaleChildren(child, nextScale, reset);
             }
         }

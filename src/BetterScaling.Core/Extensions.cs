@@ -11,10 +11,12 @@ namespace BetterScaling.Koikatu {
         public static Vector3 Invert(this Vector3 v) => new Vector3(1 / v.x, 1 / v.y, 1 / v.z);
 
 #if KK
-        public static bool TryGetComponent<T>(this Transform tf, out T component) {
+        public static bool TryGetComponent<T>(this Component tf, out T component) {
             component = tf.GetComponent<T>();
             return component != null;
         }
+
+        public static bool TryGetComponent<T>(this GameObject go, out T component) => go.transform.TryGetComponent<T>(out component);
 #endif
     }
 }

@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
   <Import Project="..\BuildSettings.Common.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
     <OutputPath>..\..\bin\Debug\StarPluginsKK\</OutputPath>
@@ -21,7 +21,7 @@
     <PackageReference Include="IllusionModdingAPI.KKAPI" Version="1.36.0" />
   </ItemGroup>
   <Import Project="..\Common.Core\Common.Core.projitems" Label="Shared" />
-  <Import Project="..\$safeprojectname$.Core\$safeprojectname$.Core.projitems" Label="Shared" />
+  <Import Project="..\LightSettings.Core\LightSettings.Core.projitems" Label="Shared" />
   <Target Name="PostBuild" AfterTargets="PostBuildEvent">
     <Exec Command="xcopy $(TargetPath) F:\Koikatu\BepInEx\plugins\MyPlugins\ /q" />
   </Target>
