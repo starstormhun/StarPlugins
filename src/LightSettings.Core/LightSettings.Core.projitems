@@ -9,6 +9,9 @@
     <Import_RootNamespace>LightSettings.Koikatu</Import_RootNamespace>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="$(MSBuildThisFileDirectory)HookPatch.cs" />
+    <Compile Include="..\LightSettings.Core\LightSaveData.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)LightSettings.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)SceneDataController.cs" />
   </ItemGroup>
 </Project>
