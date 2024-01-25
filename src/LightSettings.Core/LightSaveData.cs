@@ -4,6 +4,7 @@ using UnityEngine;
 namespace LightSettings.Koikatu {
     internal class LightDataContainer : MonoBehaviour {
         public int DefaultLayer;
+        public int defaultCullingMask; // 1024 = chara, 2048 = map
     }
 
     [MessagePackObject(true)]
