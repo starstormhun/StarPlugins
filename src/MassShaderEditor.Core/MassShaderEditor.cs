@@ -26,7 +26,7 @@ namespace MassShaderEditor.Koikatu {
 	/// </info>
     public partial class MassShaderEditor : BaseUnityPlugin {
         public const string GUID = "starstorm.massshadereditor";
-        public const string Version = "1.0.0." + BuildNumber.Version;
+        public const string Version = "1.0.1." + BuildNumber.Version;
 
         // General
         public ConfigEntry<float> UIScale { get; private set; }
@@ -360,12 +360,12 @@ namespace MassShaderEditor.Koikatu {
                                             if (mat.TryGetFloat(setName, out float current)) {
                                                 ctrl.SetMaterialFloatProperty(item.objectInfo.dicKey, mat, setName, GetModifiedFloat(current, floatval));
                                                 if (IsDebug.Value) Log.Info($"Property {item.NameFormatted()}\\{mat.NameFormatted()}\\{setName} set to {GetModifiedFloat(current, floatval)}!");
-                                            } else { if (IsDebug.Value) Log.Info($"Tried setting float property {item.NameFormatted()}\\{mat.NameFormatted()}\\{setName} to color value!"); }
+                                            } else { if (IsDebug.Value) Log.Info($"Tried setting float property {item.NameFormatted()}\\{mat.NameFormatted()}\\{setName} to color ({_value}) value!"); }
                                         else if (_value is Color colval)
                                             if (mat.TryGetColor(setName, out Color current)) {
                                                 ctrl.SetMaterialColorProperty(item.objectInfo.dicKey, mat, setName, GetModifiedColor(current, colval));
                                                 if (IsDebug.Value) Log.Info($"Property {item.NameFormatted()}\\{mat.NameFormatted()}\\{setName} set to {GetModifiedColor(current, colval)}!");
-                                            } else { if (IsDebug.Value) Log.Info($"Tried setting color property {item.NameFormatted()}\\{mat.NameFormatted()}\\{setName} to float value!"); }
+                                            } else { if (IsDebug.Value) Log.Info($"Tried setting color property {item.NameFormatted()}\\{mat.NameFormatted()}\\{setName} to float ({_value}) value!"); }
                                         else { if (IsDebug.Value) Log.Info($"Tried setting a item property or shader to erroneous type: {_value.GetType()}"); }
                                     }
                                 } catch (Exception e) {
@@ -452,12 +452,12 @@ namespace MassShaderEditor.Koikatu {
                                             if (mat.TryGetFloat(setName, out float current)) {
                                                 ctrl.SetMaterialFloatProperty(slot, type, mat, setName, GetModifiedFloat(current, floatval), go);
                                                 if (IsDebug.Value) Log.Info($"Property {chaName}\\{mat.NameFormatted()}\\{setName} set to {GetModifiedFloat(current, floatval)}!");
-                                            } else { if (IsDebug.Value) Log.Info($"Tried setting color property {chaName}\\{mat.NameFormatted()}\\{setName} to float value!"); }
+                                            } else { if (IsDebug.Value) Log.Info($"Tried setting float property {chaName}\\{mat.NameFormatted()}\\{setName} to color ({_value}) value!"); }
                                         else if (_value is Color colval)
                                             if (mat.TryGetColor(setName, out Color current)) {
                                                 ctrl.SetMaterialColorProperty(slot, type, mat, setName, GetModifiedColor(current, colval), go);
                                                 if (IsDebug.Value) Log.Info($"Property {chaName}\\{mat.NameFormatted()}\\{setName} set to {GetModifiedColor(current, colval)}!");
-                                            } else { if (IsDebug.Value) Log.Info($"Tried setting float property {chaName}\\{mat.NameFormatted()}\\{setName} to color value!"); }
+                                            } else { if (IsDebug.Value) Log.Info($"Tried setting color property {chaName}\\{mat.NameFormatted()}\\{setName} to float ({_value}) value!"); }
                                         else { if (IsDebug.Value) Log.Info($"Tried setting a character property to erroneous type: {_value.GetType()}"); }
                                     }
                                 } catch (Exception e) {
