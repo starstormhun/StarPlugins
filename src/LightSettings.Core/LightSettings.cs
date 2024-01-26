@@ -11,7 +11,7 @@ namespace LightSettings.Koikatu {
 	/// <info>
 	/// Plugin structure thanks to Keelhauled
 	/// </info>
-    public class LightSettings : BaseUnityPlugin {
+    public partial class LightSettings : BaseUnityPlugin {
         public const string GUID = "starstorm.lightsettings";
         public const string Version = "1.0.0." + BuildNumber.Version;
 
@@ -20,11 +20,12 @@ namespace LightSettings.Koikatu {
 
         private void Awake() {
             Log.SetLogSource(Logger);
+
             if (IsDebug.Value) Log.Info($"Plugin {GUID} has awoken!");
         }
 
         private void Update() {
-			
+
         }
     }
 }

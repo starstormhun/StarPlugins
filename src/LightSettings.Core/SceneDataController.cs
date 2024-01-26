@@ -20,9 +20,9 @@ namespace LightSettings.Koikatu {
                 var saveData = MessagePackSerializer.Deserialize<List<LightSaveData>>((byte[])saveDataBytes);
                 foreach (var lightData in saveData) {
                     if (loadedItems.TryGetValue(lightData.ObjectId, out var oci) && oci is OCIItem item) {
-                        SetLoadedData(lightData, item.objectItem.GetComponentInChildren<Light>());
+                        SetLoadedData(lightData, item.objectItem.GetComponentInChildren<Light>(true));
                     } else if (lightData.ObjectId == -1) {
-                        SetLoadedData(lightData, Singleton<Studio.Studio>.Instance.gameObject.GetComponentInChildren<Light>());
+                        SetLoadedData(lightData, Singleton<Studio.Studio>.Instance.gameObject.GetComponentInChildren<Light>(true));
                     }
                 }
 
