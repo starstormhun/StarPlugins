@@ -1,9 +1,84 @@
 ﻿using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.UI;
 
 namespace LightSettings.Koikatu {
-    public class UIExtender {
-        public List<object> AddUIElements(PanelType panel, List<Controls> list) {
+    public static class UIExtender {
+        private static bool initialised = false;
+        private static Sprite refBg;
+        private static Dictionary<ControlType, object> refControls = new Dictionary<ControlType, object>();
+
+        private enum ControlType {
+            Label,
+            Toggle,
+            Slider,
+            Color,
+            Text,
+            Choice,
+            Dropdown
+        }
+
+        private static void Init() {
+            if (!initialised) {
+
+
+                // Dummy container for reference elements
+                Transform mgr = GameObject.Find("BepInEx_Manager").transform;
+                GameObject templates = new GameObject("UIElement Templates");
+                templates.transform.SetParent(mgr);
+                templates.SetActive(false);
+
+                // Studio hierarchy object accesses grouped together for clarity
+                Transform itemCtrl = Studio.Studio.Instance.manipulatePanelCtrl.itemPanelInfo.mpItemCtrl.transform;
+                Transform chaCtrl = Studio.Studio.Instance.manipulatePanelCtrl.charaPanelInfo.mpCharCtrl.transform;
+
+                // Setting up the reference background sprite
+                for (int i = 0; i < itemCtrl.childCount; i++) {
+                    if (itemCtrl.GetChild(i).name == "Image Shadow") {
+                        Sprite spr = itemCtrl.GetChild(i).GetComponent<Image>().sprite;
+                        refBg = Sprite.Create(spr.texture, spr.textureRect, spr.pivot, 80f, 0, SpriteMeshType.FullRect, new Vector4(3, 3, 3, 141));
+                        break;
+                    }
+                }
+
+                // Setting up the reference control dicitonary to be cloned for custom UI elements
+                // Label
+                GameObject refLabel = Object.Instantiate(chaCtrl.Find("01_State/Viewport/Content/Cos"), templates.transform).gameObject;
+                refLabel.name = "Template_Label";
+                DelUnneeded(refLabel.transform, new List<string> { "Text" });
+                refControls.Add(ControlType.Label, refLabel);
+
+                //Toggle
+                GameObject refToggle = Object.Instantiate(chaCtrl.Find("01_State/Viewport/Content/Etc/Son"), templates.transform).gameObject;
+                refToggle.name = "Template_Toggle";
+                refControls.Add(ControlType.Toggle, refToggle);
+
+                //Slider
+                GameObject refSlider = Object.Instantiate(itemCtrl.Find("Image Alpha"), templates.transform).gameObject;
+                Object.DestroyImmediate(refSlider.GetComponent<Image>());
+                refSlider.name = "Template_Slider";
+                refControls.Add(ControlType.Toggle, refSlider);
+
+                //Color
+                GameObject refColor = Object.Instantiate(itemCtrl.GetChild(0), templates.transform).gameObject;
+                Object.DestroyImmediate(refColor.GetComponent<Image>());
+                Object.DestroyImmediate(refColor.transform.GetChild(refColor.transform.childCount - 1));
+                refColor.name = "Template_Color";
+                refControls.Add(ControlType.Color, refColor);
+
+                initialised = true;
+            }
+
+            void DelUnneeded(Transform tf, List<string> keep) {
+                for (int k = tf.childCount - 1; k >= 0; k--) {
+                    if (!keep.Contains(tf.GetChild(k).name)) Object.DestroyImmediate(tf.GetChild(k));
+                }
+            }
+        }
+
+        public static List<object> AddUIElements(PanelType panel, List<Controls> list) {
+            if (!initialised) Init();
+
             var output = new List<object>();
 
             /*
