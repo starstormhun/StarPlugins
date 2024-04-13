@@ -6,6 +6,7 @@ namespace LightSettings.Koikatu {
     public static class UIExtender {
         private static bool initialised = false;
         private static Sprite refBg;
+        private static Sprite refBlack;
         private static Dictionary<ControlType, object> refControls = new Dictionary<ControlType, object>();
 
         private enum ControlType {
@@ -31,8 +32,9 @@ namespace LightSettings.Koikatu {
                 // Studio hierarchy object accesses grouped together for clarity
                 Transform itemCtrl = Studio.Studio.Instance.manipulatePanelCtrl.itemPanelInfo.mpItemCtrl.transform;
                 Transform chaCtrl = Studio.Studio.Instance.manipulatePanelCtrl.charaPanelInfo.mpCharCtrl.transform;
+                Transform folderCtrl = Studio.Studio.Instance.manipulatePanelCtrl.folderPanelInfo.mpFolderCtrl.transform;
 
-                // Setting up the reference background sprite
+                // Setting up the reference background and black sprite
                 for (int i = 0; i < itemCtrl.childCount; i++) {
                     if (itemCtrl.GetChild(i).name == "Image Shadow") {
                         Sprite spr = itemCtrl.GetChild(i).GetComponent<Image>().sprite;
@@ -40,6 +42,10 @@ namespace LightSettings.Koikatu {
                         break;
                     }
                 }
+                Texture2D texBlack = new Texture2D(1, 1, TextureFormat.RGBA32, false);
+                texBlack.SetPixel(0, 0, new Color(0, 0, 0, 1));
+                texBlack.Apply();
+                refBlack = Sprite.Create(texBlack, new Rect(0, 0, 1, 1), new Vector2(0, 0));
 
                 // Setting up the reference control dicitonary to be cloned for custom UI elements
                 // Label
@@ -48,23 +54,30 @@ namespace LightSettings.Koikatu {
                 DelUnneeded(refLabel.transform, new List<string> { "Text" });
                 refControls.Add(ControlType.Label, refLabel);
 
-                //Toggle
+                // Toggle
                 GameObject refToggle = Object.Instantiate(chaCtrl.Find("01_State/Viewport/Content/Etc/Son"), templates.transform).gameObject;
                 refToggle.name = "Template_Toggle";
                 refControls.Add(ControlType.Toggle, refToggle);
 
-                //Slider
+                // Slider
                 GameObject refSlider = Object.Instantiate(itemCtrl.Find("Image Alpha"), templates.transform).gameObject;
                 Object.DestroyImmediate(refSlider.GetComponent<Image>());
                 refSlider.name = "Template_Slider";
                 refControls.Add(ControlType.Toggle, refSlider);
 
-                //Color
+                // Color
                 GameObject refColor = Object.Instantiate(itemCtrl.GetChild(0), templates.transform).gameObject;
                 Object.DestroyImmediate(refColor.GetComponent<Image>());
                 Object.DestroyImmediate(refColor.transform.GetChild(refColor.transform.childCount - 1));
                 refColor.name = "Template_Color";
                 refControls.Add(ControlType.Color, refColor);
+
+                // Text
+                GameObject refText = Object.Instantiate(folderCtrl.GetChild(0), templates.transform).gameObject;
+                Object.Instantiate(refText.transform.GetChild(2), refText.transform);
+                for (int i = 0; i < refText.transform.childCount; i++) {
+                    refText.transform.GetChild(i).localPosition
+                }
 
                 initialised = true;
             }
