@@ -206,7 +206,7 @@ namespace MassShaderEditor.Koikatu {
 
                     // Text input
                     {
-                        if (!setCol.Matches(setColString.ToColor()) && setCol.maxColorComponent <= 1) {
+                        if (!setCol.Matches(setColString.ToColor()) && setCol.maxColorComponent <= 1 && setCol.a <= 1) {
                             setColString = setCol.ToHex();
                             setColStringInput = setColString;
                             setColStringInputMemory = setColStringInput;
@@ -265,7 +265,7 @@ namespace MassShaderEditor.Koikatu {
                         if (!buffer.Matches(setColNum)) {
                             if (IsDebug.Value) Log($"Color changed from {setCol} to {setColNum.ToColor()} based on value input!");
                             setCol = setColNum.ToColor();
-                            if (setCol.maxColorComponent > 1) {
+                            if (setCol.maxColorComponent > 1 || setCol.a > 1) {
                                 if (isPicker) {
                                     isPicker = false;
                                     ColorPicker(Color.black, null);
@@ -273,7 +273,7 @@ namespace MassShaderEditor.Koikatu {
                                 setColStringInput = "########";
                                 setColStringInputMemory = "########";
                             }
-                            if (buffer.Max() > 1 && setCol.maxColorComponent <= 1) {
+                            if (buffer.Max() > 1 && setCol.maxColorComponent <= 1 && setCol.a <= 1) {
                                 setColString = setCol.ToHex();
                                 setColStringInput = setColString;
                                 setColStringInputMemory = setColStringInput;
