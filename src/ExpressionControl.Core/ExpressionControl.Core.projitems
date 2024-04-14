@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <MSBuildAllProjects Condition="'$(MSBuildVersion)' == '' Or '$(MSBuildVersion)' &lt; '16.0'">$(MSBuildAllProjects);$(MSBuildThisFileFullPath)</MSBuildAllProjects>
+    <HasSharedItems>true</HasSharedItems>
+    <SharedGUID>ed304ea2-c78e-4541-a168-a7e7e90ccd8e</SharedGUID>
+  </PropertyGroup>
+  <PropertyGroup Label="Configuration">
+    <Import_RootNamespace>ExpressionControl</Import_RootNamespace>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="$(MSBuildThisFileDirectory)ComboBox.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)ExpressionControl.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)ExpressionControlPlugin.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)GUIMgr.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)GUIUtl.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Hooks.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)ObjectExtension.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)ShortCutKeyMgr.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Utl.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)XmlMgr.cs" />
+  </ItemGroup>
+</Project>
