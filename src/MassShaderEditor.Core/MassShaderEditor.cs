@@ -178,8 +178,11 @@ namespace MassShaderEditor.Koikatu {
                 setReset = false;
                 if (IsDebug.Value) Log($"LMB detected! setReset: {setReset}");
             }
-            if (dropdown>0 && (Input.GetMouseButton(1) || Input.GetMouseButton(0)) && !dropRect.Contains(Input.mousePosition.InvertScreenY())) {
-                dropdown = 0;
+            if (shaderDrop > 0 && (Input.GetMouseButton(1) || Input.GetMouseButton(0)) && !dropRect.Contains(Input.mousePosition.InvertScreenY())) {
+                shaderDrop = 0;
+            }
+            if (historyDrop && (Input.GetMouseButton(1) || Input.GetMouseButton(0)) && !historyRect.Contains(Input.mousePosition.InvertScreenY())) {
+                historyDrop = false;
             }
 
             if (IsShown) {
@@ -221,15 +224,19 @@ namespace MassShaderEditor.Koikatu {
                             KKAPI.Utilities.IMGUIUtils.EatInputInRect(infoRect);
                             Redraw(1589, infoRect, redrawNum, true);
                         }
-                        if (dropdown > 0) {
-                            dropRect.position = windowRect.position + new Vector2(commonWidth + newSkin.window.border.left + 4, GUI.skin.label.CalcSize(new GUIContent("TEST")).y + (newSkin.label.CalcSize(new GUIContent("TEST")).y + 4) * (dropdown+1));
-                            dropRect = GUILayout.Window(593, dropRect, DropFunction, "", newSkin.box, GUILayout.MaxWidth(defaultSize[2]));
+                        if (shaderDrop > 0) {
+                            dropRect.position = windowRect.position + new Vector2(commonWidth + newSkin.window.border.left + 4, GUI.skin.label.CalcSize(new GUIContent("TEST")).y + (newSkin.label.CalcSize(new GUIContent("TEST")).y + 4) * (shaderDrop + 1));
+                            dropRect = GUILayout.Window(593, dropRect, ShaderDropFunction, "", newSkin.box, GUILayout.MaxWidth(defaultSize[2]));
                             KKAPI.Utilities.IMGUIUtils.EatInputInRect(dropRect);
                             Redraw(1593, dropRect, redrawNum, true);
                             GUI.BringWindowToFront(593);
                         }
                         if (historyDrop == true) {
-
+                            historyRect.position = windowRect.position + new Vector2(commonWidth + newSkin.window.border.left + 4, GUI.skin.label.CalcSize(new GUIContent("TEST")).y + (newSkin.label.CalcSize(new GUIContent("TEST")).y + 4) * 3);
+                            historyRect = GUILayout.Window(595, historyRect, HistoryDropFunction, "", newSkin.box, GUILayout.MaxWidth(defaultSize[2]));
+                            KKAPI.Utilities.IMGUIUtils.EatInputInRect(historyRect);
+                            Redraw(1595, historyRect, redrawNum, true);
+                            GUI.BringWindowToFront(595);
                         }
                     }
                     if (showWarning) {
@@ -592,7 +599,7 @@ namespace MassShaderEditor.Koikatu {
             for (int i = 0; i < colParts.Length; i++) {
                 if (colParts[i].Length > 0) {
                     var currentParts = colParts[i].Split(',');
-                    floatHist.Add(new HistoryItem {
+                    colHist.Add(new HistoryItem {
                         name = currentParts[0],
                         col = new Color(
                             Studio.Utility.StringToFloat(currentParts[1]),
