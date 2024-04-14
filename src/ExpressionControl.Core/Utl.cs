@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 using System.Reflection;
 using Manager;
 using Studio;
@@ -13,11 +14,11 @@ namespace ExpressionControl
 		{
 			return Mathf.Abs(a - b) < 0.01f;
 		}
-		public static List<OCICharFemale> GetOCICharFemaleAll()
+		public static List<OCIChar> GetOCICharFemaleAll()
 		{
-			List<OCICharFemale> list = new List<OCICharFemale>();
+			List<OCIChar> list = new List<OCIChar>();
 			bool flag = UnityEngine.Object.FindObjectOfType<StudioScene>() == null;
-			List<OCICharFemale> result;
+			List<OCIChar> result;
 			if (flag)
 			{
 				result = list;
@@ -26,12 +27,13 @@ namespace ExpressionControl
 			{
 				foreach (ObjectCtrlInfo objectCtrlInfo in Singleton<Studio.Studio>.Instance.dicObjectCtrl.Values)
 				{
-					bool flag2 = objectCtrlInfo is OCICharFemale;
-					if (flag2)
-					{
-						list.Add((OCICharFemale)objectCtrlInfo);
+					if (objectCtrlInfo is OCICharFemale oci1) {
+						list.Add(oci1);
 					}
-				}
+                    if (objectCtrlInfo is OCICharMale oci2) {
+                        list.Add(oci2);
+                    }
+                }
 				result = list;
 			}
 			return result;
@@ -42,8 +44,10 @@ namespace ExpressionControl
 			List<ChaControl> charaList =
 #if KKS
 				Character.GetCharaList(1);
+			charaList.AddRange(Character.GetCharaList(0));
 #else
-				Singleton<Character>.Instance.GetCharaList(1);
+                Singleton<Character>.Instance.GetCharaList(1);
+			charaList.AddRange(Singleton<Character>.Instance.GetCharaList(0));
 #endif
 			bool flag = charaList == null || charaList.Count == 0;
 			List<ChaControl> result;

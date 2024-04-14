@@ -761,25 +761,39 @@ namespace ExpressionControl
 			bool flag = ExpressionControl.isStudio;
 			if (flag)
 			{
-				List<OCICharFemale> ocicharFemaleAll = Utl.GetOCICharFemaleAll();
+				List<OCIChar> ocicharFemaleAll = Utl.GetOCICharFemaleAll();
 				for (int i = 0; i < ocicharFemaleAll.Count; i++)
 				{
 					bool flag2 = false;
 					for (int j = 0; j < this.femaleList.Count; j++)
 					{
-						bool flag3 = ocicharFemaleAll[i].female == this.femaleList[j].female;
-						if (flag3)
-						{
-							list.Add(this.femaleList[j]);
-							flag2 = true;
-							break;
+						if (ocicharFemaleAll[i] is OCICharFemale ociF) {
+							bool flag3 = ociF.female == this.femaleList[j].female;
+							if (flag3) {
+								list.Add(this.femaleList[j]);
+								flag2 = true;
+								break;
+							}
 						}
-					}
+                        if (ocicharFemaleAll[i] is OCICharMale ociM) {
+                            bool flag3 = ociM.male == this.femaleList[j].female;
+                            if (flag3) {
+                                list.Add(this.femaleList[j]);
+                                flag2 = true;
+                                break;
+                            }
+                        }
+                    }
 					bool flag4 = !flag2;
 					if (flag4)
 					{
-						list.Add(new ExpressionControl.FemaleData(ocicharFemaleAll[i], this));
-					}
+                        if (ocicharFemaleAll[i] is OCICharFemale ociF) {
+                            list.Add(new ExpressionControl.FemaleData(ociF, this));
+                        }
+                        if (ocicharFemaleAll[i] is OCICharMale ociM) {
+                            list.Add(new ExpressionControl.FemaleData(ociM, this));
+                        }
+                    }
 				}
 				this.femaleList = list;
 				bool flag5 = this.currentFemaleNum >= this.femaleList.Count;
@@ -3025,12 +3039,18 @@ namespace ExpressionControl
 					}
 				}
 			}
-			public FemaleData(OCICharFemale ociFemale, MonoBehaviour inst)
+			public FemaleData(OCIChar ociFemale, MonoBehaviour inst)
 			{
 				this.instMono = inst;
-				this.ociFemale = ociFemale;
-				this.female = ociFemale.female;
-				this.expression = new ExpressionControl.Expression(this.female, 0f, 0f);
+				if (ociFemale is OCICharFemale ociF) {
+					this.ociFemale = ociF;
+					this.female = ociF.female;
+				}
+                if (ociFemale is OCICharMale ociM) {
+                    this.ociFemale = ociM;
+                    this.female = ociM.male;
+                }
+                this.expression = new ExpressionControl.Expression(this.female, 0f, 0f);
 				this.expressionRealtime = new ExpressionControl.Expression(this.expression);
 				this.program = new ExpressionControl.Program();
 			}
@@ -4053,7 +4073,7 @@ namespace ExpressionControl
 					}
 				}
 			}
-			public OCICharFemale ociFemale;
+			public OCIChar ociFemale;
 			public ChaControl female;
 			public ExpressionControl.Expression expression;
 			public ExpressionControl.Expression expressionRealtime;
