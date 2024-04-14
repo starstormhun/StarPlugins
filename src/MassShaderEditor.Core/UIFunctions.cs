@@ -219,9 +219,13 @@ namespace MassShaderEditor.Koikatu {
                     GUILayout.Space(4);
                     GUILayout.BeginHorizontal();
 
-                    var buttonContents = new GUIContent[] { new GUIContent(" = ", "Set the property to this value."), new GUIContent(" + ", "Add to the property's existing value."),
-                        new GUIContent(" × ", "Multiply the property's existing value."), new GUIContent("Min", "Set any property lower than the set value to the value."),
-                        new GUIContent("Max", "Set any property higher than the set value to the value.")};
+                    var buttonContents = new GUIContent[] {
+                        new GUIContent(" = ", "Set the property to this value."),
+                        new GUIContent(" + ", "Add to the property's existing value."),
+                        new GUIContent(" × ", "Multiply the property's existing value."),
+                        new GUIContent("Min", "Set any property lower than the set value to the value."),
+                        new GUIContent("Max", "Set any property higher than the set value to the value.")
+                    };
                     setModeFloat = GUILayout.SelectionGrid(setModeFloat, buttonContents, buttonContents.Length, newSkin.button);
 
                     GUILayout.EndHorizontal();
