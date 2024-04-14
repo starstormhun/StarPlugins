@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using KKAPI;
 using ChaCustom;
 using UnityEngine;
+using UnityEngine.UI;
 
 namespace MassShaderEditor.Koikatu {
     public partial class MassShaderEditor : BaseUnityPlugin {
@@ -26,7 +27,9 @@ namespace MassShaderEditor.Koikatu {
         private Rect infoRect = new Rect();
         private Rect warnRect = new Rect(0,0,360,200);
         private Rect dropRect = new Rect(defaultSize[0], defaultSize[1], defaultSize[2]*0.9f, defaultSize[3]*1.2f);
-        private Vector2 scrollPos;
+        private Rect historyRect = new Rect(defaultSize[0], defaultSize[1], defaultSize[2] * 0.9f, defaultSize[3] * 1.2f);
+        private Vector2 shaderScrollPos;
+        private Vector2 historyScrollPos;
         internal SettingType tab = SettingType.Float;
         private float prevScale = 1;
         private const float maxScale = 3;
@@ -49,10 +52,14 @@ namespace MassShaderEditor.Koikatu {
         private string setValInputString = "";
         private float setValInput = 0;
         private float setValSlider = 0;
-        private int dropdown = 0;
-        private float dropWidth = 0;
+        private int shaderDrop = 0;
+        private bool historyDrop = false;
+        private float shaderDropWidth = 0;
+        private float historyDropWidth = 0;
         private float commonWidth = 0;
         private string setQueueInput = "";
+        public readonly List<HistoryItem> floatHist = new List<HistoryItem>();
+        public readonly List<HistoryItem> colHist = new List<HistoryItem>();
 
         internal string filterInput = "";
         internal string setNameInput = "";
@@ -66,6 +73,7 @@ namespace MassShaderEditor.Koikatu {
         internal bool isPicker = false;
         private Color setColPicker = Color.white;
         private MassShaderEditor.OnShaderSelectFunc onShaderSelect;
+        private MassShaderEditor.OnHistorySelectFunc onHistorySelect;
 
         private float newScale = 1;
         private string newScaleTextInput = "1.00";
@@ -75,6 +83,7 @@ namespace MassShaderEditor.Koikatu {
         private int helpPage = 0;
         private readonly string[] tooltip = new string[]{ "",""};
         private delegate void OnShaderSelectFunc(string s);
+        private delegate void OnHistorySelectFunc(int i);
 
         private readonly List<string> helpText = new List<string>{"To use, first choose whether the property you want to edit is a value, or a color using the buttons at the top of the UI. Afterwards you can input its name, and set the desired value/color using the fields below those.",
             "You can either type in the name of the property you want to edit, or you can click its name in the MaterialEditor UI, or click the timeline integration button that you can enable in the ME settings. Clicking these things will autofill the property name.",
@@ -158,6 +167,26 @@ namespace MassShaderEditor.Koikatu {
                 GUILayout.Label(new GUIContent(propertyText, "The name of the shader property to be edited"), newSkin.label, GUILayout.Width(commonWidth));
                 setNameInput = GUILayout.TextField(setNameInput, newSkin.textField);
                 setName = setNameInput.Trim();
+                if (GUILayout.Button("▼", newSkin.button, GUILayout.ExpandWidth(false))) {
+                    if ((tab == SettingType.Float && floatHist.Count > 0) || (tab == SettingType.Color && colHist.Count > 0)) {
+                        onHistorySelect = (i) => {
+                            if (tab == SettingType.Float) {
+                                setName = floatHist[i].name;
+                                setNameInput = setName;
+                                setValInputString = floatHist[i].val.ToString("0.000");
+                                if (IsDebug.Value) Log($"Restoring history item: {floatHist[i].name} to {floatHist[i].val}");
+                            } else if (tab == SettingType.Color) {
+                                setName = colHist[i].name;
+                                setNameInput = setName;
+                                setCol = colHist[i].col;
+                                if (IsDebug.Value) Log($"Restoring history item: {colHist[i].name} to {colHist[i].col}");
+                            }
+                        };
+                        CalcHistoryDropSize();
+                        historyScrollPos = dropRect.position;
+                        historyDrop = true;
+                    }
+                }
                 GUILayout.EndHorizontal();
 
                 // Float value
@@ -190,9 +219,13 @@ namespace MassShaderEditor.Koikatu {
                     GUILayout.Space(4);
                     GUILayout.BeginHorizontal();
 
-                    var buttonContents = new GUIContent[] { new GUIContent(" = ", "Set the property to this value."), new GUIContent(" + ", "Add to the property's existing value."),
-                        new GUIContent(" × ", "Multiply the property's existing value."), new GUIContent("Min", "Set any property lower than the set value to the value."),
-                        new GUIContent("Max", "Set any property higher than the set value to the value.")};
+                    var buttonContents = new GUIContent[] {
+                        new GUIContent(" = ", "Set the property to this value."),
+                        new GUIContent(" + ", "Add to the property's existing value."),
+                        new GUIContent(" × ", "Multiply the property's existing value."),
+                        new GUIContent("Min", "Set any property lower than the set value to the value."),
+                        new GUIContent("Max", "Set any property higher than the set value to the value.")
+                    };
                     setModeFloat = GUILayout.SelectionGrid(setModeFloat, buttonContents, buttonContents.Length, newSkin.button);
 
                     GUILayout.EndHorizontal();
@@ -302,9 +335,9 @@ namespace MassShaderEditor.Koikatu {
                     filter = filterInput.Trim();
                     if (GUILayout.Button("▼", newSkin.button, GUILayout.ExpandWidth(false))) {
                         onShaderSelect = (s) => { filter = s; filterInput = s; };
-                        CalcDropSize();
-                        scrollPos = dropRect.position;
-                        dropdown = 1;
+                        CalcShaderDropSize();
+                        shaderScrollPos = dropRect.position;
+                        shaderDrop = 1;
                     }
                     GUILayout.EndHorizontal();
                 }
@@ -317,9 +350,9 @@ namespace MassShaderEditor.Koikatu {
                     setShader = setShaderInput.Trim();
                     if (GUILayout.Button("▼", newSkin.button, GUILayout.ExpandWidth(false))) {
                         onShaderSelect = (s) => { setShader = s; setShaderInput = s; };
-                        CalcDropSize();
-                        scrollPos = dropRect.position;
-                        dropdown = 2;
+                        CalcShaderDropSize();
+                        shaderScrollPos = dropRect.position;
+                        shaderDrop = 2;
                     }
                     GUILayout.EndHorizontal();
                 }
@@ -608,16 +641,48 @@ namespace MassShaderEditor.Koikatu {
             GUILayout.Label(message, msgStyle);
         }
 
-        private void DropFunction(int windowID) {
-            scrollPos = GUILayout.BeginScrollView(scrollPos, false, true, GUIStyle.none, newSkin.verticalScrollbar, GUILayout.Height(windowRect.height * 1.2f), GUILayout.Width(dropWidth));
+        private void ShaderDropFunction(int windowID) {
+            shaderScrollPos = GUILayout.BeginScrollView(shaderScrollPos, false, true, GUIStyle.none, newSkin.verticalScrollbar, GUILayout.Height(windowRect.height * 1.2f), GUILayout.Width(shaderDropWidth));
             var scrollBtnStyle = new GUIStyle(newSkin.button) {
                 alignment = TextAnchor.MiddleLeft
             };
             foreach (string shader in shaders)
                 if (GUILayout.Button(shader, scrollBtnStyle)) {
                     onShaderSelect.Invoke(shader);
-                    dropdown = 0;
+                    shaderDrop = 0;
                 }
+            GUILayout.EndScrollView();
+        }
+
+        private void HistoryDropFunction(int windowID) {
+            historyScrollPos = GUILayout.BeginScrollView(historyScrollPos, false, true, GUIStyle.none, newSkin.verticalScrollbar, GUILayout.Height(windowRect.height * 1.2f), GUILayout.Width(historyDropWidth));
+            var scrollBtnStyle = new GUIStyle(newSkin.button) {
+                alignment = TextAnchor.MiddleLeft
+            };
+            List<HistoryItem> items = null;
+            if (tab == SettingType.Float) items = floatHist;
+            else if (tab == SettingType.Color) items = colHist;
+            items.Reverse();
+            foreach (HistoryItem item in items) {
+                if (tab == SettingType.Float) {
+                    if (GUILayout.Button(item.name + ": " + item.val.ToString("0.000"), scrollBtnStyle)) {
+                        onHistorySelect.Invoke(items.IndexOf(item));
+                        historyDrop = false;
+                    }
+                } else if (tab == SettingType.Color) {
+                    var img = new Texture2D(3 * newSkin.label.fontSize, newSkin.label.fontSize);
+                    for (int i = 0; i < 3 * newSkin.label.fontSize; i++)
+                        for (int j = 0; j < newSkin.label.fontSize; j++)
+                            img.SetPixel(i, j, item.col);
+                    img.Apply();
+                    GUIContent content = new GUIContent(" " + item.name, img);
+                    if (GUILayout.Button(content, scrollBtnStyle)) {
+                        onHistorySelect.Invoke(items.IndexOf(item));
+                        historyDrop = false;
+                    }
+                }
+            }
+            items.Reverse();
             GUILayout.EndScrollView();
         }
 
@@ -670,10 +735,28 @@ namespace MassShaderEditor.Koikatu {
             infoRect.size = new Vector2(windowRect.size.x, 10);
         }
 
-        private void CalcDropSize() {
+        private void CalcShaderDropSize() {
             List<float> widths = new List<float>();
             foreach (var shader in shaders) widths.Add(newSkin.button.CalcSize(new GUIContent(shader)).x);
-            dropWidth = widths.Max() + newSkin.button.CalcSize(new GUIContent("TEST")).y;
+            shaderDropWidth = widths.Max() + newSkin.button.CalcSize(new GUIContent("TEST")).y;
+        }
+
+        private void CalcHistoryDropSize() {
+            List<float> widths = new List<float>();
+            List<HistoryItem> items = null;
+            if (tab == SettingType.Float) items = floatHist;
+            else if (tab == SettingType.Color) items = colHist;
+            GUIContent content = null;
+            foreach (var item in items) {
+                if (tab == SettingType.Float) {
+                    content = new GUIContent(item.name + ": " + item.val.ToString("0.000"));
+                } else if (tab == SettingType.Color) {
+                    var img = new Texture2D(3 * newSkin.label.fontSize, newSkin.label.fontSize);
+                    content = new GUIContent(" " + item.name, img);
+                }
+                widths.Add(newSkin.button.CalcSize(content).x);
+            }
+            historyDropWidth = widths.Max() + newSkin.button.CalcSize(new GUIContent("TEST")).y;
         }
 
         private void InitUI() {
@@ -746,7 +829,7 @@ namespace MassShaderEditor.Koikatu {
         }
 
         private void DrawTooltip(string _tip) {
-            if (!_tip.IsNullOrEmpty() && ShowTooltips.Value && (dropdown == 0 || !dropRect.Contains(Input.mousePosition.InvertScreenY()))) {
+            if (!_tip.IsNullOrEmpty() && ShowTooltips.Value && (shaderDrop == 0 || !dropRect.Contains(Input.mousePosition.InvertScreenY()))) {
                 var tipStyle = new GUIStyle(newSkin.box) {
                     wordWrap = true,
                     alignment = TextAnchor.MiddleCenter
@@ -775,6 +858,12 @@ namespace MassShaderEditor.Koikatu {
         }
 
         private void Spacer(float multiplied = 1) => GUILayout.Space(6 * multiplied * UIScale.Value);
+
+        public struct HistoryItem {
+            public string name;
+            public float val;
+            public Color col;
+        }
 
         public enum SettingType {
             Float,

@@ -57,6 +57,10 @@ namespace MassShaderEditor.Koikatu {
         public ConfigEntry<bool> DisableWarning { get; private set; }
         private ConfigEntry<bool> IntroShown { get; set; }
 
+        // Data
+        private ConfigEntry<string> FloatHistory { get; set; }
+        private ConfigEntry<string> ColorHistory { get; set; }
+
         private Studio.Studio studio;
         private bool inited = false;
         private bool scaled = false;
@@ -93,6 +97,9 @@ namespace MassShaderEditor.Koikatu {
             IsDebug = Config.Bind("Advanced", "Logging", false, new ConfigDescription("Enable verbose logging for debugging purposes", null, new KKAPI.Utilities.ConfigurationManagerAttributes { IsAdvanced = true }));
             IntroShown = Config.Bind("Advanced", "Intro Shown", false, new ConfigDescription("Whether the intro message has been shown already", null, new KKAPI.Utilities.ConfigurationManagerAttributes { IsAdvanced = true }));
 
+            FloatHistory = Config.Bind("Data", "Float History", "", new ConfigDescription("The 10 previously set property name/value pairings", null, new KKAPI.Utilities.ConfigurationManagerAttributes { Browsable = false }));
+            ColorHistory = Config.Bind("Data", "Color History", "", new ConfigDescription("The 10 previously set property name/color pairings", null, new KKAPI.Utilities.ConfigurationManagerAttributes { Browsable = false }));
+
             KKAPI.Studio.StudioAPI.StudioLoadedChanged += (x, y) => {
                 studio = Singleton<Studio.Studio>.Instance;
                 controller = MEStudio.GetSceneController();
@@ -105,6 +112,8 @@ namespace MassShaderEditor.Koikatu {
                 shaders = MaterialEditorAPI.MaterialEditorPluginBase.XMLShaderProperties.Keys.Where(z => z != "default").Select(z => z.Trim()).ToList();
                 makerTabID = 0;
             };
+
+            ReadHistory();
 
             HookPatch.Init();
             if (IsDebug.Value) Log("Awoken!");
@@ -169,8 +178,11 @@ namespace MassShaderEditor.Koikatu {
                 setReset = false;
                 if (IsDebug.Value) Log($"LMB detected! setReset: {setReset}");
             }
-            if (dropdown>0 && (Input.GetMouseButton(1) || Input.GetMouseButton(0)) && !dropRect.Contains(Input.mousePosition.InvertScreenY())) {
-                dropdown = 0;
+            if (shaderDrop > 0 && (Input.GetMouseButton(1) || Input.GetMouseButton(0)) && !dropRect.Contains(Input.mousePosition.InvertScreenY())) {
+                shaderDrop = 0;
+            }
+            if (historyDrop && (Input.GetMouseButton(1) || Input.GetMouseButton(0)) && !historyRect.Contains(Input.mousePosition.InvertScreenY())) {
+                historyDrop = false;
             }
 
             if (IsShown) {
@@ -212,12 +224,19 @@ namespace MassShaderEditor.Koikatu {
                             KKAPI.Utilities.IMGUIUtils.EatInputInRect(infoRect);
                             Redraw(1589, infoRect, redrawNum, true);
                         }
-                        if (dropdown > 0) {
-                            dropRect.position = windowRect.position + new Vector2(commonWidth + newSkin.window.border.left + 4, GUI.skin.label.CalcSize(new GUIContent("TEST")).y + (newSkin.label.CalcSize(new GUIContent("TEST")).y + 4) * (dropdown+1));
-                            dropRect = GUILayout.Window(593, dropRect, DropFunction, "", newSkin.box, GUILayout.MaxWidth(defaultSize[2]));
+                        if (shaderDrop > 0) {
+                            dropRect.position = windowRect.position + new Vector2(commonWidth + newSkin.window.border.left + 4, GUI.skin.label.CalcSize(new GUIContent("TEST")).y + (newSkin.label.CalcSize(new GUIContent("TEST")).y + 4) * (shaderDrop + 1));
+                            dropRect = GUILayout.Window(593, dropRect, ShaderDropFunction, "", newSkin.box, GUILayout.MaxWidth(defaultSize[2]));
                             KKAPI.Utilities.IMGUIUtils.EatInputInRect(dropRect);
                             Redraw(1593, dropRect, redrawNum, true);
                             GUI.BringWindowToFront(593);
+                        }
+                        if (historyDrop == true) {
+                            historyRect.position = windowRect.position + new Vector2(commonWidth + newSkin.window.border.left + 4, GUI.skin.label.CalcSize(new GUIContent("TEST")).y + (newSkin.label.CalcSize(new GUIContent("TEST")).y + 4) * 3);
+                            historyRect = GUILayout.Window(595, historyRect, HistoryDropFunction, "", newSkin.box, GUILayout.MaxWidth(defaultSize[2]));
+                            KKAPI.Utilities.IMGUIUtils.EatInputInRect(historyRect);
+                            Redraw(1595, historyRect, redrawNum, true);
+                            GUI.BringWindowToFront(595);
                         }
                     }
                     if (showWarning) {
@@ -268,6 +287,7 @@ namespace MassShaderEditor.Koikatu {
                     if (MaterialEditorAPI.MaterialEditorUI.MaterialEditorWindow.gameObject.activeSelf) MEMaker.Instance.RefreshUI();
                 } else ShowMessage("Please select a valid item category.");
             }
+            HistoryAppend(_value);
         }
 
         private void SetSelectedProperties<T>(T _value) {
@@ -306,6 +326,7 @@ namespace MassShaderEditor.Koikatu {
                     if (MaterialEditorAPI.MaterialEditorUI.MaterialEditorWindow.gameObject.activeSelf) MEMaker.Instance.RefreshUI();
                 } else ShowMessage("Please select a valid item category.");
             }
+            HistoryAppend(_value);
         }
 
         private void SetStudioProperties<T>(List<ObjectCtrlInfo> _ociList, T _value) {
@@ -542,6 +563,80 @@ namespace MassShaderEditor.Koikatu {
                     type = ObjectType.Unknown; break;
             }
             return type != ObjectType.Unknown;
+        }
+
+        private void SaveHistory() {
+            string floatString = "";
+            for (int i = 0; i < floatHist.Count; i++) {
+                floatString += floatHist[i].name + "," + floatHist[i].val.ToString("0.000") + ";";
+            }
+            FloatHistory.Value = floatString;
+            string colString = "";
+            for (int i = 0; i < colHist.Count; i++) {
+                colString += colHist[i].name + "," +
+                    colHist[i].col.r.ToString("0.000") + "," +
+                    colHist[i].col.g.ToString("0.000") + "," +
+                    colHist[i].col.b.ToString("0.000") + "," +
+                    colHist[i].col.a.ToString("0.000") + ";";
+            }
+            ColorHistory.Value = colString;
+        }
+
+        private void ReadHistory() {
+            floatHist.Clear();
+            var floatParts = FloatHistory.Value.Split(';');
+            for (int i = 0; i < floatParts.Length; i++) {
+                if (floatParts[i].Length > 0) {
+                    var currentParts = floatParts[i].Split(',');
+                    floatHist.Add(new HistoryItem {
+                        name = currentParts[0],
+                        val = Studio.Utility.StringToFloat(currentParts[1])
+                    });
+                }
+            }
+            colHist.Clear();
+            var colParts = ColorHistory.Value.Split(';');
+            for (int i = 0; i < colParts.Length; i++) {
+                if (colParts[i].Length > 0) {
+                    var currentParts = colParts[i].Split(',');
+                    colHist.Add(new HistoryItem {
+                        name = currentParts[0],
+                        col = new Color(
+                            Studio.Utility.StringToFloat(currentParts[1]),
+                            Studio.Utility.StringToFloat(currentParts[2]),
+                            Studio.Utility.StringToFloat(currentParts[3]),
+                            Studio.Utility.StringToFloat(currentParts[4])
+                        )
+                    });
+                }
+            }
+        }
+
+        private void HistoryAppend<T>(T _value) {
+            if (_value is float floatval) {
+                if (setReset) {
+                    HistoryAppend(setName, 0, null);
+                } else {
+                    HistoryAppend(setName, floatval, null);
+                }
+            } else if (_value is Color colval) {
+                if (setReset) {
+                    HistoryAppend(setName, null, Color.black);
+                } else {
+                    HistoryAppend(setName, null, colval);
+                }
+            }
+        }
+
+        private void HistoryAppend(string name, float? val, Color? col) {
+            if (val != null) {
+                if (floatHist.Count == 10) floatHist.RemoveAt(0);
+                floatHist.Add(new HistoryItem { name = name, val = (float)val });
+            } else if (col != null) {
+                if (colHist.Count == 10) colHist.RemoveAt(0);
+                colHist.Add(new HistoryItem { name = name, col = (Color)col });
+            }
+            SaveHistory();
         }
 
         public void Log(object data) {
