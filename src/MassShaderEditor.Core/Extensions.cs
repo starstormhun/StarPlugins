@@ -13,7 +13,7 @@ namespace MassShaderEditor.Koikatu {
         public static bool TryGetFloat(this Material mat, string name, out float property) {
             // Currently impossible to detect wrong type in KK
 #if KKS
-            if (mat.shader.GetPropertyType(Shader.PropertyToID(name)) == UnityEngine.Rendering.ShaderPropertyType.Float) {
+            if (mat.shader.GetPropertyType(mat.shader.FindPropertyIndex("_" + name)) == UnityEngine.Rendering.ShaderPropertyType.Float) {
                 property = mat.GetFloat("_" + name);
                 return true;
             } else {
@@ -29,7 +29,8 @@ namespace MassShaderEditor.Koikatu {
         public static bool TryGetColor(this Material mat, string name, out Color property) {
             // Currently impossible to detect wrong type in KK
 #if KKS
-            if (mat.shader.GetPropertyType(Shader.PropertyToID(name)) == UnityEngine.Rendering.ShaderPropertyType.Float) {
+            var compType = mat.shader.GetPropertyType(mat.shader.FindPropertyIndex("_" + name));
+            if (compType == UnityEngine.Rendering.ShaderPropertyType.Color || compType == UnityEngine.Rendering.ShaderPropertyType.Vector) {
                 property = mat.GetColor("_" + name);
                 return true;
             } else {
