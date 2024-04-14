@@ -217,12 +217,12 @@ namespace MassShaderEditor.Koikatu {
                                 Color colConvert = setColStringInput.ToColor(); // May throw exception if hexcode is faulty
                                 setColString = setColStringInput; // Since hexcode is valid, we store it
                                 if (!colConvert.Matches(setCol)) {
-                                    if (IsDebug.Value && !pickerChanged) Log.Info($"Color changed from {setCol} to {colConvert} based on text input!");
+                                    if (IsDebug.Value && !pickerChanged) Log($"Color changed from {setCol} to {colConvert} based on text input!");
                                     pickerChanged = false;
                                     setCol = colConvert;
                                 }
                             } catch {
-                                Log.Info("Could not convert color code!");
+                                Log("Could not convert color code!");
                             }
                         }
                         setColStringInputMemory = setColStringInput;
@@ -242,7 +242,7 @@ namespace MassShaderEditor.Koikatu {
                             ColorPicker(setColPicker, actPicker);
                         }
                         void actPicker(Color c) {
-                            if (IsDebug.Value) Log.Info($"Color changed from {setCol} to {c} based on picker!");
+                            if (IsDebug.Value) Log($"Color changed from {setCol} to {c} based on picker!");
                             setCol = c;
                             setColPicker = c;
                             pickerChanged = true;
@@ -263,7 +263,7 @@ namespace MassShaderEditor.Koikatu {
                         GUILayout.Label("B", newSkin.label); setColNum[2] = Studio.Utility.StringToFloat(GUILayout.TextField(setColNum[2].ToString("0.000"), newSkin.textField));
                         GUILayout.Label("A", newSkin.label); setColNum[3] = Studio.Utility.StringToFloat(GUILayout.TextField(setColNum[3].ToString("0.000"), newSkin.textField));
                         if (!buffer.Matches(setColNum)) {
-                            if (IsDebug.Value) Log.Info($"Color changed from {setCol} to {setColNum.ToColor()} based on value input!");
+                            if (IsDebug.Value) Log($"Color changed from {setCol} to {setColNum.ToColor()} based on value input!");
                             setCol = setColNum.ToColor();
                             if (setCol.maxColorComponent > 1) {
                                 if (isPicker) {

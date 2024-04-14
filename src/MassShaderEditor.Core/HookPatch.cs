@@ -20,14 +20,14 @@ namespace MassShaderEditor.Koikatu {
         }
 
         private static void SetName(MassShaderEditor MSE, MassShaderEditor.SettingType type, string name) {
-            if (MSE.IsDebug.Value) Log.Info($"Property name set: {name.Replace(':', ' ').Replace('*', ' ').Trim()}");
+            if (MSE.IsDebug.Value) MSE.Log($"Property name set: {name.Replace(':', ' ').Replace('*', ' ').Trim()}");
             MSE.tab = type;
             MSE.setName = name.Replace(':', ' ').Replace('*', ' ').Trim();
             MSE.setNameInput = MSE.setName;
         }
 
         private static void SetFilter(MassShaderEditor MSE, string filter) {
-            if (MSE.IsDebug.Value) Log.Info($"Shader name to be autofilled: {filter}");
+            if (MSE.IsDebug.Value) MSE.Log($"Shader name to be autofilled: {filter}");
             if (Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCode.RightShift)) {
                 MSE.tab = MassShaderEditor.SettingType.Shader;
                 MSE.setShader = filter;
@@ -61,14 +61,14 @@ namespace MassShaderEditor.Koikatu {
                     GameObject content = GameObject.Find("BepInEx_Manager");
                     foreach (Transform child in content.transform.GetComponentsInChildren<Transform>())
                         if (child.name == "MaterialEditorWindow") {content = child.gameObject; break; }
-                    if (MSE.IsDebug.Value && content != null) Log.Info("Found content!");
+                    if (MSE.IsDebug.Value && content != null) MSE.Log("Found content!");
 
                     var txtList = content.GetComponentsInChildren<Text>(true).ToList();
-                    if (MSE.IsDebug.Value) Log.Info($"Found {txtList.Count} text components...");
+                    if (MSE.IsDebug.Value) MSE.Log($"Found {txtList.Count} text components...");
 
                     var accepted = new List<string> { "FloatLabel", "ColorLabel", "ShaderLabel", "ShaderRenderQueueLabel" };
                     txtList = txtList.FindAll(x => accepted.Contains(x.gameObject.name));
-                    if (MSE.IsDebug.Value) Log.Info($"Found {txtList.Count} labels!");
+                    if (MSE.IsDebug.Value) MSE.Log($"Found {txtList.Count} labels!");
 
                     foreach (var txt in txtList) {
                         var btn = txt.gameObject.AddComponent<Button>();
@@ -122,10 +122,10 @@ namespace MassShaderEditor.Koikatu {
             public static void SetupHooks() {
                 var MSE = (Object.FindObjectOfType(typeof(MassShaderEditor)) as MassShaderEditor);
 
-                if (MSE.IsDebug.Value) Log.Info("Attempting to patch timeline buttons...");
+                if (MSE.IsDebug.Value) MSE.Log("Attempting to patch timeline buttons...");
                 if (typeof(MaterialEditorAPI.MaterialEditorUI).GetMethod("SelectInterpolableButtonOnClick", BindingFlags.NonPublic | BindingFlags.Instance) != null) {
                     _harmony = Harmony.CreateAndPatchAll(typeof(HookPatch.ConditionalHooks), null);
-                    if (MSE.IsDebug.Value) Log.Info("Patched timeline buttons!");
+                    if (MSE.IsDebug.Value) MSE.Log("Patched timeline buttons!");
                 }
             }
 
