@@ -68,8 +68,6 @@ namespace MassShaderEditor.Koikatu {
         private CustomChangeMainMenu makerMenu;
 
         private void Awake() {
-            Log.SetLogSource(Logger);
-
             UIScale = Config.Bind("General", "UI Scale", 1.5f, new ConfigDescription("Can also be set via the built-in settings panel", new AcceptableValueRange<float>(1f, maxScale), null));
             UIScale.SettingChanged += (x, y) => scaled = false;
             ShowTooltips = Config.Bind("General", "Show tooltips", true, "");
