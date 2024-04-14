@@ -68,8 +68,6 @@ namespace MassShaderEditor.Koikatu {
         private CustomChangeMainMenu makerMenu;
 
         private void Awake() {
-            Log.SetLogSource(Logger);
-
             UIScale = Config.Bind("General", "UI Scale", 1.5f, new ConfigDescription("Can also be set via the built-in settings panel", new AcceptableValueRange<float>(1f, maxScale), null));
             UIScale.SettingChanged += (x, y) => scaled = false;
             ShowTooltips = Config.Bind("General", "Show tooltips", true, "");
@@ -109,7 +107,7 @@ namespace MassShaderEditor.Koikatu {
             };
 
             HookPatch.Init();
-            if (IsDebug.Value) Log.Info("Awoken!");
+            if (IsDebug.Value) Log("Awoken!");
         }
 
         private void Update() {
@@ -165,11 +163,11 @@ namespace MassShaderEditor.Koikatu {
             // Set / reset logic
             if (Input.GetMouseButtonDown(1) && windowRect.Contains(Input.mousePosition.InvertScreenY()) && !showWarning) {
                 setReset = true;
-                if (IsDebug.Value) Log.Info($"RMB detected! setReset: {setReset}");
+                if (IsDebug.Value) Log($"RMB detected! setReset: {setReset}");
             }
             if (Input.GetMouseButtonDown(0) && windowRect.Contains(Input.mousePosition.InvertScreenY()) && !showWarning) {
                 setReset = false;
-                if (IsDebug.Value) Log.Info($"LMB detected! setReset: {setReset}");
+                if (IsDebug.Value) Log($"LMB detected! setReset: {setReset}");
             }
             if (dropdown>0 && (Input.GetMouseButton(1) || Input.GetMouseButton(0)) && !dropRect.Contains(Input.mousePosition.InvertScreenY())) {
                 dropdown = 0;
@@ -245,7 +243,7 @@ namespace MassShaderEditor.Koikatu {
         private void SetAllProperties<T>(T _value) {
             if (!(_value is float) && !(_value is Color) && !(_value is string)) return;
             if (KKAPI.Studio.StudioAPI.InsideStudio) {
-                if (IsDebug.Value) Log.Info($"{(setReset?"Res":"S")}etting ALL items' {(tab == SettingType.Shader ? "shaders" : "properties")}!");
+                if (IsDebug.Value) Log($"{(setReset?"Res":"S")}etting ALL items' {(tab == SettingType.Shader ? "shaders" : "properties")}!");
                 SetStudioProperties(studio.dicObjectCtrl.Values.ToList(), _value);
             }
             else if (KKAPI.Maker.MakerAPI.InsideMaker) {
@@ -275,17 +273,17 @@ namespace MassShaderEditor.Koikatu {
         private void SetSelectedProperties<T>(T _value) {
             if (!(_value is float) && !(_value is Color) && !(_value is string)) return;
             if (KKAPI.Studio.StudioAPI.InsideStudio) {
-                if (IsDebug.Value) Log.Info($"{(setReset ? "Res" : "S")}etting selected items' properties!");
+                if (IsDebug.Value) Log($"{(setReset ? "Res" : "S")}etting selected items' properties!");
                 var ociList = KKAPI.Studio.StudioAPI.GetSelectedObjects().ToList();
                 if (ociList.Count > 0) {
                     var iterateList = new List<ObjectCtrlInfo>(ociList);
-                    if (IsDebug.Value) Log.Info("Checking for dives...");
+                    if (IsDebug.Value) Log("Checking for dives...");
                     var diveList = new List<Type>();
                     if (DiveFolders.Value) diveList.Add(typeof(OCIFolder));
                     if (DiveItems.Value) diveList.Add(typeof(OCIItem));
                     foreach (var oci in iterateList)
                         if (diveList.Contains(oci.GetType())) {
-                            if (IsDebug.Value) Log.Info($"Found diveable item: {oci.treeNodeObject.textName}");
+                            if (IsDebug.Value) Log($"Found diveable item: {oci.treeNodeObject.textName}");
                             oci.AddChildrenRecursive(ociList);
                         }
                     SetStudioProperties(ociList, _value);
@@ -316,7 +314,7 @@ namespace MassShaderEditor.Koikatu {
                     if (oci is OCIItem item) {
                         SetStudioItemProperties(controller, item, _value);
                     } else if (oci is OCIChar ociChar && AffectCharacters.Value) {
-                        if (IsDebug.Value) Log.Info($"Looking into character: {ociChar.treeNodeObject.textName}");
+                        if (IsDebug.Value) Log($"Looking into character: {ociChar.treeNodeObject.textName}");
                         var ctrl = KKAPI.Studio.StudioObjectExtensions.GetChaControl(ociChar);
                         if (AffectChaBody.Value && AffectMiscBodyParts.Value) SetCharaProperties(ctrl.GetController(), ociChar, 0, ObjectType.Character, _value);
                         else if (AffectChaBody.Value) SetCharaProperties(ctrl.GetController(), ociChar, 0, ObjectType.Character, _value,
@@ -335,16 +333,16 @@ namespace MassShaderEditor.Koikatu {
                 }
                 if (MaterialEditorAPI.MaterialEditorUI.MaterialEditorWindow.gameObject.activeSelf) MEStudio.Instance.RefreshUI();
             } else if (KKAPI.Maker.MakerAPI.InsideMaker) {
-                Log.Info("SetStudioProperties should not be called inside Maker!");
+                Log("SetStudioProperties should not be called inside Maker!");
             }
         }
 
         private void SetStudioItemProperties<T>(SceneController ctrl, OCIItem item, T _value) {
-            if (IsDebug.Value) Log.Info($"Looking into {item.NameFormatted()}...");
+            if (IsDebug.Value) Log($"Looking into {item.NameFormatted()}...");
             foreach (var rend in GetRendererList(item.objectItem)) {
-                //if (IsDebug.Value) Log.Info($"Got renderer: {rend.NameFormatted()}");
+                //if (IsDebug.Value) Log($"Got renderer: {rend.NameFormatted()}");
                 foreach (var mat in GetMaterials(item.objectItem, rend)) {
-                    //if (IsDebug.Value) Log.Info($"Got material: {mat.NameFormatted()}");
+                    //if (IsDebug.Value) Log($"Got material: {mat.NameFormatted()}");
                     if (mat.shader.NameFormatted().ToLower().Contains(filter.ToLower().Trim())) {
                         if (tab == SettingType.Float || tab == SettingType.Color)
                             if (mat.HasProperty("_" + setName)) {
@@ -353,29 +351,29 @@ namespace MassShaderEditor.Koikatu {
                                         if (_value is float || _value is Color) {
                                             ctrl.RemoveMaterialFloatProperty(item.objectInfo.dicKey, mat, setName);
                                             ctrl.RemoveMaterialColorProperty(item.objectInfo.dicKey, mat, setName);
-                                            if (IsDebug.Value) Log.Info($"Property {item.NameFormatted()}\\{mat.NameFormatted()}\\{setName} reset!");
-                                        } else { if (IsDebug.Value) Log.Info($"Tried resetting property with erroneous identifier type: {_value.GetType()}"); }
+                                            if (IsDebug.Value) Log($"Property {item.NameFormatted()}\\{mat.NameFormatted()}\\{setName} reset!");
+                                        } else { if (IsDebug.Value) Log($"Tried resetting property with erroneous identifier type: {_value.GetType()}"); }
                                     } else {
                                         if (_value is float floatval)
                                             if (mat.TryGetFloat(setName, out float current)) {
                                                 ctrl.SetMaterialFloatProperty(item.objectInfo.dicKey, mat, setName, GetModifiedFloat(current, floatval));
-                                                if (IsDebug.Value) Log.Info($"Property {item.NameFormatted()}\\{mat.NameFormatted()}\\{setName} set to {GetModifiedFloat(current, floatval)}!");
-                                            } else { if (IsDebug.Value) Log.Info($"Tried setting float property {item.NameFormatted()}\\{mat.NameFormatted()}\\{setName} to color ({_value}) value!"); }
+                                                if (IsDebug.Value) Log($"Property {item.NameFormatted()}\\{mat.NameFormatted()}\\{setName} set to {GetModifiedFloat(current, floatval)}!");
+                                            } else { if (IsDebug.Value) Log($"Tried setting float property {item.NameFormatted()}\\{mat.NameFormatted()}\\{setName} to color ({_value}) value!"); }
                                         else if (_value is Color colval)
                                             if (mat.TryGetColor(setName, out Color current)) {
                                                 ctrl.SetMaterialColorProperty(item.objectInfo.dicKey, mat, setName, GetModifiedColor(current, colval));
-                                                if (IsDebug.Value) Log.Info($"Property {item.NameFormatted()}\\{mat.NameFormatted()}\\{setName} set to {GetModifiedColor(current, colval)}!");
-                                            } else { if (IsDebug.Value) Log.Info($"Tried setting color property {item.NameFormatted()}\\{mat.NameFormatted()}\\{setName} to float ({_value}) value!"); }
-                                        else { if (IsDebug.Value) Log.Info($"Tried setting a item property or shader to erroneous type: {_value.GetType()}"); }
+                                                if (IsDebug.Value) Log($"Property {item.NameFormatted()}\\{mat.NameFormatted()}\\{setName} set to {GetModifiedColor(current, colval)}!");
+                                            } else { if (IsDebug.Value) Log($"Tried setting color property {item.NameFormatted()}\\{mat.NameFormatted()}\\{setName} to float ({_value}) value!"); }
+                                        else { if (IsDebug.Value) Log($"Tried setting a item property or shader to erroneous type: {_value.GetType()}"); }
                                     }
                                 } catch (Exception e) {
-                                    Log.Error($"Unknown error during property value assignment of {item.NameFormatted()}\\{mat.NameFormatted()}\\{setName}: {e}");
+                                    Logger.LogError($"Unknown error during property value assignment of {item.NameFormatted()}\\{mat.NameFormatted()}\\{setName}: {e}");
                                 }
                             } else if ((setName.ToLower().Contains("render queue") || setName.ToLower().Contains("renderqueue") || setName.ToLower().Trim() == "rq") && _value is float floatval) {
                                 if (setReset) ctrl.RemoveMaterialShaderRenderQueue(item.objectInfo.dicKey, mat);
                                 else ctrl.SetMaterialShaderRenderQueue(item.objectInfo.dicKey, mat, (int)Math.Floor(floatval));
                             } else {
-                                if (IsDebug.Value) Log.Info($"Material {item.NameFormatted()}\\{mat.NameFormatted()}\\{mat.shader.NameFormatted()} did not have the {setName} property...");
+                                if (IsDebug.Value) Log($"Material {item.NameFormatted()}\\{mat.NameFormatted()}\\{mat.shader.NameFormatted()} did not have the {setName} property...");
                             }
                         else if (tab == SettingType.Shader)
                             if (shaders.Contains(setShader) || setReset) {
@@ -384,17 +382,17 @@ namespace MassShaderEditor.Koikatu {
                                         if (_value is string) {
                                             ctrl.RemoveMaterialShader(item.objectInfo.dicKey, mat);
                                             ctrl.RemoveMaterialShaderRenderQueue(item.objectInfo.dicKey, mat);
-                                            if (IsDebug.Value) Log.Info($"Shader of {item.NameFormatted()}\\{mat.NameFormatted()} reset!");
-                                        } else { if (IsDebug.Value) Log.Info($"Tried resetting shader of {item.NameFormatted()}\\{mat.NameFormatted()} with erroneous identifier type: {_value.GetType()}"); }
+                                            if (IsDebug.Value) Log($"Shader of {item.NameFormatted()}\\{mat.NameFormatted()} reset!");
+                                        } else { if (IsDebug.Value) Log($"Tried resetting shader of {item.NameFormatted()}\\{mat.NameFormatted()} with erroneous identifier type: {_value.GetType()}"); }
                                     } else if (_value is string stringval) {
                                         ctrl.SetMaterialShader(item.objectInfo.dicKey, mat, stringval);
                                         if (setQueue != 0) ctrl.SetMaterialShaderRenderQueue(item.objectInfo.dicKey, mat, setQueue);
-                                        if (IsDebug.Value) Log.Info($"Shader of {item.NameFormatted()}\\{mat.NameFormatted()} set to {_value}!");
-                                    } else { if (IsDebug.Value) Log.Info($"Tried setting shader of {item.NameFormatted()}\\{mat.NameFormatted()} with erroneous identifier: {_value.GetType()}"); }
+                                        if (IsDebug.Value) Log($"Shader of {item.NameFormatted()}\\{mat.NameFormatted()} set to {_value}!");
+                                    } else { if (IsDebug.Value) Log($"Tried setting shader of {item.NameFormatted()}\\{mat.NameFormatted()} with erroneous identifier: {_value.GetType()}"); }
                                 } catch (Exception e) {
-                                    Log.Error($"Unknown error during shader assignment of {item.NameFormatted()}\\{mat.NameFormatted()}\\{mat.shader.NameFormatted()}\\{setName}: {e}");
+                                    Logger.LogError($"Unknown error during shader assignment of {item.NameFormatted()}\\{mat.NameFormatted()}\\{mat.shader.NameFormatted()}\\{setName}: {e}");
                                 }
-                            } else { if (IsDebug.Value) Log.Info($"Tried setting {item.NameFormatted()}\\{mat.NameFormatted()} to nonexistent shader!"); }
+                            } else { if (IsDebug.Value) Log($"Tried setting {item.NameFormatted()}\\{mat.NameFormatted()} to nonexistent shader!"); }
                         else { throw new ArgumentException("Erroneous / unimplemented tab type!"); }
                     }
                 }
@@ -434,9 +432,9 @@ namespace MassShaderEditor.Koikatu {
                     go = null; break;
             }
             foreach (var rend in GetRendererList(go).Where(x => rendererFilter(x))) {
-                if (IsDebug.Value) Log.Info($"Got renderer: {rend.NameFormatted()}");
+                if (IsDebug.Value) Log($"Got renderer: {rend.NameFormatted()}");
                 foreach (var mat in GetMaterials(go, rend).Where(x => materialFilter(x))) {
-                    if (IsDebug.Value) Log.Info($"Got material: {mat.NameFormatted()}");
+                    if (IsDebug.Value) Log($"Got material: {mat.NameFormatted()}");
                     if (mat.shader.NameFormatted().ToLower().Contains(filter.ToLower().Trim())) {
                         if (tab == SettingType.Float || tab == SettingType.Color)
                             if (mat.HasProperty("_" + setName)) {
@@ -445,26 +443,26 @@ namespace MassShaderEditor.Koikatu {
                                         if (_value is float || _value is Color) {
                                             ctrl.RemoveMaterialFloatProperty(slot, type, mat, setName, go);
                                             ctrl.RemoveMaterialColorProperty(slot, type, mat, setName, go);
-                                            if (IsDebug.Value) Log.Info($"Property {chaName}\\{mat.NameFormatted()}\\{setName} reset!");
-                                        } else { if (IsDebug.Value) Log.Info($"Tried resetting property with erroneous identifier type: {_value.GetType()}"); }
+                                            if (IsDebug.Value) Log($"Property {chaName}\\{mat.NameFormatted()}\\{setName} reset!");
+                                        } else { if (IsDebug.Value) Log($"Tried resetting property with erroneous identifier type: {_value.GetType()}"); }
                                     } else {
                                         if (_value is float floatval)
                                             if (mat.TryGetFloat(setName, out float current)) {
                                                 ctrl.SetMaterialFloatProperty(slot, type, mat, setName, GetModifiedFloat(current, floatval), go);
-                                                if (IsDebug.Value) Log.Info($"Property {chaName}\\{mat.NameFormatted()}\\{setName} set to {GetModifiedFloat(current, floatval)}!");
-                                            } else { if (IsDebug.Value) Log.Info($"Tried setting float property {chaName}\\{mat.NameFormatted()}\\{setName} to color ({_value}) value!"); }
+                                                if (IsDebug.Value) Log($"Property {chaName}\\{mat.NameFormatted()}\\{setName} set to {GetModifiedFloat(current, floatval)}!");
+                                            } else { if (IsDebug.Value) Log($"Tried setting float property {chaName}\\{mat.NameFormatted()}\\{setName} to color ({_value}) value!"); }
                                         else if (_value is Color colval)
                                             if (mat.TryGetColor(setName, out Color current)) {
                                                 ctrl.SetMaterialColorProperty(slot, type, mat, setName, GetModifiedColor(current, colval), go);
-                                                if (IsDebug.Value) Log.Info($"Property {chaName}\\{mat.NameFormatted()}\\{setName} set to {GetModifiedColor(current, colval)}!");
-                                            } else { if (IsDebug.Value) Log.Info($"Tried setting color property {chaName}\\{mat.NameFormatted()}\\{setName} to float ({_value}) value!"); }
-                                        else { if (IsDebug.Value) Log.Info($"Tried setting a character property to erroneous type: {_value.GetType()}"); }
+                                                if (IsDebug.Value) Log($"Property {chaName}\\{mat.NameFormatted()}\\{setName} set to {GetModifiedColor(current, colval)}!");
+                                            } else { if (IsDebug.Value) Log($"Tried setting color property {chaName}\\{mat.NameFormatted()}\\{setName} to float ({_value}) value!"); }
+                                        else { if (IsDebug.Value) Log($"Tried setting a character property to erroneous type: {_value.GetType()}"); }
                                     }
                                 } catch (Exception e) {
-                                    Log.Error($"Unknown error during property value assignment of {chaName}\\{mat.NameFormatted()}\\{mat.shader.NameFormatted()}\\{setName}: {e}");
+                                    Logger.LogError($"Unknown error during property value assignment of {chaName}\\{mat.NameFormatted()}\\{mat.shader.NameFormatted()}\\{setName}: {e}");
                                 }
                             } else {
-                                if (IsDebug.Value) Log.Info($"{chaName}\\{mat.NameFormatted()}\\{mat.shader.NameFormatted()} did not have the {setName} property...");
+                                if (IsDebug.Value) Log($"{chaName}\\{mat.NameFormatted()}\\{mat.shader.NameFormatted()} did not have the {setName} property...");
                             }
                         else if (tab == SettingType.Shader)
                             if (shaders.Contains(setShader.Trim()) || setReset) {
@@ -473,17 +471,17 @@ namespace MassShaderEditor.Koikatu {
                                         if (_value is string) {
                                             ctrl.RemoveMaterialShader(slot, type, mat, go);
                                             ctrl.RemoveMaterialShaderRenderQueue(slot, type, mat, go);
-                                            if (IsDebug.Value) Log.Info($"Shader of {chaName}\\{mat.NameFormatted()} reset!");
-                                        } else { if (IsDebug.Value) Log.Info($"Tried resetting shader of {chaName}\\{mat.NameFormatted()} with erroneous identifier type: {_value.GetType()}"); }
+                                            if (IsDebug.Value) Log($"Shader of {chaName}\\{mat.NameFormatted()} reset!");
+                                        } else { if (IsDebug.Value) Log($"Tried resetting shader of {chaName}\\{mat.NameFormatted()} with erroneous identifier type: {_value.GetType()}"); }
                                     } else if (_value is string stringval) {
                                         ctrl.SetMaterialShader(slot, type, mat, stringval, go);
                                         if (setQueue != 0) ctrl.SetMaterialShaderRenderQueue(slot, type, mat, setQueue, go);
-                                        if (IsDebug.Value) Log.Info($"Shader of {chaName}\\{mat.NameFormatted()} set to {_value}!");
-                                    } else { if (IsDebug.Value) Log.Info($"Tried setting shader of {chaName}\\{mat.NameFormatted()} with erroneous identifier: {_value.GetType()}"); }
+                                        if (IsDebug.Value) Log($"Shader of {chaName}\\{mat.NameFormatted()} set to {_value}!");
+                                    } else { if (IsDebug.Value) Log($"Tried setting shader of {chaName}\\{mat.NameFormatted()} with erroneous identifier: {_value.GetType()}"); }
                                 } catch (Exception e) {
-                                    Log.Error($"Unknown error during shader assignment of {chaName}\\{mat.NameFormatted()}\\{mat.shader.NameFormatted()}\\{setName}: {e}");
+                                    Logger.LogError($"Unknown error during shader assignment of {chaName}\\{mat.NameFormatted()}\\{mat.shader.NameFormatted()}\\{setName}: {e}");
                                 }
-                            } else { if (IsDebug.Value) Log.Info($"Tried setting {chaName}\\{mat.NameFormatted()} to nonexistent shader!"); }
+                            } else { if (IsDebug.Value) Log($"Tried setting {chaName}\\{mat.NameFormatted()} to nonexistent shader!"); }
                         else { throw new ArgumentException("Erroneous / unimplemented tab type!"); }
                     }
                 }
@@ -544,6 +542,10 @@ namespace MassShaderEditor.Koikatu {
                     type = ObjectType.Unknown; break;
             }
             return type != ObjectType.Unknown;
+        }
+
+        public void Log(object data) {
+            Logger.LogInfo(data);
         }
     }
 }

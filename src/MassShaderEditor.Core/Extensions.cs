@@ -13,7 +13,8 @@ namespace MassShaderEditor.Koikatu {
         public static bool TryGetFloat(this Material mat, string name, out float property) {
             // Currently impossible to detect wrong type in KK
 #if KKS
-            if (mat.shader.GetPropertyType(mat.shader.FindPropertyIndex("_" + name)) == UnityEngine.Rendering.ShaderPropertyType.Float) {
+            var accepted = new List<UnityEngine.Rendering.ShaderPropertyType>{ UnityEngine.Rendering.ShaderPropertyType.Float, UnityEngine.Rendering.ShaderPropertyType.Range };
+            if (accepted.Contains(mat.shader.GetPropertyType(mat.shader.FindPropertyIndex("_" + name)))) {
                 property = mat.GetFloat("_" + name);
                 return true;
             } else {
