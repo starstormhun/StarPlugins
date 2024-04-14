@@ -53,6 +53,9 @@ namespace MassShaderEditor.Koikatu {
         private float dropWidth = 0;
         private float commonWidth = 0;
         private string setQueueInput = "";
+        private bool historyDrop = false;
+        public readonly List<HistoryItem> floatHist = new List<HistoryItem>();
+        public readonly List<HistoryItem> colHist = new List<HistoryItem>();
 
         internal string filterInput = "";
         internal string setNameInput = "";
@@ -775,6 +778,12 @@ namespace MassShaderEditor.Koikatu {
         }
 
         private void Spacer(float multiplied = 1) => GUILayout.Space(6 * multiplied * UIScale.Value);
+
+        public struct HistoryItem {
+            public string name;
+            public float val;
+            public Color col;
+        }
 
         public enum SettingType {
             Float,
