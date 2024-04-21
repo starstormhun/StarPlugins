@@ -26,15 +26,16 @@ namespace MassShaderEditor.Koikatu {
             MSE.setNameInput = MSE.setName;
         }
 
-        private static void SetFilter(MassShaderEditor MSE, string filter) {
+        private static void SetFilter(MassShaderEditor MSE, string filter, int type) {
             if (MSE.IsDebug.Value) MSE.Log($"Shader name to be autofilled: {filter}");
-            if (Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCode.RightShift)) {
+            if ((Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCode.RightShift)) && type == 2) {
                 MSE.tab = MassShaderEditor.SettingType.Shader;
-                MSE.setShader = filter;
-                MSE.setShaderInput = filter;
+                MSE.setShader = filter.Trim();
+                MSE.setShaderInput = filter.Trim();
             } else {
-                MSE.filter = filter.Trim();
-                MSE.filterInput = MSE.filter;
+                MSE.currentFilter = type;
+                MSE.filters[type] = filter.Trim();
+                MSE.filterInput = MSE.filters[type];
             }
         }
 
@@ -66,7 +67,7 @@ namespace MassShaderEditor.Koikatu {
                     var txtList = content.GetComponentsInChildren<Text>(true).ToList();
                     if (MSE.IsDebug.Value) MSE.Log($"Found {txtList.Count} text components...");
 
-                    var accepted = new List<string> { "FloatLabel", "ColorLabel", "ShaderLabel", "ShaderRenderQueueLabel" };
+                    var accepted = new List<string> { "FloatLabel", "ColorLabel", "RendererText", "MaterialText", "ShaderLabel", "ShaderRenderQueueLabel" };
                     txtList = txtList.FindAll(x => accepted.Contains(x.gameObject.name));
                     if (MSE.IsDebug.Value) MSE.Log($"Found {txtList.Count} labels!");
 
@@ -79,10 +80,16 @@ namespace MassShaderEditor.Koikatu {
                             case "ColorLabel":
                                 btn.onClick.AddListener(() => SetName(MSE, MassShaderEditor.SettingType.Color, txt.text));
                                 break;
+                            case "RendererText":
+                                btn.onClick.AddListener(() => SetFilter(MSE, txt.text, 0));
+                                break;
+                            case "MaterialText":
+                                btn.onClick.AddListener(() => SetFilter(MSE, txt.text, 1));
+                                break;
                             case "ShaderLabel":
                                 GameObject shaderDropdown = null;
                                 foreach (Transform tr in txt.transform.parent.GetComponentsInChildren<Transform>(true)) if (tr.name == "ShaderDropdown") { shaderDropdown = tr.gameObject; break; }
-                                btn.onClick.AddListener(() => SetFilter(MSE, shaderDropdown.GetComponentInChildren<Text>().text));
+                                btn.onClick.AddListener(() => SetFilter(MSE, shaderDropdown.GetComponentInChildren<Text>().text, 2));
                                 break;
                             case "ShaderRenderQueueLabel":
                                 btn.onClick.AddListener(() => SetName(MSE, MassShaderEditor.SettingType.Float, "Render Queue"));
@@ -145,7 +152,7 @@ namespace MassShaderEditor.Koikatu {
                     foreach (var rend in GetRendererList(go))
                         foreach (var mat in GetMaterials(go, rend))
                             if (mat.NameFormatted() == materialName)
-                                SetFilter(MSE, mat.shader.NameFormatted());
+                                SetFilter(MSE, mat.shader.NameFormatted(), 2);
             }
         }
 
