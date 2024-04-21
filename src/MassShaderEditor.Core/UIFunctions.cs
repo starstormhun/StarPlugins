@@ -19,14 +19,14 @@ namespace MassShaderEditor.Koikatu {
         private float messageDur = 1;
         private float messageTime = 0;
 
-        private static readonly float[] defaultSize = new float[] { 200f,40f,250f,170f};
+        private static readonly float[] defaultSize = new float[] { 200f, 40f, 250f, 170f };
         private Rect windowRect = new Rect(defaultSize[0], defaultSize[1], defaultSize[2], defaultSize[3]);
         private Rect mixRect = new Rect();
         private Rect helpRect = new Rect();
         private Rect setRect = new Rect();
         private Rect infoRect = new Rect();
-        private Rect warnRect = new Rect(0,0,360,200);
-        private Rect dropRect = new Rect(defaultSize[0], defaultSize[1], defaultSize[2]*0.9f, defaultSize[3]*1.2f);
+        private Rect warnRect = new Rect(0, 0, 360, 200);
+        private Rect dropRect = new Rect(defaultSize[0], defaultSize[1], defaultSize[2] * 0.9f, defaultSize[3] * 1.2f);
         private Rect historyRect = new Rect(defaultSize[0], defaultSize[1], defaultSize[2] * 0.9f, defaultSize[3] * 1.2f);
         private Vector2 shaderScrollPos;
         private Vector2 historyScrollPos;
@@ -37,7 +37,7 @@ namespace MassShaderEditor.Koikatu {
         private GUISkin newSkin;
 
         private bool setReset = true;
-        internal string filter = "";
+        internal List<string> filters = new List<string>{"", "", ""};
         internal string setName = "";
         private float setVal = 0;
         private int setModeFloat = 0;
@@ -61,6 +61,7 @@ namespace MassShaderEditor.Koikatu {
         public readonly List<HistoryItem> floatHist = new List<HistoryItem>();
         public readonly List<HistoryItem> colHist = new List<HistoryItem>();
 
+        internal int currentFilter = 2;
         internal string filterInput = "";
         internal string setNameInput = "";
         internal string setShaderInput = "";
@@ -126,6 +127,13 @@ namespace MassShaderEditor.Koikatu {
             string queueText = "Queue"; float queueWidth = newSkin.label.CalcSize(new GUIContent(queueText)).x;
             commonWidth = Mathf.Max(new float[] { filterWidth, propertyWidth, valueWidth, shaderWidth, queueWidth });
             float halfWidth = (windowRect.width - newSkin.window.border.left - newSkin.window.border.right) / 2;
+            var filterButtons = new GUIContent[] {
+                new GUIContent(filters[0].Trim() == "" ? "R" : "R*", "Filter by renderer name." + (filters[0].Trim() == "" ? "" : " (Filter is set)")),
+                new GUIContent(filters[1].Trim() == "" ? "M" : "M*", "Filter by material name." + (filters[1].Trim() == "" ? "" : " (Filter is set)")),
+                new GUIContent(filters[2].Trim() == "" ? "S" : "S*", "Filter by shader name." + (filters[2].Trim() == "" ? "" : " (Filter is set)")),
+            };
+            var filterStyle = new GUIStyle(newSkin.button);
+            filterStyle.fontSize = (int)(filterStyle.fontSize * 0.67);
 
             // Menu bar
             {
@@ -157,9 +165,23 @@ namespace MassShaderEditor.Koikatu {
             if (new List<SettingType> { SettingType.Float, SettingType.Color }.Contains(tab)) {
                 // Filter
                 GUILayout.BeginHorizontal();
-                GUILayout.Label(new GUIContent(filterText, "Only shaders with this in their name will be edited"), newSkin.label, GUILayout.Width(commonWidth));
+                GUILayout.Label(new GUIContent(filterText, "Only shaders matching these filters will be edited"), newSkin.label, GUILayout.Width(commonWidth));
                 filterInput = GUILayout.TextField(filterInput, newSkin.textField);
-                filter = filterInput.Trim();
+                int prevFilter = currentFilter;
+                currentFilter = GUILayout.SelectionGrid(
+                    currentFilter,
+                    filterButtons,
+                    filterButtons.Length,
+                    filterStyle,
+                    new GUILayoutOption[] {
+                        GUILayout.ExpandWidth(false),
+                        GUILayout.Height(newSkin.button.CalcHeight(new GUIContent("TEST"), 100))
+                    }
+                );
+                if (prevFilter != currentFilter) {
+                    filterInput = filters[currentFilter].Trim();
+                }
+                filters[currentFilter] = filterInput.Trim();
                 GUILayout.EndHorizontal();
 
                 // Property
@@ -330,15 +352,31 @@ namespace MassShaderEditor.Koikatu {
                 // Filter
                 {
                     GUILayout.BeginHorizontal();
-                    GUILayout.Label(new GUIContent(filterText, "Only shaders with this in their name will be edited"), newSkin.label, GUILayout.Width(commonWidth));
+                    GUILayout.Label(new GUIContent(filterText, "Only shaders matching these filters will be edited"), newSkin.label, GUILayout.Width(commonWidth));
                     filterInput = GUILayout.TextField(filterInput, newSkin.textField);
-                    filter = filterInput.Trim();
-                    if (GUILayout.Button("▼", newSkin.button, GUILayout.ExpandWidth(false))) {
-                        onShaderSelect = (s) => { filter = s; filterInput = s; };
-                        CalcShaderDropSize();
-                        shaderScrollPos = dropRect.position;
-                        shaderDrop = 1;
+                    if (currentFilter == 2) {
+                        if (GUILayout.Button("▼", newSkin.button, GUILayout.ExpandWidth(false))) {
+                            onShaderSelect = (s) => { filters[2] = s; filterInput = s; };
+                            CalcShaderDropSize();
+                            shaderScrollPos = dropRect.position;
+                            shaderDrop = 1;
+                        }
                     }
+                    int prevFilter = currentFilter;
+                    currentFilter = GUILayout.SelectionGrid(
+                        currentFilter,
+                        filterButtons,
+                        filterButtons.Length,
+                        filterStyle,
+                        new GUILayoutOption[] {
+                            GUILayout.ExpandWidth(false),
+                            GUILayout.Height(newSkin.button.CalcHeight(new GUIContent("TEST"), 100))
+                        }
+                    );
+                    if (prevFilter != currentFilter) {
+                        filterInput = filters[currentFilter].Trim();
+                    }
+                    filters[currentFilter] = filterInput.Trim();
                     GUILayout.EndHorizontal();
                 }
 

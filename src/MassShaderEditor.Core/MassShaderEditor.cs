@@ -26,7 +26,7 @@ namespace MassShaderEditor.Koikatu {
 	/// </info>
     public partial class MassShaderEditor : BaseUnityPlugin {
         public const string GUID = "starstorm.massshadereditor";
-        public const string Version = "1.0.2." + BuildNumber.Version;
+        public const string Version = "1.0.3." + BuildNumber.Version;
 
         // General
         public ConfigEntry<float> UIScale { get; private set; }
@@ -361,62 +361,61 @@ namespace MassShaderEditor.Koikatu {
         private void SetStudioItemProperties<T>(SceneController ctrl, OCIItem item, T _value) {
             if (IsDebug.Value) Log($"Looking into {item.NameFormatted()}...");
             foreach (var rend in GetRendererList(item.objectItem)) {
-                //if (IsDebug.Value) Log($"Got renderer: {rend.NameFormatted()}");
-                foreach (var mat in GetMaterials(item.objectItem, rend)) {
-                    //if (IsDebug.Value) Log($"Got material: {mat.NameFormatted()}");
-                    if (mat.shader.NameFormatted().ToLower().Contains(filter.ToLower().Trim())) {
-                        if (tab == SettingType.Float || tab == SettingType.Color)
-                            if (mat.HasProperty("_" + setName)) {
-                                try {
-                                    if (setReset) {
-                                        if (_value is float || _value is Color) {
-                                            ctrl.RemoveMaterialFloatProperty(item.objectInfo.dicKey, mat, setName);
-                                            ctrl.RemoveMaterialColorProperty(item.objectInfo.dicKey, mat, setName);
-                                            if (IsDebug.Value) Log($"Property {item.NameFormatted()}\\{mat.NameFormatted()}\\{setName} reset!");
-                                        } else { if (IsDebug.Value) Log($"Tried resetting property with erroneous identifier type: {_value.GetType()}"); }
-                                    } else {
-                                        if (_value is float floatval)
-                                            if (mat.TryGetFloat(setName, out float current)) {
-                                                ctrl.SetMaterialFloatProperty(item.objectInfo.dicKey, mat, setName, GetModifiedFloat(current, floatval));
-                                                if (IsDebug.Value) Log($"Property {item.NameFormatted()}\\{mat.NameFormatted()}\\{setName} set to {GetModifiedFloat(current, floatval)}!");
-                                            } else { if (IsDebug.Value) Log($"Tried setting float property {item.NameFormatted()}\\{mat.NameFormatted()}\\{setName} to color ({_value}) value!"); }
-                                        else if (_value is Color colval)
-                                            if (mat.TryGetColor(setName, out Color current)) {
-                                                ctrl.SetMaterialColorProperty(item.objectInfo.dicKey, mat, setName, GetModifiedColor(current, colval));
-                                                if (IsDebug.Value) Log($"Property {item.NameFormatted()}\\{mat.NameFormatted()}\\{setName} set to {GetModifiedColor(current, colval)}!");
-                                            } else { if (IsDebug.Value) Log($"Tried setting color property {item.NameFormatted()}\\{mat.NameFormatted()}\\{setName} to float ({_value}) value!"); }
-                                        else { if (IsDebug.Value) Log($"Tried setting a item property or shader to erroneous type: {_value.GetType()}"); }
+                if (rend.NameFormatted().ToLower().Contains(filters[0].ToLower().Trim()))
+                    foreach (var mat in GetMaterials(item.objectItem, rend)) {
+                        if (mat.NameFormatted().ToLower().Contains(filters[1].ToLower().Trim()) && mat.shader.NameFormatted().ToLower().Contains(filters[2].ToLower().Trim())) {
+                            if (tab == SettingType.Float || tab == SettingType.Color)
+                                if (mat.HasProperty("_" + setName)) {
+                                    try {
+                                        if (setReset) {
+                                            if (_value is float || _value is Color) {
+                                                ctrl.RemoveMaterialFloatProperty(item.objectInfo.dicKey, mat, setName);
+                                                ctrl.RemoveMaterialColorProperty(item.objectInfo.dicKey, mat, setName);
+                                                if (IsDebug.Value) Log($"Property {item.NameFormatted()}\\{mat.NameFormatted()}\\{setName} reset!");
+                                            } else { if (IsDebug.Value) Log($"Tried resetting property with erroneous identifier type: {_value.GetType()}"); }
+                                        } else {
+                                            if (_value is float floatval)
+                                                if (mat.TryGetFloat(setName, out float current)) {
+                                                    ctrl.SetMaterialFloatProperty(item.objectInfo.dicKey, mat, setName, GetModifiedFloat(current, floatval));
+                                                    if (IsDebug.Value) Log($"Property {item.NameFormatted()}\\{mat.NameFormatted()}\\{setName} set to {GetModifiedFloat(current, floatval)}!");
+                                                } else { if (IsDebug.Value) Log($"Tried setting float property {item.NameFormatted()}\\{mat.NameFormatted()}\\{setName} to color ({_value}) value!"); }
+                                            else if (_value is Color colval)
+                                                if (mat.TryGetColor(setName, out Color current)) {
+                                                    ctrl.SetMaterialColorProperty(item.objectInfo.dicKey, mat, setName, GetModifiedColor(current, colval));
+                                                    if (IsDebug.Value) Log($"Property {item.NameFormatted()}\\{mat.NameFormatted()}\\{setName} set to {GetModifiedColor(current, colval)}!");
+                                                } else { if (IsDebug.Value) Log($"Tried setting color property {item.NameFormatted()}\\{mat.NameFormatted()}\\{setName} to float ({_value}) value!"); }
+                                            else { if (IsDebug.Value) Log($"Tried setting a item property or shader to erroneous type: {_value.GetType()}"); }
+                                        }
+                                    } catch (Exception e) {
+                                        Logger.LogError($"Unknown error during property value assignment of {item.NameFormatted()}\\{mat.NameFormatted()}\\{setName}: {e}");
                                     }
-                                } catch (Exception e) {
-                                    Logger.LogError($"Unknown error during property value assignment of {item.NameFormatted()}\\{mat.NameFormatted()}\\{setName}: {e}");
+                                } else if ((setName.ToLower().Contains("render queue") || setName.ToLower().Contains("renderqueue") || setName.ToLower().Trim() == "rq") && _value is float floatval) {
+                                    if (setReset) ctrl.RemoveMaterialShaderRenderQueue(item.objectInfo.dicKey, mat);
+                                    else ctrl.SetMaterialShaderRenderQueue(item.objectInfo.dicKey, mat, (int)Math.Floor(floatval));
+                                } else {
+                                    if (IsDebug.Value) Log($"Material {item.NameFormatted()}\\{mat.NameFormatted()}\\{mat.shader.NameFormatted()} did not have the {setName} property...");
                                 }
-                            } else if ((setName.ToLower().Contains("render queue") || setName.ToLower().Contains("renderqueue") || setName.ToLower().Trim() == "rq") && _value is float floatval) {
-                                if (setReset) ctrl.RemoveMaterialShaderRenderQueue(item.objectInfo.dicKey, mat);
-                                else ctrl.SetMaterialShaderRenderQueue(item.objectInfo.dicKey, mat, (int)Math.Floor(floatval));
-                            } else {
-                                if (IsDebug.Value) Log($"Material {item.NameFormatted()}\\{mat.NameFormatted()}\\{mat.shader.NameFormatted()} did not have the {setName} property...");
-                            }
-                        else if (tab == SettingType.Shader)
-                            if (shaders.Contains(setShader) || setReset) {
-                                try {
-                                    if (setReset) {
-                                        if (_value is string) {
-                                            ctrl.RemoveMaterialShader(item.objectInfo.dicKey, mat);
-                                            ctrl.RemoveMaterialShaderRenderQueue(item.objectInfo.dicKey, mat);
-                                            if (IsDebug.Value) Log($"Shader of {item.NameFormatted()}\\{mat.NameFormatted()} reset!");
-                                        } else { if (IsDebug.Value) Log($"Tried resetting shader of {item.NameFormatted()}\\{mat.NameFormatted()} with erroneous identifier type: {_value.GetType()}"); }
-                                    } else if (_value is string stringval) {
-                                        ctrl.SetMaterialShader(item.objectInfo.dicKey, mat, stringval);
-                                        if (setQueue != 0) ctrl.SetMaterialShaderRenderQueue(item.objectInfo.dicKey, mat, setQueue);
-                                        if (IsDebug.Value) Log($"Shader of {item.NameFormatted()}\\{mat.NameFormatted()} set to {_value}!");
-                                    } else { if (IsDebug.Value) Log($"Tried setting shader of {item.NameFormatted()}\\{mat.NameFormatted()} with erroneous identifier: {_value.GetType()}"); }
-                                } catch (Exception e) {
-                                    Logger.LogError($"Unknown error during shader assignment of {item.NameFormatted()}\\{mat.NameFormatted()}\\{mat.shader.NameFormatted()}\\{setName}: {e}");
-                                }
-                            } else { if (IsDebug.Value) Log($"Tried setting {item.NameFormatted()}\\{mat.NameFormatted()} to nonexistent shader!"); }
-                        else { throw new ArgumentException("Erroneous / unimplemented tab type!"); }
+                            else if (tab == SettingType.Shader)
+                                if (shaders.Contains(setShader) || setReset) {
+                                    try {
+                                        if (setReset) {
+                                            if (_value is string) {
+                                                ctrl.RemoveMaterialShader(item.objectInfo.dicKey, mat);
+                                                ctrl.RemoveMaterialShaderRenderQueue(item.objectInfo.dicKey, mat);
+                                                if (IsDebug.Value) Log($"Shader of {item.NameFormatted()}\\{mat.NameFormatted()} reset!");
+                                            } else { if (IsDebug.Value) Log($"Tried resetting shader of {item.NameFormatted()}\\{mat.NameFormatted()} with erroneous identifier type: {_value.GetType()}"); }
+                                        } else if (_value is string stringval) {
+                                            ctrl.SetMaterialShader(item.objectInfo.dicKey, mat, stringval);
+                                            if (setQueue != 0) ctrl.SetMaterialShaderRenderQueue(item.objectInfo.dicKey, mat, setQueue);
+                                            if (IsDebug.Value) Log($"Shader of {item.NameFormatted()}\\{mat.NameFormatted()} set to {_value}!");
+                                        } else { if (IsDebug.Value) Log($"Tried setting shader of {item.NameFormatted()}\\{mat.NameFormatted()} with erroneous identifier: {_value.GetType()}"); }
+                                    } catch (Exception e) {
+                                        Logger.LogError($"Unknown error during shader assignment of {item.NameFormatted()}\\{mat.NameFormatted()}\\{mat.shader.NameFormatted()}\\{setName}: {e}");
+                                    }
+                                } else { if (IsDebug.Value) Log($"Tried setting {item.NameFormatted()}\\{mat.NameFormatted()} to nonexistent shader!"); }
+                            else { throw new ArgumentException("Erroneous / unimplemented tab type!"); }
+                        }
                     }
-                }
             }
         }
 
@@ -453,59 +452,58 @@ namespace MassShaderEditor.Koikatu {
                     go = null; break;
             }
             foreach (var rend in GetRendererList(go).Where(x => rendererFilter(x))) {
-                if (IsDebug.Value) Log($"Got renderer: {rend.NameFormatted()}");
-                foreach (var mat in GetMaterials(go, rend).Where(x => materialFilter(x))) {
-                    if (IsDebug.Value) Log($"Got material: {mat.NameFormatted()}");
-                    if (mat.shader.NameFormatted().ToLower().Contains(filter.ToLower().Trim())) {
-                        if (tab == SettingType.Float || tab == SettingType.Color)
-                            if (mat.HasProperty("_" + setName)) {
-                                try {
-                                    if (setReset) {
-                                        if (_value is float || _value is Color) {
-                                            ctrl.RemoveMaterialFloatProperty(slot, type, mat, setName, go);
-                                            ctrl.RemoveMaterialColorProperty(slot, type, mat, setName, go);
-                                            if (IsDebug.Value) Log($"Property {chaName}\\{mat.NameFormatted()}\\{setName} reset!");
-                                        } else { if (IsDebug.Value) Log($"Tried resetting property with erroneous identifier type: {_value.GetType()}"); }
-                                    } else {
-                                        if (_value is float floatval)
-                                            if (mat.TryGetFloat(setName, out float current)) {
-                                                ctrl.SetMaterialFloatProperty(slot, type, mat, setName, GetModifiedFloat(current, floatval), go);
-                                                if (IsDebug.Value) Log($"Property {chaName}\\{mat.NameFormatted()}\\{setName} set to {GetModifiedFloat(current, floatval)}!");
-                                            } else { if (IsDebug.Value) Log($"Tried setting float property {chaName}\\{mat.NameFormatted()}\\{setName} to color ({_value}) value!"); }
-                                        else if (_value is Color colval)
-                                            if (mat.TryGetColor(setName, out Color current)) {
-                                                ctrl.SetMaterialColorProperty(slot, type, mat, setName, GetModifiedColor(current, colval), go);
-                                                if (IsDebug.Value) Log($"Property {chaName}\\{mat.NameFormatted()}\\{setName} set to {GetModifiedColor(current, colval)}!");
-                                            } else { if (IsDebug.Value) Log($"Tried setting color property {chaName}\\{mat.NameFormatted()}\\{setName} to float ({_value}) value!"); }
-                                        else { if (IsDebug.Value) Log($"Tried setting a character property to erroneous type: {_value.GetType()}"); }
+                if (rend.NameFormatted().ToLower().Contains(filters[0].ToLower().Trim()))
+                    foreach (var mat in GetMaterials(go, rend).Where(x => materialFilter(x))) {
+                        if (mat.NameFormatted().ToLower().Contains(filters[1].ToLower().Trim()) && mat.shader.NameFormatted().ToLower().Contains(filters[2].ToLower().Trim())) {
+                            if (tab == SettingType.Float || tab == SettingType.Color)
+                                if (mat.HasProperty("_" + setName)) {
+                                    try {
+                                        if (setReset) {
+                                            if (_value is float || _value is Color) {
+                                                ctrl.RemoveMaterialFloatProperty(slot, type, mat, setName, go);
+                                                ctrl.RemoveMaterialColorProperty(slot, type, mat, setName, go);
+                                                if (IsDebug.Value) Log($"Property {chaName}\\{mat.NameFormatted()}\\{setName} reset!");
+                                            } else { if (IsDebug.Value) Log($"Tried resetting property with erroneous identifier type: {_value.GetType()}"); }
+                                        } else {
+                                            if (_value is float floatval)
+                                                if (mat.TryGetFloat(setName, out float current)) {
+                                                    ctrl.SetMaterialFloatProperty(slot, type, mat, setName, GetModifiedFloat(current, floatval), go);
+                                                    if (IsDebug.Value) Log($"Property {chaName}\\{mat.NameFormatted()}\\{setName} set to {GetModifiedFloat(current, floatval)}!");
+                                                } else { if (IsDebug.Value) Log($"Tried setting float property {chaName}\\{mat.NameFormatted()}\\{setName} to color ({_value}) value!"); }
+                                            else if (_value is Color colval)
+                                                if (mat.TryGetColor(setName, out Color current)) {
+                                                    ctrl.SetMaterialColorProperty(slot, type, mat, setName, GetModifiedColor(current, colval), go);
+                                                    if (IsDebug.Value) Log($"Property {chaName}\\{mat.NameFormatted()}\\{setName} set to {GetModifiedColor(current, colval)}!");
+                                                } else { if (IsDebug.Value) Log($"Tried setting color property {chaName}\\{mat.NameFormatted()}\\{setName} to float ({_value}) value!"); }
+                                            else { if (IsDebug.Value) Log($"Tried setting a character property to erroneous type: {_value.GetType()}"); }
+                                        }
+                                    } catch (Exception e) {
+                                        Logger.LogError($"Unknown error during property value assignment of {chaName}\\{mat.NameFormatted()}\\{mat.shader.NameFormatted()}\\{setName}: {e}");
                                     }
-                                } catch (Exception e) {
-                                    Logger.LogError($"Unknown error during property value assignment of {chaName}\\{mat.NameFormatted()}\\{mat.shader.NameFormatted()}\\{setName}: {e}");
+                                } else {
+                                    if (IsDebug.Value) Log($"{chaName}\\{mat.NameFormatted()}\\{mat.shader.NameFormatted()} did not have the {setName} property...");
                                 }
-                            } else {
-                                if (IsDebug.Value) Log($"{chaName}\\{mat.NameFormatted()}\\{mat.shader.NameFormatted()} did not have the {setName} property...");
-                            }
-                        else if (tab == SettingType.Shader)
-                            if (shaders.Contains(setShader.Trim()) || setReset) {
-                                try {
-                                    if (setReset) {
-                                        if (_value is string) {
-                                            ctrl.RemoveMaterialShader(slot, type, mat, go);
-                                            ctrl.RemoveMaterialShaderRenderQueue(slot, type, mat, go);
-                                            if (IsDebug.Value) Log($"Shader of {chaName}\\{mat.NameFormatted()} reset!");
-                                        } else { if (IsDebug.Value) Log($"Tried resetting shader of {chaName}\\{mat.NameFormatted()} with erroneous identifier type: {_value.GetType()}"); }
-                                    } else if (_value is string stringval) {
-                                        ctrl.SetMaterialShader(slot, type, mat, stringval, go);
-                                        if (setQueue != 0) ctrl.SetMaterialShaderRenderQueue(slot, type, mat, setQueue, go);
-                                        if (IsDebug.Value) Log($"Shader of {chaName}\\{mat.NameFormatted()} set to {_value}!");
-                                    } else { if (IsDebug.Value) Log($"Tried setting shader of {chaName}\\{mat.NameFormatted()} with erroneous identifier: {_value.GetType()}"); }
-                                } catch (Exception e) {
-                                    Logger.LogError($"Unknown error during shader assignment of {chaName}\\{mat.NameFormatted()}\\{mat.shader.NameFormatted()}\\{setName}: {e}");
-                                }
-                            } else { if (IsDebug.Value) Log($"Tried setting {chaName}\\{mat.NameFormatted()} to nonexistent shader!"); }
-                        else { throw new ArgumentException("Erroneous / unimplemented tab type!"); }
+                            else if (tab == SettingType.Shader)
+                                if (shaders.Contains(setShader.Trim()) || setReset) {
+                                    try {
+                                        if (setReset) {
+                                            if (_value is string) {
+                                                ctrl.RemoveMaterialShader(slot, type, mat, go);
+                                                ctrl.RemoveMaterialShaderRenderQueue(slot, type, mat, go);
+                                                if (IsDebug.Value) Log($"Shader of {chaName}\\{mat.NameFormatted()} reset!");
+                                            } else { if (IsDebug.Value) Log($"Tried resetting shader of {chaName}\\{mat.NameFormatted()} with erroneous identifier type: {_value.GetType()}"); }
+                                        } else if (_value is string stringval) {
+                                            ctrl.SetMaterialShader(slot, type, mat, stringval, go);
+                                            if (setQueue != 0) ctrl.SetMaterialShaderRenderQueue(slot, type, mat, setQueue, go);
+                                            if (IsDebug.Value) Log($"Shader of {chaName}\\{mat.NameFormatted()} set to {_value}!");
+                                        } else { if (IsDebug.Value) Log($"Tried setting shader of {chaName}\\{mat.NameFormatted()} with erroneous identifier: {_value.GetType()}"); }
+                                    } catch (Exception e) {
+                                        Logger.LogError($"Unknown error during shader assignment of {chaName}\\{mat.NameFormatted()}\\{mat.shader.NameFormatted()}\\{setName}: {e}");
+                                    }
+                                } else { if (IsDebug.Value) Log($"Tried setting {chaName}\\{mat.NameFormatted()} to nonexistent shader!"); }
+                            else { throw new ArgumentException("Erroneous / unimplemented tab type!"); }
+                        }
                     }
-                }
             }
         }
 
