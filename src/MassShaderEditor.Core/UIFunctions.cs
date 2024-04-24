@@ -6,6 +6,8 @@ using KKAPI;
 using ChaCustom;
 using UnityEngine;
 using UnityEngine.UI;
+using Mono.Cecil;
+using KKAPI.Utilities;
 
 namespace MassShaderEditor.Koikatu {
     public partial class MassShaderEditor : BaseUnityPlugin {
@@ -19,12 +21,13 @@ namespace MassShaderEditor.Koikatu {
         private float messageDur = 1;
         private float messageTime = 0;
 
-        private static readonly float[] defaultSize = new float[] { 200f, 40f, 300f, 170f };
+        private static readonly float[] defaultSize = new float[] { 200f, 40f, 305f, 170f };
         private Rect windowRect = new Rect(defaultSize[0], defaultSize[1], defaultSize[2], defaultSize[3]);
         private Rect mixRect = new Rect();
         private Rect helpRect = new Rect();
         private Rect setRect = new Rect();
         private Rect infoRect = new Rect();
+        private Rect texRect = new Rect();
         private Rect warnRect = new Rect(0, 0, 360, 200);
         private Rect dropRect = new Rect(defaultSize[0], defaultSize[1], defaultSize[2] * 0.9f, defaultSize[3] * 1.2f);
         private Rect historyRect = new Rect(defaultSize[0], defaultSize[1], defaultSize[2] * 0.9f, defaultSize[3] * 1.2f);
@@ -44,7 +47,9 @@ namespace MassShaderEditor.Koikatu {
         private int setModeColor = 0;
         private Color setCol = Color.white;
         internal string setShader = "";
-        private Texture2D setTex = null;
+        private ScaledTex setTex = new ScaledTex();
+        private bool setTexAffectTex = true;
+        private bool setTexAffectDims = false;
         private int setQueue = 0;
         private float setMix = 0.5f;
 
@@ -103,9 +108,14 @@ namespace MassShaderEditor.Koikatu {
         private const string introText = "Welcome to Mass Shader Editor! To get started, I first recommend checking out the Help section, which will tell you how to best use this plugin, and any specifics on what each of the buttons and options do.\n\nTo access the help section, click the yellow '?' symbol in the top right corner of the plugin window.\n\nAfterwards, you should check out the various settings of the plugin, accessible either in the F1 menu or by clicking the cogwheel icon next to the help button. The available settings are differen in Maker and in Studio!\n\nHappy creating!";
         private const string shaderNameWrongMessage = "You need to input the full name (CASE-sensitive) of the shader to be set! The name has to be from the dropdown list.";
         private const string missingPropertyMessage = "You need to input the name of the property to be modified!";
+        private const string texNoAffectChecksMessage = "Please choose to affect either at least texture data or offset / scale values!";
+        private const string texEmptyMessage = "Please specify a texture to use!";
         private const string valueExplainText = "The value to be used in the modification, according to the method chosen below.";
         private const string colorExplainText = "The color to be assigned to the specified propety.";
+        private const string textureExplainText = "The texture to be assigned to the specified property.";
         private const string queueExplainText = "The render queue to set. If left empty, 0, or invalid, the render queue won't be modified.";
+        private const string textureSelectText = "Select an image from the disk.";
+        private const string textureCopyText = "Copy the specified texture from the first material that would be afffected.";
         private const string diveFoldersText = "Whether 'Modify Selected' will affect items that are inside selected folders.";
         private const string diveItemsText = "Whether 'Modify Selected' will affect items that are the children of selected items.";
         private const string affectCharactersText = "Whether 'Modify Selected' and 'Modify ALL' will affect characters at all.";
@@ -128,7 +138,8 @@ namespace MassShaderEditor.Koikatu {
             string valueText = "Value"; float valueWidth = newSkin.label.CalcSize(new GUIContent(valueText)).x;
             string queueText = "Queue"; float queueWidth = newSkin.label.CalcSize(new GUIContent(queueText)).x;
             string colorText = "Color   #"; float colorWidth = newSkin.label.CalcSize(new GUIContent(colorText)).x;
-            commonWidth = Mathf.Max(new float[] { filterWidth, propertyWidth, valueWidth, shaderWidth, queueWidth, colorWidth });
+            string textureText = "Texture"; float textureWidth = newSkin.label.CalcSize(new GUIContent(textureText)).x;
+            commonWidth = Mathf.Max(new float[] { filterWidth, propertyWidth, valueWidth, shaderWidth, queueWidth, colorWidth, textureWidth });
             commonHeight = newSkin.textField.CalcSize(new GUIContent("")).y;
             float halfWidth = (windowRect.width - newSkin.window.border.left - newSkin.window.border.right) / 2;
             var filterButtons = new GUIContent[] {
@@ -203,7 +214,7 @@ namespace MassShaderEditor.Koikatu {
             }
 
             // Float / color property editing
-            if (new List<SettingType> { SettingType.Float, SettingType.Color }.Contains(tab)) {
+            if (new List<SettingType> { SettingType.Float, SettingType.Color, SettingType.Texture }.Contains(tab)) {
                 // Property name
                 {
                     GUILayout.BeginHorizontal();
@@ -374,11 +385,50 @@ namespace MassShaderEditor.Koikatu {
                     };
                     setModeColor = GUILayout.SelectionGrid(setModeColor, buttonContents, buttonContents.Length, newSkin.button);
                 }
-            }
 
-            // Texture editing
-            if (tab == SettingType.Texture) {
-                SpacerVert(4);
+                // Texture value
+                if (tab == SettingType.Texture) {
+                    float checkWidth = newSkin.button.CalcSize(new GUIContent("X")).x;
+
+                    // Texture selection
+                    {
+                        GUILayout.BeginHorizontal();
+
+                        GUILayout.Label(new GUIContent(textureText, textureExplainText), newSkin.label, GUILayout.Width(commonWidth));
+                        if (GUILayout.Button(new GUIContent("Select", textureSelectText), newSkin.button)) {
+                            // pass
+                        }
+                        if (GUILayout.Button(new GUIContent("Copy", textureCopyText), newSkin.button)) {
+                            // pass
+                        }
+
+                        if (GUILayout.Button(new GUIContent(setTexAffectTex ? "X" : "", "Check this to affect the texture data of texture properties!"), newSkin.button, new GUILayoutOption[] { GUILayout.Width(checkWidth), GUILayout.Height(commonHeight - UIScale.Value / 1.5f) }))
+                            setTexAffectTex = !setTexAffectTex;
+
+                        GUILayout.EndHorizontal();
+                    }
+
+                    // Offset - Scale input
+                    {
+                        GUILayout.BeginHorizontal();
+
+                        GUILayout.Label(new GUIContent("Off X", "X offset"), newSkin.label, GUILayout.ExpandWidth(false));
+                        setTex.offset[0] = Studio.Utility.StringToFloat(GUILayout.TextField(setTex.offset[0].ToString("0.000"), newSkin.textField));
+                        GUILayout.Label(new GUIContent("Y", "Y offset"), newSkin.label, GUILayout.ExpandWidth(false));
+                        setTex.offset[1] = Studio.Utility.StringToFloat(GUILayout.TextField(setTex.offset[1].ToString("0.000"), newSkin.textField));
+                        GUILayout.Label(new GUIContent("Sc X", "X scale"), newSkin.label, GUILayout.ExpandWidth(false));
+                        setTex.scale[0] = Studio.Utility.StringToFloat(GUILayout.TextField(setTex.scale[0].ToString("0.000"), newSkin.textField));
+                        GUILayout.Label(new GUIContent("Y", "Y scale"), newSkin.label, GUILayout.ExpandWidth(false));
+                        setTex.scale[1] = Studio.Utility.StringToFloat(GUILayout.TextField(setTex.scale[1].ToString("0.000"), newSkin.textField));
+
+                        if (GUILayout.Button(new GUIContent(setTexAffectDims ? "X" : "", "Check this to affect the texture data of texture properties!"), newSkin.button, new GUILayoutOption[] { GUILayout.Width(checkWidth), GUILayout.Height(commonHeight - UIScale.Value / 1.5f) }))
+                            setTexAffectDims = !setTexAffectDims;
+
+                        GUILayout.EndHorizontal();
+                    }
+
+                    SpacerVert(1);
+                }
             }
 
             // Shader swapping
@@ -410,6 +460,7 @@ namespace MassShaderEditor.Koikatu {
                 }
 
                 SpacerVert(2);
+                GUILayout.Space(-UIScale.Value / 1.5f);
             }
 
             // Action buttons
@@ -419,7 +470,7 @@ namespace MassShaderEditor.Koikatu {
                 allStyle.normal.textColor = Color.red;
                 allStyle.hover.textColor = Color.red;
                 if (GUILayout.Button(new GUIContent("Modify ALL", "Right click to reset ALL"), allStyle, GUILayout.MaxWidth(halfWidth))) {
-                    if (new List<SettingType> { SettingType.Float, SettingType.Color }.Contains(tab))
+                    if (new List<SettingType> { SettingType.Float, SettingType.Color, SettingType.Texture }.Contains(tab))
                         if (setName != "") {
                             if (!DisableWarning.Value) {
                                 showWarning = true;
@@ -428,6 +479,8 @@ namespace MassShaderEditor.Koikatu {
                                     SetAllProperties(setCol);
                                 else if (tab == SettingType.Float)
                                     SetAllProperties(setVal);
+                                else if (tab == SettingType.Texture)
+                                    TrySetTexture(SetAllProperties);
                             }
                         } else ShowMessage(missingPropertyMessage);
                     else if (tab == SettingType.Shader)
@@ -440,12 +493,14 @@ namespace MassShaderEditor.Koikatu {
                         } else ShowMessage(shaderNameWrongMessage, 6);
                 }
                 if (GUILayout.Button(new GUIContent("Modify Selected", "Right click to reset selected"), newSkin.button, GUILayout.MaxWidth(halfWidth))) {
-                    if (new List<SettingType> { SettingType.Float, SettingType.Color }.Contains(tab))
+                    if (new List<SettingType> { SettingType.Float, SettingType.Color, SettingType.Texture }.Contains(tab))
                         if (setName != "") {
                             if (tab == SettingType.Color)
                                 SetSelectedProperties(setCol);
                             else if (tab == SettingType.Float)
                                 SetSelectedProperties(setVal);
+                            else if (tab == SettingType.Texture)
+                                TrySetTexture(SetSelectedProperties);
                         } else ShowMessage(missingPropertyMessage);
                     else if (tab == SettingType.Shader)
                         if (shaders.Contains(setShader) || setReset) {
@@ -459,8 +514,8 @@ namespace MassShaderEditor.Koikatu {
 
             GUI.DragWindow();
 
-            if (isHelp) windowRect.position = helpRect.position - new Vector2(windowRect.size.x + 3, 0);
-            if (isSetting) windowRect.position = setRect.position - new Vector2(windowRect.size.x + 3, 0);
+            // if (isHelp) windowRect.position = helpRect.position - new Vector2(windowRect.size.x + 3, 0);
+            // if (isSetting) windowRect.position = setRect.position - new Vector2(windowRect.size.x + 3, 0);
 
             if (windowRect.position.x < -windowRect.size.x * 0.9f) windowRect.position -= new Vector2(windowRect.position.x + windowRect.size.x * 0.9f, 0);
             if (windowRect.position.y < 0) windowRect.position -= new Vector2(0, windowRect.position.y);
@@ -644,6 +699,8 @@ namespace MassShaderEditor.Koikatu {
                     SetAllProperties(setCol);
                 if (tab == SettingType.Float)
                     SetAllProperties(setVal);
+                if (tab == SettingType.Texture)
+                    TrySetTexture(SetAllProperties);
                 if (tab == SettingType.Shader)
                     SetAllProperties(setShader);
             }
@@ -738,6 +795,28 @@ namespace MassShaderEditor.Koikatu {
             GUILayout.EndVertical();
         }
 
+        private void TexFunction(int windowID) {
+            var imgLabelStyle = new GUIStyle(newSkin.label);
+            imgLabelStyle.alignment = TextAnchor.MiddleCenter;
+            float imgSize = defaultSize[2] * 0.6f * UIScale.Value;
+
+            if (setTex.tex != null) {
+                GUILayout.Label(new GUIContent(setTex.tex), imgLabelStyle, new GUILayoutOption[] { GUILayout.Width(imgSize), GUILayout.Height(imgSize) });
+            } else {
+                GUILayout.Label(new GUIContent("No Image"), imgLabelStyle, new GUILayoutOption[] { GUILayout.Width(imgSize), GUILayout.Height(imgSize) });
+            }
+
+            GUI.DragWindow();
+        }
+
+        private void TrySetTexture(Action<ScaledTex> setFunction) {
+            if (((setTex.tex != null && setTexAffectTex) || (setReset && setTexAffectTex)) || setTexAffectDims) {
+                setFunction.Invoke(setTex);
+            } else if (!setTexAffectTex) {
+                ShowMessage(texNoAffectChecksMessage);
+            } else ShowMessage(texEmptyMessage);
+        }
+
         private void ColorPicker(Color col, Action<Color> act, bool update = false) {
             if (KoikatuAPI.GetCurrentGameMode() == GameMode.Studio) {
                 if (studio.colorPalette.visible && !update) {
@@ -828,6 +907,7 @@ namespace MassShaderEditor.Koikatu {
             windowRect.size = new Vector2(windowRect.size.x * scale / prevScale, 1);
             dropRect.size = new Vector2(dropRect.size.x, windowRect.size.y * 1.3f);
             mixRect.size = new Vector2(1, windowRect.size.y);
+            texRect.size = new Vector2(10, 10);
             warnRect.size *= scale / prevScale;
             prevScale = scale;
             newScale = scale;
@@ -978,10 +1058,16 @@ namespace MassShaderEditor.Koikatu {
             SaveHistory();
         }
 
-        public struct HistoryItem {
-            public string name;
-            public float val;
-            public Color col;
+        public class HistoryItem {
+            public string name = "";
+            public float val = 0;
+            public Color col = Color.black;
+        }
+
+        public class ScaledTex {
+            public Texture2D tex = null;
+            public float[] offset = new float[] { 0, 0 };
+            public float[] scale = new float[] { 1, 1 };
         }
 
         public enum SettingType {

@@ -26,7 +26,7 @@ namespace MassShaderEditor.Koikatu {
 	/// </info>
     public partial class MassShaderEditor : BaseUnityPlugin {
         public const string GUID = "starstorm.massshadereditor";
-        public const string Version = "1.0.3." + BuildNumber.Version;
+        public const string Version = "1.1.0." + BuildNumber.Version;
 
         // General
         public ConfigEntry<float> UIScale { get; private set; }
@@ -128,12 +128,14 @@ namespace MassShaderEditor.Koikatu {
                         setReset = false;
                         if (tab == SettingType.Color) SetSelectedProperties(setCol);
                         if (tab == SettingType.Float) SetSelectedProperties(setVal);
+                        if (tab == SettingType.Texture) TrySetTexture(SetSelectedProperties);
                     } else ShowMessage("You need to set a property name to edit!");
                 }
                 if (ResetSelectedHotkey.Value.IsDown()) {
                     if (setName != "") {
                         setReset = true;
-                        SetSelectedProperties(0f);
+                        if (tab == SettingType.Texture) TrySetTexture(SetSelectedProperties);
+                        else SetSelectedProperties(0f);
                     } else ShowMessage("You need to set a property name to edit!");
                 }
                 if (SetAllHotkey.Value.IsDown()) {
@@ -142,13 +144,16 @@ namespace MassShaderEditor.Koikatu {
                         if (DisableWarning.Value) {
                             if (tab == SettingType.Color) SetAllProperties(setCol);
                             if (tab == SettingType.Float) SetAllProperties(setVal);
+                            if (tab == SettingType.Texture) TrySetTexture(SetAllProperties);
                         } else showWarning = true;
                     } else ShowMessage("You need to set a property name to edit!");
                 }
                 if (ResetAllHotkey.Value.IsDown()) {
                     if (setName != "") {
                         setReset = true;
-                        if (DisableWarning.Value) SetAllProperties(0f);
+                        if (DisableWarning.Value)
+                            if (tab == SettingType.Texture) TrySetTexture(SetAllProperties);
+                            else SetAllProperties(0f);
                         else showWarning = true;
                     } else ShowMessage("You need to set a property name to edit!");
                 }
@@ -196,6 +201,7 @@ namespace MassShaderEditor.Koikatu {
                         helpRect.position = windowRect.position + new Vector2(windowRect.size.x + 3, 0);
                         setRect.position = windowRect.position + new Vector2(windowRect.size.x + 3, 0);
                         infoRect.position = windowRect.position + new Vector2(0, windowRect.size.y + 3);
+                        texRect.position = windowRect.position - new Vector2(texRect.size.x + 3, 0);
 
                         mixRect.position = windowRect.position - new Vector2(mixRect.size.x + 3, 0);
                         mixRect.size = new Vector2(mixRect.size.x, windowRect.size.y);
@@ -205,16 +211,33 @@ namespace MassShaderEditor.Koikatu {
                             KKAPI.Utilities.IMGUIUtils.EatInputInRect(mixRect);
                             Redraw(1586, mixRect, redrawNum-1, true);
                         }
+                        if (tab == SettingType.Texture) {
+                            Vector2 oldPos = texRect.position;
+                            texRect = GUILayout.Window(600, texRect, TexFunction, "Selected Texture", newSkin.window);
+                            KKAPI.Utilities.IMGUIUtils.EatInputInRect(texRect);
+                            Redraw(1600, texRect, redrawNum);
+                            if ((texRect.position - oldPos) != Vector2.zero) {
+                                windowRect.position += texRect.position - oldPos;
+                            }
+                        }
                         if (isHelp) {
+                            Vector2 oldPos = helpRect.position;
                             helpRect = GUILayout.Window(588, helpRect, HelpFunction, "How to use?", newSkin.window, GUILayout.MaxWidth(defaultSize[2] * UIScale.Value * 0.8f));
                             KKAPI.Utilities.IMGUIUtils.EatInputInRect(helpRect);
                             Redraw(1588, helpRect, redrawNum);
+                            if ((helpRect.position - oldPos) != Vector2.zero) {
+                                windowRect.position += helpRect.position - oldPos;
+                            }
                         }
                         if (isSetting) {
+                            Vector2 oldPos = setRect.position;
                             setRect = GUILayout.Window(588, setRect, SettingFunction, "Settings ۞", newSkin.window, GUILayout.MaxWidth(defaultSize[2] * UIScale.Value * 0.8f));
                             DrawTooltip(tooltip[0]);
                             KKAPI.Utilities.IMGUIUtils.EatInputInRect(setRect);
                             Redraw(1588, setRect, redrawNum);
+                            if ((setRect.position - oldPos) != Vector2.zero) {
+                                windowRect.position += setRect.position - oldPos;
+                            }
                         }
                         if (showMessage) {
                             var boxStyle = new GUIStyle(newSkin.box) {
