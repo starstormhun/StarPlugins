@@ -206,12 +206,12 @@ namespace MassShaderEditor.Koikatu {
                             Redraw(1586, mixRect, redrawNum-1, true);
                         }
                         if (isHelp) {
-                            helpRect = GUILayout.Window(588, helpRect, HelpFunction, "How to use?", newSkin.window, GUILayout.MaxWidth(defaultSize[2]*UIScale.Value));
+                            helpRect = GUILayout.Window(588, helpRect, HelpFunction, "How to use?", newSkin.window, GUILayout.MaxWidth(defaultSize[2] * UIScale.Value * 0.8f));
                             KKAPI.Utilities.IMGUIUtils.EatInputInRect(helpRect);
                             Redraw(1588, helpRect, redrawNum);
                         }
                         if (isSetting) {
-                            setRect = GUILayout.Window(588, setRect, SettingFunction, "Settings ۞", newSkin.window, GUILayout.MaxWidth(defaultSize[2] * UIScale.Value));
+                            setRect = GUILayout.Window(588, setRect, SettingFunction, "Settings ۞", newSkin.window, GUILayout.MaxWidth(defaultSize[2] * UIScale.Value * 0.8f));
                             DrawTooltip(tooltip[0]);
                             KKAPI.Utilities.IMGUIUtils.EatInputInRect(setRect);
                             Redraw(1588, setRect, redrawNum);

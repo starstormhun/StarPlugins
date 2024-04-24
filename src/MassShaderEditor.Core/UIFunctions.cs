@@ -19,7 +19,7 @@ namespace MassShaderEditor.Koikatu {
         private float messageDur = 1;
         private float messageTime = 0;
 
-        private static readonly float[] defaultSize = new float[] { 200f, 40f, 250f, 170f };
+        private static readonly float[] defaultSize = new float[] { 200f, 40f, 300f, 170f };
         private Rect windowRect = new Rect(defaultSize[0], defaultSize[1], defaultSize[2], defaultSize[3]);
         private Rect mixRect = new Rect();
         private Rect helpRect = new Rect();
@@ -44,6 +44,7 @@ namespace MassShaderEditor.Koikatu {
         private int setModeColor = 0;
         private Color setCol = Color.white;
         internal string setShader = "";
+        private Texture2D setTex = null;
         private int setQueue = 0;
         private float setMix = 0.5f;
 
@@ -57,6 +58,7 @@ namespace MassShaderEditor.Koikatu {
         private float shaderDropWidth = 0;
         private float historyDropWidth = 0;
         private float commonWidth = 0;
+        private float commonHeight = 0;
         private string setQueueInput = "";
         public readonly List<HistoryItem> floatHist = new List<HistoryItem>();
         public readonly List<HistoryItem> colHist = new List<HistoryItem>();
@@ -125,7 +127,9 @@ namespace MassShaderEditor.Koikatu {
             string shaderText = "Shader"; float shaderWidth = newSkin.label.CalcSize(new GUIContent(shaderText)).x;
             string valueText = "Value"; float valueWidth = newSkin.label.CalcSize(new GUIContent(valueText)).x;
             string queueText = "Queue"; float queueWidth = newSkin.label.CalcSize(new GUIContent(queueText)).x;
-            commonWidth = Mathf.Max(new float[] { filterWidth, propertyWidth, valueWidth, shaderWidth, queueWidth });
+            string colorText = "Color   #"; float colorWidth = newSkin.label.CalcSize(new GUIContent(colorText)).x;
+            commonWidth = Mathf.Max(new float[] { filterWidth, propertyWidth, valueWidth, shaderWidth, queueWidth, colorWidth });
+            commonHeight = newSkin.textField.CalcSize(new GUIContent("")).y;
             float halfWidth = (windowRect.width - newSkin.window.border.left - newSkin.window.border.right) / 2;
             var filterButtons = new GUIContent[] {
                 new GUIContent(filters[0].Trim() == "" ? "R" : "R*", "Filter by renderer name." + (filters[0].Trim() == "" ? "" : " (Filter is set)")),
@@ -145,6 +149,8 @@ namespace MassShaderEditor.Koikatu {
                     tab = SettingType.Float;
                 if (GUILayout.Button("Color", (tab == SettingType.Color ? activeStyle : newSkin.button)))
                     tab = SettingType.Color;
+                if (GUILayout.Button("Texture", (tab == SettingType.Texture ? activeStyle : newSkin.button)))
+                    tab = SettingType.Texture;
                 if (GUILayout.Button("Shader", (tab == SettingType.Shader ? activeStyle : newSkin.button)))
                     tab = SettingType.Shader;
                 if (GUILayout.Button(new GUIContent("۞", "Show settings"), newSkin.button, GUILayout.ExpandWidth(false))) {
@@ -161,12 +167,19 @@ namespace MassShaderEditor.Koikatu {
                 GUILayout.EndHorizontal();
             }
 
-            // Shader property editing
-            if (new List<SettingType> { SettingType.Float, SettingType.Color }.Contains(tab)) {
-                // Filter
+            // Filters
+            {
                 GUILayout.BeginHorizontal();
                 GUILayout.Label(new GUIContent(filterText, "Only shaders matching these filters will be edited"), newSkin.label, GUILayout.Width(commonWidth));
-                filterInput = GUILayout.TextField(filterInput, newSkin.textField);
+                filterInput = GUILayout.TextField(filterInput, newSkin.textField, GUILayout.Height(commonHeight));
+                if (currentFilter == 2) {
+                    if (GUILayout.Button("▼", newSkin.button, GUILayout.ExpandWidth(false))) {
+                        onShaderSelect = (s) => { filters[2] = s; filterInput = s; };
+                        CalcShaderDropSize();
+                        shaderScrollPos = dropRect.position;
+                        shaderDrop = 1;
+                    }
+                }
                 int prevFilter = currentFilter;
                 currentFilter = GUILayout.SelectionGrid(
                     currentFilter,
@@ -174,51 +187,66 @@ namespace MassShaderEditor.Koikatu {
                     filterButtons.Length,
                     filterStyle,
                     new GUILayoutOption[] {
-                        GUILayout.ExpandWidth(false),
-                        GUILayout.Height(newSkin.button.CalcHeight(new GUIContent("TEST"), 100))
+                            GUILayout.ExpandWidth(false),
+                            GUILayout.Height(newSkin.button.CalcHeight(new GUIContent("TEST"), 100))
                     }
                 );
                 if (prevFilter != currentFilter) {
                     filterInput = filters[currentFilter].Trim();
                 }
                 filters[currentFilter] = filterInput.Trim();
-                GUILayout.EndHorizontal();
-
-                // Property
-                GUILayout.BeginHorizontal();
-                GUILayout.Label(new GUIContent(propertyText, "The name of the shader property to be edited"), newSkin.label, GUILayout.Width(commonWidth));
-                setNameInput = GUILayout.TextField(setNameInput, newSkin.textField);
-                setName = setNameInput.Trim();
-                if (GUILayout.Button("▼", newSkin.button, GUILayout.ExpandWidth(false))) {
-                    if ((tab == SettingType.Float && floatHist.Count > 0) || (tab == SettingType.Color && colHist.Count > 0)) {
-                        onHistorySelect = (i) => {
-                            if (tab == SettingType.Float) {
-                                setName = floatHist[i].name;
-                                setNameInput = setName;
-                                setValInputString = floatHist[i].val.ToString("0.000");
-                                if (IsDebug.Value) Log($"Restoring history item: {floatHist[i].name} to {floatHist[i].val}");
-                            } else if (tab == SettingType.Color) {
-                                setName = colHist[i].name;
-                                setNameInput = setName;
-                                setCol = colHist[i].col;
-                                if (IsDebug.Value) Log($"Restoring history item: {colHist[i].name} to {colHist[i].col}");
-                            }
-                        };
-                        CalcHistoryDropSize();
-                        historyScrollPos = dropRect.position;
-                        historyDrop = true;
-                    }
+                if (GUILayout.Button(new GUIContent("×", "Clear filters"), newSkin.button, GUILayout.ExpandWidth(false))) {
+                    filters = new List<string> { "", "", "" };
+                    filterInput = "";
                 }
                 GUILayout.EndHorizontal();
+            }
+
+            // Float / color property editing
+            if (new List<SettingType> { SettingType.Float, SettingType.Color }.Contains(tab)) {
+                // Property name
+                {
+                    GUILayout.BeginHorizontal();
+                    GUILayout.Label(new GUIContent(propertyText, "The name of the shader property to be edited"), newSkin.label, GUILayout.Width(commonWidth));
+                    setNameInput = GUILayout.TextField(setNameInput, newSkin.textField, GUILayout.Height(commonHeight));
+                    setName = setNameInput.Trim();
+                    if (GUILayout.Button("▼", newSkin.button, GUILayout.ExpandWidth(false))) {
+                        if ((tab == SettingType.Float && floatHist.Count > 0) || (tab == SettingType.Color && colHist.Count > 0)) {
+                            onHistorySelect = (i) => {
+                                if (tab == SettingType.Float) {
+                                    setName = floatHist[i].name;
+                                    setNameInput = setName;
+                                    setValInputString = floatHist[i].val.ToString("0.000");
+                                    if (IsDebug.Value) Log($"Restoring history item: {floatHist[i].name} to {floatHist[i].val}");
+                                } else if (tab == SettingType.Color) {
+                                    setName = colHist[i].name;
+                                    setNameInput = setName;
+                                    setCol = colHist[i].col;
+                                    if (IsDebug.Value) Log($"Restoring history item: {colHist[i].name} to {colHist[i].col}");
+                                }
+                            };
+                            CalcHistoryDropSize();
+                            historyScrollPos = dropRect.position;
+                            historyDrop = true;
+                        }
+                    }
+                    GUILayout.EndHorizontal();
+                }
 
                 // Float value
                 if (tab == SettingType.Float) {
                     GUILayout.BeginHorizontal();
                     GUILayout.Label(new GUIContent(valueText, valueExplainText), newSkin.label, GUILayout.Width(commonWidth));
-                    setValInputString = GUILayout.TextField(setValInputString, newSkin.textField);
+                    setValInputString = GUILayout.TextField(setValInputString, newSkin.textField, GUILayout.Height(commonHeight));
                     setValInput = Studio.Utility.StringToFloat(setValInputString);
                     string indicatorText = "→ " + setVal.ToString("0.000");
                     GUILayout.Label(new GUIContent(indicatorText, valueExplainText), newSkin.label, GUILayout.Width(newSkin.label.CalcSize(new GUIContent(indicatorText)).x));
+                    if (GUILayout.Button(new GUIContent("To 0", "Set target value to 0"), newSkin.button, GUILayout.ExpandWidth(false))) {
+                        setValInputString = "0";
+                        setValInput = 0;
+                        setVal = 0;
+                        setValSlider = 0;
+                    }
                     GUILayout.EndHorizontal();
                     GUILayout.Space(-4);
                     GUILayout.BeginHorizontal();
@@ -256,8 +284,7 @@ namespace MassShaderEditor.Koikatu {
                 // Color value
                 if (tab == SettingType.Color) {
                     GUILayout.BeginHorizontal();
-                    string colorText = "Color #";
-                    GUILayout.Label(new GUIContent(colorText, colorExplainText), newSkin.label, GUILayout.Width(newSkin.label.CalcSize(new GUIContent(colorText)).x));
+                    GUILayout.Label(new GUIContent(colorText, colorExplainText), newSkin.label, GUILayout.Width(commonWidth));
 
                     // Text input
                     {
@@ -266,7 +293,7 @@ namespace MassShaderEditor.Koikatu {
                             setColStringInput = setColString;
                             setColStringInputMemory = setColStringInput;
                         }
-                        setColStringInput = GUILayout.TextField(setColStringInput, newSkin.textField);
+                        setColStringInput = GUILayout.TextField(setColStringInput, newSkin.textField, GUILayout.Height(commonHeight));
                         if (setColStringInputMemory != setColStringInput) {
                             try {
                                 Color colConvert = setColStringInput.ToColor(); // May throw exception if hexcode is faulty
@@ -313,10 +340,10 @@ namespace MassShaderEditor.Koikatu {
                             setColNum = setCol.ToArray();
                         }
                         float[] buffer = (float[])setColNum.Clone();
-                        GUILayout.Label("R", newSkin.label); setColNum[0] = Studio.Utility.StringToFloat(GUILayout.TextField(setColNum[0].ToString("0.000"), newSkin.textField));
-                        GUILayout.Label("G", newSkin.label); setColNum[1] = Studio.Utility.StringToFloat(GUILayout.TextField(setColNum[1].ToString("0.000"), newSkin.textField));
-                        GUILayout.Label("B", newSkin.label); setColNum[2] = Studio.Utility.StringToFloat(GUILayout.TextField(setColNum[2].ToString("0.000"), newSkin.textField));
-                        GUILayout.Label("A", newSkin.label); setColNum[3] = Studio.Utility.StringToFloat(GUILayout.TextField(setColNum[3].ToString("0.000"), newSkin.textField));
+                        GUILayout.Label("R", newSkin.label, GUILayout.ExpandWidth(false)); setColNum[0] = Studio.Utility.StringToFloat(GUILayout.TextField(setColNum[0].ToString("0.000"), newSkin.textField));
+                        GUILayout.Label("  G", newSkin.label, GUILayout.ExpandWidth(false)); setColNum[1] = Studio.Utility.StringToFloat(GUILayout.TextField(setColNum[1].ToString("0.000"), newSkin.textField));
+                        GUILayout.Label("  B", newSkin.label, GUILayout.ExpandWidth(false)); setColNum[2] = Studio.Utility.StringToFloat(GUILayout.TextField(setColNum[2].ToString("0.000"), newSkin.textField));
+                        GUILayout.Label("  A", newSkin.label, GUILayout.ExpandWidth(false)); setColNum[3] = Studio.Utility.StringToFloat(GUILayout.TextField(setColNum[3].ToString("0.000"), newSkin.textField));
                         if (!buffer.Matches(setColNum)) {
                             if (IsDebug.Value) Log($"Color changed from {setCol} to {setColNum.ToColor()} based on value input!");
                             setCol = setColNum.ToColor();
@@ -338,48 +365,24 @@ namespace MassShaderEditor.Koikatu {
 
                     GUILayout.EndHorizontal();
 
-                    var buttonContents = new GUIContent[] { new GUIContent("Set", "Replace the color."), new GUIContent("Mix", "Average the existing and set color. The ratio is controlled by the slider that appears to the left."),
-                        new GUIContent("Add1", "Add the set color, capping values at 1."), new GUIContent("Add2", "Add the set color, without capping values."),
-                        new GUIContent("Sub", "Subtract the set color, but not below 0.")};
+                    var buttonContents = new GUIContent[] {
+                        new GUIContent("Set", "Replace the color."),
+                        new GUIContent("Mix", "Average the existing and set color. The ratio is controlled by the slider that appears to the left."),
+                        new GUIContent("Add1", "Add the set color, capping values at 1."),
+                        new GUIContent("Add2", "Add the set color, without capping values."),
+                        new GUIContent("Sub", "Subtract the set color, but not below 0.")
+                    };
                     setModeColor = GUILayout.SelectionGrid(setModeColor, buttonContents, buttonContents.Length, newSkin.button);
-
-                    GUILayout.Space(1);
                 }
+            }
+
+            // Texture editing
+            if (tab == SettingType.Texture) {
+                SpacerVert(4);
             }
 
             // Shader swapping
             if (tab == SettingType.Shader) {
-                // Filter
-                {
-                    GUILayout.BeginHorizontal();
-                    GUILayout.Label(new GUIContent(filterText, "Only shaders matching these filters will be edited"), newSkin.label, GUILayout.Width(commonWidth));
-                    filterInput = GUILayout.TextField(filterInput, newSkin.textField);
-                    if (currentFilter == 2) {
-                        if (GUILayout.Button("▼", newSkin.button, GUILayout.ExpandWidth(false))) {
-                            onShaderSelect = (s) => { filters[2] = s; filterInput = s; };
-                            CalcShaderDropSize();
-                            shaderScrollPos = dropRect.position;
-                            shaderDrop = 1;
-                        }
-                    }
-                    int prevFilter = currentFilter;
-                    currentFilter = GUILayout.SelectionGrid(
-                        currentFilter,
-                        filterButtons,
-                        filterButtons.Length,
-                        filterStyle,
-                        new GUILayoutOption[] {
-                            GUILayout.ExpandWidth(false),
-                            GUILayout.Height(newSkin.button.CalcHeight(new GUIContent("TEST"), 100))
-                        }
-                    );
-                    if (prevFilter != currentFilter) {
-                        filterInput = filters[currentFilter].Trim();
-                    }
-                    filters[currentFilter] = filterInput.Trim();
-                    GUILayout.EndHorizontal();
-                }
-
                 // Shader
                 {
                     GUILayout.BeginHorizontal();
@@ -406,7 +409,7 @@ namespace MassShaderEditor.Koikatu {
                     GUILayout.EndHorizontal();
                 }
 
-                GUILayout.Label(" ", newSkin.label); GUILayout.Label(" ", newSkin.label);
+                SpacerVert(2);
             }
 
             // Action buttons
@@ -501,7 +504,7 @@ namespace MassShaderEditor.Koikatu {
         private void SettingFunction(int WindowID) {
             GUILayout.BeginVertical();
 
-            float halfWidth = (windowRect.width - newSkin.window.border.left - newSkin.window.border.right) / 2;
+            float halfWidth = (setRect.width - newSkin.window.border.left - newSkin.window.border.right) / 2;
 
             // General
             {
@@ -897,6 +900,10 @@ namespace MassShaderEditor.Koikatu {
 
         private void Spacer(float multiplied = 1) => GUILayout.Space(6 * multiplied * UIScale.Value);
 
+        private void SpacerVert(int num = 1) {
+            for (int i = 0; i < num; i++) GUILayout.Label("", GUILayout.Height(commonHeight));
+        }
+
         private void SaveHistory() {
             string floatString = "";
             for (int i = 0; i < floatHist.Count; i++) {
@@ -980,6 +987,7 @@ namespace MassShaderEditor.Koikatu {
         public enum SettingType {
             Float,
             Color,
+            Texture,
             Shader
         }
     }
