@@ -610,33 +610,6 @@ namespace MassShaderEditor.Koikatu {
             }
         }
 
-        private void HistoryAppend<T>(T _value) {
-            if (_value is float floatval) {
-                if (setReset) {
-                    HistoryAppend(setName, 0, null);
-                } else {
-                    HistoryAppend(setName, floatval, null);
-                }
-            } else if (_value is Color colval) {
-                if (setReset) {
-                    HistoryAppend(setName, null, Color.black);
-                } else {
-                    HistoryAppend(setName, null, colval);
-                }
-            }
-        }
-
-        private void HistoryAppend(string name, float? val, Color? col) {
-            if (val != null) {
-                if (floatHist.Count == 10) floatHist.RemoveAt(0);
-                floatHist.Add(new HistoryItem { name = name, val = (float)val });
-            } else if (col != null) {
-                if (colHist.Count == 10) colHist.RemoveAt(0);
-                colHist.Add(new HistoryItem { name = name, col = (Color)col });
-            }
-            SaveHistory();
-        }
-
         public void Log(object data) {
             Logger.LogInfo(data);
         }
