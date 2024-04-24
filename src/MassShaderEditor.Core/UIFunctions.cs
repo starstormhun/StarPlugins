@@ -897,6 +897,53 @@ namespace MassShaderEditor.Koikatu {
 
         private void Spacer(float multiplied = 1) => GUILayout.Space(6 * multiplied * UIScale.Value);
 
+        private void SaveHistory() {
+            string floatString = "";
+            for (int i = 0; i < floatHist.Count; i++) {
+                floatString += floatHist[i].name + "," + floatHist[i].val.ToString("0.000") + ";";
+            }
+            FloatHistory.Value = floatString;
+            string colString = "";
+            for (int i = 0; i < colHist.Count; i++) {
+                colString += colHist[i].name + "," +
+                    colHist[i].col.r.ToString("0.000") + "," +
+                    colHist[i].col.g.ToString("0.000") + "," +
+                    colHist[i].col.b.ToString("0.000") + "," +
+                    colHist[i].col.a.ToString("0.000") + ";";
+            }
+            ColorHistory.Value = colString;
+        }
+
+        private void ReadHistory() {
+            floatHist.Clear();
+            var floatParts = FloatHistory.Value.Split(';');
+            for (int i = 0; i < floatParts.Length; i++) {
+                if (floatParts[i].Length > 0) {
+                    var currentParts = floatParts[i].Split(',');
+                    floatHist.Add(new HistoryItem {
+                        name = currentParts[0],
+                        val = Studio.Utility.StringToFloat(currentParts[1])
+                    });
+                }
+            }
+            colHist.Clear();
+            var colParts = ColorHistory.Value.Split(';');
+            for (int i = 0; i < colParts.Length; i++) {
+                if (colParts[i].Length > 0) {
+                    var currentParts = colParts[i].Split(',');
+                    colHist.Add(new HistoryItem {
+                        name = currentParts[0],
+                        col = new Color(
+                            Studio.Utility.StringToFloat(currentParts[1]),
+                            Studio.Utility.StringToFloat(currentParts[2]),
+                            Studio.Utility.StringToFloat(currentParts[3]),
+                            Studio.Utility.StringToFloat(currentParts[4])
+                        )
+                    });
+                }
+            }
+        }
+
         private void HistoryAppend<T>(T _value) {
             if (_value is float floatval) {
                 if (setReset) {
