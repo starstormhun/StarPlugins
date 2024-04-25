@@ -47,7 +47,7 @@ namespace MassShaderEditor.Koikatu {
         private int setModeColor = 0;
         private Color setCol = Color.white;
         internal string setShader = "";
-        private ScaledTex setTex = new ScaledTex();
+        internal ScaledTex setTex = new ScaledTex();
         private bool setTexAffectTex = true;
         private bool setTexAffectDims = false;
         private int setQueue = 0;
