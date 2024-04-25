@@ -562,7 +562,6 @@ namespace MassShaderEditor.Koikatu {
         }
 
         private Texture GetCharaTexture(MaterialEditorCharaController ctrl, OCIChar ociChar, int slot, ObjectType type, Predicate<Material> materialFilter, Predicate<Renderer> rendererFilter) {
-            if (IsDebug.Value) Log("Copying texture from character...");
             GameObject go = GetChaGO(ctrl, type, slot);
 
             foreach (var rend in GetRendererList(go).Where(x => rendererFilter(x)))
