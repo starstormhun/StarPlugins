@@ -400,7 +400,6 @@ namespace MassShaderEditor.Koikatu {
                         }
                         if (GUILayout.Button(new GUIContent("Copy", textureCopyText), newSkin.button)) {
                             setTex.tex = GetTargetTexture();
-                            Log(setTex.tex == null);
                         }
 
                         if (GUILayout.Button(new GUIContent(setTexAffectTex ? "X" : "", "Check this to affect the texture data of texture properties!"), newSkin.button, new GUILayoutOption[] { GUILayout.Width(checkWidth), GUILayout.Height(commonHeight - UIScale.Value / 1.5f) }))

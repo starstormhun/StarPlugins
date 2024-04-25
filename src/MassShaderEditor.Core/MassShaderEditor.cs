@@ -536,16 +536,16 @@ namespace MassShaderEditor.Koikatu {
                     } else if (oci is OCIChar ociChar) {
                         List<Texture> textures = new List<Texture>();
                         var ctrl = KKAPI.Studio.StudioObjectExtensions.GetChaControl(ociChar);
-                        if (AffectChaBody.Value && AffectMiscBodyParts.Value) textures.Add(GetCharaTexture(ctrl.GetController(), ociChar, 0, ObjectType.Character, (x) => true, (x) => true));
-                        else if (AffectChaBody.Value) textures.Add(GetCharaTexture(ctrl.GetController(), ociChar, 0, ObjectType.Character,
+                        if (AffectChaBody.Value && AffectMiscBodyParts.Value) textures.Add(GetCharaTexture(ctrl.GetController(), 0, ObjectType.Character, (x) => true, (x) => true));
+                        else if (AffectChaBody.Value) textures.Add(GetCharaTexture(ctrl.GetController(), 0, ObjectType.Character,
                             (Material x) => new List<string> { "cf_m_body", "cm_m_body", "cf_m_face_00" }.Contains(x.NameFormatted().ToLower()), (x) => true));
-                        else if (AffectMiscBodyParts.Value) textures.Add(GetCharaTexture(ctrl.GetController(), ociChar, 0, ObjectType.Character,
+                        else if (AffectMiscBodyParts.Value) textures.Add(GetCharaTexture(ctrl.GetController(), 0, ObjectType.Character,
                             (Material x) => !new List<string> { "cf_m_body", "cm_m_body", "cf_m_face_00" }.Contains(x.NameFormatted().ToLower()), (x) => true));
-                        if (AffectChaHair.Value) for (int i = 0; i < ctrl.objHair.Length; i++) textures.Add(GetCharaTexture(ctrl.GetController(), ociChar, i, ObjectType.Hair, (x) => true, (x) => true));
-                        if (AffectChaClothes.Value) for (int i = 0; i < ctrl.objClothes.Length; i++) textures.Add(GetCharaTexture(ctrl.GetController(), ociChar, i, ObjectType.Clothing, (x) => true, (x) => true));
+                        if (AffectChaHair.Value) for (int i = 0; i < ctrl.objHair.Length; i++) textures.Add(GetCharaTexture(ctrl.GetController(), i, ObjectType.Hair, (x) => true, (x) => true));
+                        if (AffectChaClothes.Value) for (int i = 0; i < ctrl.objClothes.Length; i++) textures.Add(GetCharaTexture(ctrl.GetController(), i, ObjectType.Clothing, (x) => true, (x) => true));
                         for (int i = 0; i < ctrl.objAccessory.Length; i++)
                             textures.Add(GetCharaTexture(
-                                ctrl.GetController(), ociChar, i, ObjectType.Accessory, (Material x) =>
+                                ctrl.GetController(), i, ObjectType.Accessory, (Material x) =>
                                 (x.shader.NameFormatted().ToLower().Contains("hair") && AffectChaHair.Value) ||
                                 (!x.shader.NameFormatted().ToLower().Contains("hair") && AffectChaAccs.Value),
                                 (x) => true
@@ -556,12 +556,25 @@ namespace MassShaderEditor.Koikatu {
                     }
                 }
             } else if (KKAPI.Maker.MakerAPI.InsideMaker) {
-                // TODO
+                if (MakerGetType(out ObjectType type)) {
+                    var chaCtrl = KKAPI.Maker.MakerAPI.GetCharacterControl();
+                    int slot = 0;
+                    if (type == ObjectType.Hair) slot = makerMenu.ccHairMenu.GetSelectIndex();
+                    if (type == ObjectType.Clothing) slot = makerMenu.ccClothesMenu.GetSelectIndex();
+                    if (type == ObjectType.Accessory) slot = makerMenu.ccAcsMenu.GetSelectIndex();
+
+                    Predicate<Material> filter = (Material x) => true;
+                    if (type == ObjectType.Character)
+                        if (makerTabID == 0) filter = (Material x) => x.NameFormatted() == "cf_m_face_00";
+                        else if (makerTabID == 1) filter = (Material x) => x.NameFormatted() == "cf_m_body" || x.NameFormatted() == "cm_m_body";
+
+                    return GetCharaTexture(chaCtrl.GetController(), slot, type, filter, (x) => true);
+                } else ShowMessage("Please select a valid item category.");
             }
             return null;
         }
 
-        private Texture GetCharaTexture(MaterialEditorCharaController ctrl, OCIChar ociChar, int slot, ObjectType type, Predicate<Material> materialFilter, Predicate<Renderer> rendererFilter) {
+        private Texture GetCharaTexture(MaterialEditorCharaController ctrl, int slot, ObjectType type, Predicate<Material> materialFilter, Predicate<Renderer> rendererFilter) {
             GameObject go = GetChaGO(ctrl, type, slot);
 
             foreach (var rend in GetRendererList(go).Where(x => rendererFilter(x)))
