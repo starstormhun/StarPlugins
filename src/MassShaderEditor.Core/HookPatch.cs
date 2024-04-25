@@ -67,7 +67,7 @@ namespace MassShaderEditor.Koikatu {
                     var txtList = content.GetComponentsInChildren<Text>(true).ToList();
                     if (MSE.IsDebug.Value) MSE.Log($"Found {txtList.Count} text components...");
 
-                    var accepted = new List<string> { "FloatLabel", "ColorLabel", "RendererText", "MaterialText", "ShaderLabel", "ShaderRenderQueueLabel" };
+                    var accepted = new List<string> { "FloatLabel", "ColorLabel", "TextureLabel", "RendererText", "MaterialText", "ShaderLabel", "ShaderRenderQueueLabel" };
                     txtList = txtList.FindAll(x => accepted.Contains(x.gameObject.name));
                     if (MSE.IsDebug.Value) MSE.Log($"Found {txtList.Count} labels!");
 
@@ -79,6 +79,9 @@ namespace MassShaderEditor.Koikatu {
                                 break;
                             case "ColorLabel":
                                 btn.onClick.AddListener(() => SetName(MSE, MassShaderEditor.SettingType.Color, txt.text));
+                                break;
+                            case "TextureLabel":
+                                btn.onClick.AddListener(() => SetName(MSE, MassShaderEditor.SettingType.Texture, txt.text));
                                 break;
                             case "RendererText":
                                 btn.onClick.AddListener(() => SetFilter(MSE, txt.text, 0));
@@ -148,6 +151,7 @@ namespace MassShaderEditor.Koikatu {
                 var MSE = (Object.FindObjectOfType(typeof(MassShaderEditor)) as MassShaderEditor);
                 if (rowType == RowItemType.FloatProperty) SetName(MSE, MassShaderEditor.SettingType.Float, propertyName);
                 if (rowType == RowItemType.ColorProperty) SetName(MSE, MassShaderEditor.SettingType.Color, propertyName);
+                if (rowType == RowItemType.TextureProperty) SetName(MSE, MassShaderEditor.SettingType.Texture, propertyName);
                 if (rowType == RowItemType.Shader)
                     foreach (var rend in GetRendererList(go))
                         foreach (var mat in GetMaterials(go, rend))

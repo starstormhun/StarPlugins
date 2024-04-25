@@ -9,6 +9,7 @@ using System;
 using System.Linq;
 using System.Collections.Generic;
 using UnityEngine;
+using static HandCtrl;
 
 [assembly: System.Reflection.AssemblyFileVersion(MassShaderEditor.Koikatu.MassShaderEditor.Version)]
 
@@ -461,19 +462,8 @@ namespace MassShaderEditor.Koikatu {
             if (ociChar != null) chaName = ociChar.NameFormatted();
             else chaName = $"{chaCtrl.fileParam.lastname} {chaCtrl.fileParam.firstname}";
 
-            GameObject go;
-            switch (type) {
-                case ObjectType.Character:
-                    go = ctrl.gameObject; break;
-                case ObjectType.Hair:
-                    go = chaCtrl.objHair[slot]; break;
-                case ObjectType.Clothing:
-                    go = chaCtrl.objClothes[slot]; break;
-                case ObjectType.Accessory:
-                    go = KKAPI.Maker.AccessoriesApi.GetAccessoryObject(chaCtrl, slot); break;
-                default:
-                    go = null; break;
-            }
+            GameObject go = GetChaGO(ctrl, type, slot);
+
             foreach (var rend in GetRendererList(go).Where(x => rendererFilter(x))) {
                 if (rend.NameFormatted().ToLower().Contains(filters[0].ToLower().Trim()))
                     foreach (var mat in GetMaterials(go, rend).Where(x => materialFilter(x))) {
@@ -527,6 +517,77 @@ namespace MassShaderEditor.Koikatu {
                             else { throw new ArgumentException("Erroneous / unimplemented tab type!"); }
                         }
                     }
+            }
+        }
+
+        private Texture GetTargetTexture() {
+            if (IsDebug.Value) Log("Copying target texture...");
+            if (KKAPI.Studio.StudioAPI.InsideStudio) {
+                var ociList = KKAPI.Studio.StudioAPI.GetSelectedObjects().ToList();
+                if (ociList.Count > 0) {
+                    var oci = ociList[0];
+                    if (oci is OCIItem item) {
+                        foreach (var rend in GetRendererList(item.objectItem))
+                            if (rend.NameFormatted().ToLower().Contains(filters[0].Trim().ToLower()))
+                                foreach (var mat in GetMaterials(item.objectItem, rend))
+                                    if (mat.NameFormatted().ToLower().Contains(filters[1].Trim().ToLower()) && mat.shader.NameFormatted().ToLower().Contains(filters[2].Trim().ToLower()))
+                                        if (mat.HasProperty("_" + setName))
+                                            return mat.GetTexture("_" + setName);
+                    } else if (oci is OCIChar ociChar) {
+                        List<Texture> textures = new List<Texture>();
+                        var ctrl = KKAPI.Studio.StudioObjectExtensions.GetChaControl(ociChar);
+                        if (AffectChaBody.Value && AffectMiscBodyParts.Value) textures.Add(GetCharaTexture(ctrl.GetController(), ociChar, 0, ObjectType.Character, (x) => true, (x) => true));
+                        else if (AffectChaBody.Value) textures.Add(GetCharaTexture(ctrl.GetController(), ociChar, 0, ObjectType.Character,
+                            (Material x) => new List<string> { "cf_m_body", "cm_m_body", "cf_m_face_00" }.Contains(x.NameFormatted().ToLower()), (x) => true));
+                        else if (AffectMiscBodyParts.Value) textures.Add(GetCharaTexture(ctrl.GetController(), ociChar, 0, ObjectType.Character,
+                            (Material x) => !new List<string> { "cf_m_body", "cm_m_body", "cf_m_face_00" }.Contains(x.NameFormatted().ToLower()), (x) => true));
+                        if (AffectChaHair.Value) for (int i = 0; i < ctrl.objHair.Length; i++) textures.Add(GetCharaTexture(ctrl.GetController(), ociChar, i, ObjectType.Hair, (x) => true, (x) => true));
+                        if (AffectChaClothes.Value) for (int i = 0; i < ctrl.objClothes.Length; i++) textures.Add(GetCharaTexture(ctrl.GetController(), ociChar, i, ObjectType.Clothing, (x) => true, (x) => true));
+                        for (int i = 0; i < ctrl.objAccessory.Length; i++)
+                            textures.Add(GetCharaTexture(
+                                ctrl.GetController(), ociChar, i, ObjectType.Accessory, (Material x) =>
+                                (x.shader.NameFormatted().ToLower().Contains("hair") && AffectChaHair.Value) ||
+                                (!x.shader.NameFormatted().ToLower().Contains("hair") && AffectChaAccs.Value),
+                                (x) => true
+                                ));
+                        for (int i = 0; i<textures.Count; i++)
+                            if (textures[i] != null) return textures[i];
+                        return null;
+                    }
+                }
+            } else if (KKAPI.Maker.MakerAPI.InsideMaker) {
+                // TODO
+            }
+            return null;
+        }
+
+        private Texture GetCharaTexture(MaterialEditorCharaController ctrl, OCIChar ociChar, int slot, ObjectType type, Predicate<Material> materialFilter, Predicate<Renderer> rendererFilter) {
+            if (IsDebug.Value) Log("Copying texture from character...");
+            GameObject go = GetChaGO(ctrl, type, slot);
+
+            foreach (var rend in GetRendererList(go).Where(x => rendererFilter(x)))
+                if (rend.NameFormatted().ToLower().Contains(filters[0].ToLower().Trim()))
+                    foreach (var mat in GetMaterials(go, rend).Where(x => materialFilter(x)))
+                        if (mat.NameFormatted().ToLower().Contains(filters[1].ToLower().Trim()) && mat.shader.NameFormatted().ToLower().Contains(filters[2].ToLower().Trim()))
+                            if (mat.HasProperty("_" + setName))
+                                return mat.GetTexture("_" + setName);
+            return null;
+        }
+
+        private GameObject GetChaGO(MaterialEditorCharaController ctrl, ObjectType type, int slot) {
+            var chaCtrl = ctrl.ChaControl;
+
+            switch (type) {
+                case ObjectType.Character:
+                    return ctrl.gameObject;
+                case ObjectType.Hair:
+                    return chaCtrl.objHair[slot];
+                case ObjectType.Clothing:
+                    return chaCtrl.objClothes[slot];
+                case ObjectType.Accessory:
+                    return KKAPI.Maker.AccessoriesApi.GetAccessoryObject(chaCtrl, slot);
+                default:
+                    return null;
             }
         }
 

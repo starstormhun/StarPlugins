@@ -115,7 +115,7 @@ namespace MassShaderEditor.Koikatu {
         private const string textureExplainText = "The texture to be assigned to the specified property.";
         private const string queueExplainText = "The render queue to set. If left empty, 0, or invalid, the render queue won't be modified.";
         private const string textureSelectText = "Select an image from the disk.";
-        private const string textureCopyText = "Copy the specified texture from the first material that would be afffected.";
+        private const string textureCopyText = "Copy the specified texture from the currently selected item.";
         private const string diveFoldersText = "Whether 'Modify Selected' will affect items that are inside selected folders.";
         private const string diveItemsText = "Whether 'Modify Selected' will affect items that are the children of selected items.";
         private const string affectCharactersText = "Whether 'Modify Selected' and 'Modify ALL' will affect characters at all.";
@@ -213,7 +213,7 @@ namespace MassShaderEditor.Koikatu {
                 GUILayout.EndHorizontal();
             }
 
-            // Float / color property editing
+            // Float / color / texture property editing
             if (new List<SettingType> { SettingType.Float, SettingType.Color, SettingType.Texture }.Contains(tab)) {
                 // Property name
                 {
@@ -399,7 +399,8 @@ namespace MassShaderEditor.Koikatu {
                             // pass
                         }
                         if (GUILayout.Button(new GUIContent("Copy", textureCopyText), newSkin.button)) {
-                            // pass
+                            setTex.tex = GetTargetTexture();
+                            Log(setTex.tex == null);
                         }
 
                         if (GUILayout.Button(new GUIContent(setTexAffectTex ? "X" : "", "Check this to affect the texture data of texture properties!"), newSkin.button, new GUILayoutOption[] { GUILayout.Width(checkWidth), GUILayout.Height(commonHeight - UIScale.Value / 1.5f) }))
@@ -1065,7 +1066,7 @@ namespace MassShaderEditor.Koikatu {
         }
 
         public class ScaledTex {
-            public Texture2D tex = null;
+            public Texture tex = null;
             public float[] offset = new float[] { 0, 0 };
             public float[] scale = new float[] { 1, 1 };
         }
