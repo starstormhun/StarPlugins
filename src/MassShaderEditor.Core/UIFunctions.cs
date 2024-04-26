@@ -21,7 +21,7 @@ namespace MassShaderEditor.Koikatu {
         private float messageDur = 1;
         private float messageTime = 0;
 
-        private static readonly float[] defaultSize = new float[] { 200f, 40f, 305f, 170f };
+        private static readonly float[] defaultSize = new float[] { 337f, 40f, 305f, 170f };
         private Rect windowRect = new Rect(defaultSize[0], defaultSize[1], defaultSize[2], defaultSize[3]);
         private Rect mixRect = new Rect();
         private Rect helpRect = new Rect();
@@ -39,6 +39,7 @@ namespace MassShaderEditor.Koikatu {
         private const int redrawNum = 2;
         private GUISkin newSkin;
 
+        private string fileToOpen = "";
         private bool setReset = true;
         internal List<string> filters = new List<string>{"", "", ""};
         internal string setName = "";
@@ -47,7 +48,7 @@ namespace MassShaderEditor.Koikatu {
         private int setModeColor = 0;
         private Color setCol = Color.white;
         internal string setShader = "";
-        internal ScaledTex setTex = new ScaledTex();
+        public ScaledTex setTex = new ScaledTex();
         private bool setTexAffectTex = true;
         private bool setTexAffectDims = false;
         private int setQueue = 0;
@@ -93,7 +94,8 @@ namespace MassShaderEditor.Koikatu {
         private delegate void OnShaderSelectFunc(string s);
         private delegate void OnHistorySelectFunc(int i);
 
-        private readonly List<string> helpText = new List<string>{"To use, first choose whether the property you want to edit is a value, or a color using the buttons at the top of the UI. Afterwards you can input its name, and set the desired value/color using the fields below those.",
+        private readonly List<string> helpText = new List<string>{
+            "To use, first choose whether the property you want to edit is a value, or a color using the buttons at the top of the UI. Afterwards you can input its name, and set the desired value/color using the fields below those.",
             "You can either type in the name of the property you want to edit, or you can click its name in the MaterialEditor UI, or click the timeline integration button that you can enable in the ME settings. Clicking these things will autofill the property name.",
             "You can also set up a shader name filter by clicking the 'Shader' label or Timeline button in MaterialEditor next to the dropdown list of the shader, but it can also be inputted manually. The filter doesn't have to be the full name of the shader. If left empty, all shaders will be edited.",
             "When modifying slider properties, you can choose from 5 operations to perform on the old value with the button row that appears: Replace, Add, Multiply, Minimum (Every affedted value will be at LEAST the set amount), or Maximum (Every affected value will be at MOST the set amount)",
@@ -104,8 +106,9 @@ namespace MassShaderEditor.Koikatu {
             "Right-clicking either of these two buttons will reset the specified property of the appropriate items to the default value instead of setting the one you have currently inputted.",
             "Apart from modifying float and color values of shaders, you can also replace shaders with other shaders by choosing the Shader tab in the menu bar. You can filter for shaders to be modified like in the previous cases, and you can select the desired shader from the dropdown list.",
             "Autofilling the shader filter works the same in all three tabs. Additionally, you can autofill the shader to be set by SHIFT + clicking the Shader: label or timeline integration button.",
-            "While replacing shaders, you can also specify the render queue of the shader. If left blank, invalid, or 0, the render queue will not be modified. Render queue can also be modified in the Value tab, by inputting its name in the property field, or clicking 'Render Queue:' in Material Editor, which autofills it for you."};
-        private const string introText = "Welcome to Mass Shader Editor! To get started, I first recommend checking out the Help section, which will tell you how to best use this plugin, and any specifics on what each of the buttons and options do.\n\nTo access the help section, click the yellow '?' symbol in the top right corner of the plugin window.\n\nAfterwards, you should check out the various settings of the plugin, accessible either in the F1 menu or by clicking the cogwheel icon next to the help button. The available settings are differen in Maker and in Studio!\n\nHappy creating!";
+            "While replacing shaders, you can also specify the render queue of the shader. If left blank, invalid, or 0, the render queue will not be modified. Render queue can also be modified in the Value tab, by inputting its name in the property field, or clicking 'Render Queue:' in Material Editor, which autofills it for you."
+        };
+        private const string introText = "Welcome to Mass Shader Editor! To get started, I first recommend checking out the Help section, which will tell you how to best use this plugin, and any specifics on what each of the buttons and options do.\n\nTo access the help section, click the yellow '?' symbol in the top right corner of the plugin window.\n\nAfterwards, you should check out the various settings of the plugin, accessible either in the F1 menu or by clicking the cogwheel icon next to the help button. The available settings are different in Maker and in Studio!\n\nHappy creating!";
         private const string shaderNameWrongMessage = "You need to input the full name (CASE-sensitive) of the shader to be set! The name has to be from the dropdown list.";
         private const string missingPropertyMessage = "You need to input the name of the property to be modified!";
         private const string texNoAffectChecksMessage = "Please choose to affect either at least texture data or offset / scale values!";
@@ -396,10 +399,10 @@ namespace MassShaderEditor.Koikatu {
 
                         GUILayout.Label(new GUIContent(textureText, textureExplainText), newSkin.label, GUILayout.Width(commonWidth));
                         if (GUILayout.Button(new GUIContent("Select", textureSelectText), newSkin.button)) {
-                            // pass
+                            LoadTextureFromFile();
                         }
                         if (GUILayout.Button(new GUIContent("Copy", textureCopyText), newSkin.button)) {
-                            setTex.tex = GetTargetTexture();
+                            GetTargetTexture(out setTex.data, out setTex.tex);
                         }
 
                         if (GUILayout.Button(new GUIContent(setTexAffectTex ? "X" : "", "Check this to affect the texture data of texture properties!"), newSkin.button, new GUILayoutOption[] { GUILayout.Width(checkWidth), GUILayout.Height(commonHeight - UIScale.Value / 1.5f) }))
@@ -421,13 +424,18 @@ namespace MassShaderEditor.Koikatu {
                         GUILayout.Label(new GUIContent("Y", "Y scale"), newSkin.label, GUILayout.ExpandWidth(false));
                         setTex.scale[1] = Studio.Utility.StringToFloat(GUILayout.TextField(setTex.scale[1].ToString("0.000"), newSkin.textField));
 
-                        if (GUILayout.Button(new GUIContent(setTexAffectDims ? "X" : "", "Check this to affect the texture data of texture properties!"), newSkin.button, new GUILayoutOption[] { GUILayout.Width(checkWidth), GUILayout.Height(commonHeight - UIScale.Value / 1.5f) }))
+                        if (GUILayout.Button(new GUIContent(setTexAffectDims ? "X" : "", "Check this to affect the offset and scale of texture properties!"), newSkin.button, new GUILayoutOption[] { GUILayout.Width(checkWidth), GUILayout.Height(commonHeight - UIScale.Value / 1.5f) }))
                             setTexAffectDims = !setTexAffectDims;
 
                         GUILayout.EndHorizontal();
                     }
 
-                    SpacerVert(1);
+                    // Info label to point out checkboxes
+                    {
+                        var infoLabelStyle = new GUIStyle(newSkin.label);
+                        infoLabelStyle.alignment = TextAnchor.MiddleRight;
+                        GUILayout.Label("Choose what to affect!  ↑  ", infoLabelStyle);
+                    }
                 }
             }
 
@@ -1065,9 +1073,22 @@ namespace MassShaderEditor.Koikatu {
         }
 
         public class ScaledTex {
+            public byte[] data = null;
             public Texture tex = null;
             public float[] offset = new float[] { 0, 0 };
             public float[] scale = new float[] { 1, 1 };
+
+            public override string ToString() {
+                return $"Texture{tex.dimension}D ({tex.width}×{tex.height}), Scale/Offset ({offset[0]},{offset[1]},{scale[0]},{scale[1]})";
+            }
+
+            public string TexString() {
+                return $"Texture{tex.dimension} ({tex.width}×{tex.height})";
+            }
+
+            public string DimString() {
+                return $"Scale/Offset ({offset[0]},{offset[1]},{scale[0]},{scale[1]})";
+            }
         }
 
         public enum SettingType {
