@@ -67,7 +67,10 @@ namespace MassShaderEditor.Koikatu {
                     var txtList = content.GetComponentsInChildren<Text>(true).ToList();
                     if (MSE.IsDebug.Value) MSE.Log($"Found {txtList.Count} text components...");
 
-                    var accepted = new List<string> { "FloatLabel", "ColorLabel", "RendererText", "MaterialText", "ShaderLabel", "ShaderRenderQueueLabel" };
+                    var accepted = new List<string> {
+                        "FloatLabel", "ColorLabel", "TextureLabel", "RendererText", "MaterialText",
+                        "ShaderLabel", "ShaderRenderQueueLabel", "OffsetScaleLabel", "OffsetXText"
+                    };
                     txtList = txtList.FindAll(x => accepted.Contains(x.gameObject.name));
                     if (MSE.IsDebug.Value) MSE.Log($"Found {txtList.Count} labels!");
 
@@ -79,6 +82,9 @@ namespace MassShaderEditor.Koikatu {
                                 break;
                             case "ColorLabel":
                                 btn.onClick.AddListener(() => SetName(MSE, MassShaderEditor.SettingType.Color, txt.text));
+                                break;
+                            case "TextureLabel":
+                                btn.onClick.AddListener(() => SetName(MSE, MassShaderEditor.SettingType.Texture, txt.text));
                                 break;
                             case "RendererText":
                                 btn.onClick.AddListener(() => SetFilter(MSE, txt.text, 0));
@@ -93,6 +99,28 @@ namespace MassShaderEditor.Koikatu {
                                 break;
                             case "ShaderRenderQueueLabel":
                                 btn.onClick.AddListener(() => SetName(MSE, MassShaderEditor.SettingType.Float, "Render Queue"));
+                                break;
+                            case "OffsetScaleLabel":
+                            case "OffsetXText":
+                                Transform panel = txt.transform.parent;
+                                btn.onClick.AddListener(() => {
+                                    var values = new float[] { 0, 0, 0, 0 };
+                                    foreach (InputField child in panel.GetComponentsInChildren<InputField>()) {
+                                        switch (child.name) {
+                                            case "OffsetXInput":
+                                                values[0] = Studio.Utility.StringToFloat(child.text); break;
+                                            case "OffsetYInput":
+                                                values[1] = Studio.Utility.StringToFloat(child.text); break;
+                                            case "ScaleXInput":
+                                                values[2] = Studio.Utility.StringToFloat(child.text); break;
+                                            case "ScaleYInput":
+                                                values[3] = Studio.Utility.StringToFloat(child.text); break;
+                                        }
+                                    }
+                                    MSE.tab = MassShaderEditor.SettingType.Texture;
+                                    MSE.setTex.offset = new float[] { values[0], values[1] };
+                                    MSE.setTex.scale = new float[] { values[2], values[3] };
+                                });
                                 break;
                         }
                     }
@@ -148,6 +176,7 @@ namespace MassShaderEditor.Koikatu {
                 var MSE = (Object.FindObjectOfType(typeof(MassShaderEditor)) as MassShaderEditor);
                 if (rowType == RowItemType.FloatProperty) SetName(MSE, MassShaderEditor.SettingType.Float, propertyName);
                 if (rowType == RowItemType.ColorProperty) SetName(MSE, MassShaderEditor.SettingType.Color, propertyName);
+                if (rowType == RowItemType.TextureProperty) SetName(MSE, MassShaderEditor.SettingType.Texture, propertyName);
                 if (rowType == RowItemType.Shader)
                     foreach (var rend in GetRendererList(go))
                         foreach (var mat in GetMaterials(go, rend))
