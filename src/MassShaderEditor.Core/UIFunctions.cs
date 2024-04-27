@@ -134,7 +134,7 @@ namespace MassShaderEditor.Koikatu {
                 "Furthermore, you can choose if you want characters to be affected at all, and if yes, then which parts of them. \"Misc parts\" refers to parts of characters such as tongue, eyebrows, and such, like in Maker, but unlike in Maker, \"Modify Selected\" will affect them as well."
             },
             new List<string> {
-                $"MassShaderEditor Version {Version}\nPlugin made by Starstorm"
+                $"\nMassShaderEditor Version {Version}\n\nPlugin made by Starstorm\n"
             }
         };
         private const string introText = "Welcome to Mass Shader Editor! To get started, I first recommend checking out the Help section, which will tell you how to best use this plugin, and any specifics on what each of the buttons and options do.\n\nTo access the help section, click the yellow '?' symbol in the top right corner of the plugin window.\n\nAfterwards, you should check out the various settings of the plugin, accessible either in the F1 menu or by clicking the cogwheel icon next to the help button. The available settings are different in Maker and in Studio!\n\nHappy creating!";

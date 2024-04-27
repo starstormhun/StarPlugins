@@ -297,7 +297,7 @@ namespace MassShaderEditor.Koikatu {
         }
 
         private void SetAllProperties<T>(T _value) {
-            if (!(_value is float) && !(_value is Color) && !(_value is string)) return;
+            if (!(_value is float) && !(_value is Color) && !(_value is string) && !(_value is ScaledTex)) return;
             if (KKAPI.Studio.StudioAPI.InsideStudio) {
                 if (IsDebug.Value) Log($"{(setReset?"Res":"S")}etting ALL items' {(tab == SettingType.Shader ? "shaders" : "properties")}!");
                 SetStudioProperties(studio.dicObjectCtrl.Values.ToList(), _value);
