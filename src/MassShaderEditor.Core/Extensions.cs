@@ -2,8 +2,6 @@
 using UnityEngine;
 using Studio;
 using System.Reflection;
-using System.Diagnostics;
-using System.Runtime.InteropServices;
 
 namespace MassShaderEditor.Koikatu {
     public static class Extensions {
@@ -105,8 +103,7 @@ namespace MassShaderEditor.Koikatu {
                     value = (info as PropertyInfo).GetValue(instance, null);
                 } else value = (info as FieldInfo).GetValue(instance);
                 return true;
-            } catch (System.Exception e) {
-                MSE.Log(e.Message, 3);
+            } catch {
                 if (MSE.IsDebug.Value) MSE.Log($"Property ({name}) not found on ({instance})!");
                 value = null;
                 return false;

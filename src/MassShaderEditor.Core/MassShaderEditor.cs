@@ -2,7 +2,6 @@
 using BepInEx.Configuration;
 using KK_Plugins.MaterialEditor;
 using static KK_Plugins.MaterialEditor.MaterialEditorCharaController;
-using static KK_Plugins.MaterialEditor.SceneController;
 using static MaterialEditorAPI.MaterialAPI;
 using Studio;
 using ChaCustom;
@@ -35,6 +34,7 @@ namespace MassShaderEditor.Koikatu {
         // General
         public ConfigEntry<float> UIScale { get; private set; }
         public ConfigEntry<bool> ShowTooltips { get; private set; }
+        public ConfigEntry<bool> SaveTextures { get; private set; }
 
         // Studio options
         public ConfigEntry<bool> DiveFolders { get; private set; }
@@ -79,11 +79,12 @@ namespace MassShaderEditor.Koikatu {
             UIScale = Config.Bind("General", "UI Scale", 1.5f, new ConfigDescription("Can also be set via the built-in settings panel", new AcceptableValueRange<float>(1f, maxScale), null));
             UIScale.SettingChanged += (x, y) => scaled = false;
             ShowTooltips = Config.Bind("General", "Show tooltips", true, "");
+            SaveTextures = Config.Bind("General", "Save textures", false, "Whether to save texture edit history to disk. May slow down the game when editing lots of big textures.");
             AffectMiscBodyParts = Config.Bind("General", "Affect misc body parts", false, new ConfigDescription(affectMiscBodyPartsText, null, null));
 
             DiveFolders = Config.Bind("Studio", "Dive folders", false, new ConfigDescription(diveFoldersText, null, null));
             DiveItems = Config.Bind("Studio", "Dive items", false, new ConfigDescription(diveItemsText, null, null));
-            AffectCharacters = Config.Bind("Studio", "Affect characters", false, new ConfigDescription(affectCharactersText, null, new KKAPI.Utilities.ConfigurationManagerAttributes { Order = 10 }));
+            AffectCharacters = Config.Bind("Studio", "Affect characters", false, new ConfigDescription(affectCharactersText, null, new ConfigurationManagerAttributes { Order = 10 }));
             AffectChaBody = Config.Bind("Studio", "Affect character bodies", false, new ConfigDescription(affectChaBodyText, null, null));
             AffectChaHair = Config.Bind("Studio", "Affect character hair", false, new ConfigDescription(affectChaHairText, null, null));
             AffectChaClothes = Config.Bind("Studio", "Affect character clothes", false, new ConfigDescription(affectChaClothesText, null, null));
@@ -91,29 +92,29 @@ namespace MassShaderEditor.Koikatu {
 
             HairAccIsHair = Config.Bind("Maker", "Hair accs are hair", false, new ConfigDescription(hairAccIsHairText, null, null));
 
-            VisibleHotkey = Config.Bind("Hotkeys", "UI Toggle", new KeyboardShortcut(KeyCode.M), new ConfigDescription("The key used to toggle the plugin's UI",null,new KKAPI.Utilities.ConfigurationManagerAttributes{ Order = 10}));
+            VisibleHotkey = Config.Bind("Hotkeys", "UI Toggle", new KeyboardShortcut(KeyCode.M), new ConfigDescription("The key used to toggle the plugin's UI",null,new ConfigurationManagerAttributes{ Order = 10}));
             SetSelectedHotkey = Config.Bind("Hotkeys", "Modify Selected", new KeyboardShortcut(KeyCode.None), new ConfigDescription("Simulate left-clicking 'Modify Selected'", null, null));
             ResetSelectedHotkey = Config.Bind("Hotkeys", "Reset Selected", new KeyboardShortcut(KeyCode.None), new ConfigDescription("Simulate right-clicking 'Modify Selected'", null, null));
             SetAllHotkey = Config.Bind("Hotkeys", "Modify ALL", new KeyboardShortcut(KeyCode.None), new ConfigDescription("Simulate left-clicking 'Modify ALL'", null, null));
             ResetAllHotkey = Config.Bind("Hotkeys", "Reset ALL", new KeyboardShortcut(KeyCode.None), new ConfigDescription("Simulate right-clicking 'Modify ALL'", null, null));
 
-            DisableWarning = Config.Bind("Advanced", "Disable warning", false, new ConfigDescription("Disable the warning screen for the 'Modify ALL' function.", null, new KKAPI.Utilities.ConfigurationManagerAttributes { IsAdvanced = true }));
-            IsDebug = Config.Bind("Advanced", "Logging", false, new ConfigDescription("Enable verbose logging for debugging purposes", null, new KKAPI.Utilities.ConfigurationManagerAttributes { IsAdvanced = true }));
-            IntroShown = Config.Bind("Advanced", "Intro Shown", false, new ConfigDescription("Whether the intro message has been shown already", null, new KKAPI.Utilities.ConfigurationManagerAttributes { IsAdvanced = true }));
+            DisableWarning = Config.Bind("Advanced", "Disable warning", false, new ConfigDescription("Disable the warning screen for the 'Modify ALL' function.", null, new ConfigurationManagerAttributes { IsAdvanced = true }));
+            IsDebug = Config.Bind("Advanced", "Logging", false, new ConfigDescription("Enable verbose logging for debugging purposes", null, new ConfigurationManagerAttributes { IsAdvanced = true }));
+            IntroShown = Config.Bind("Advanced", "Intro Shown", false, new ConfigDescription("Whether the intro message has been shown already", null, new ConfigurationManagerAttributes { IsAdvanced = true }));
 
-            FloatHistory = Config.Bind("Data", "Float History", "", new ConfigDescription("The 10 previously set property name/value pairings", null, new KKAPI.Utilities.ConfigurationManagerAttributes { Browsable = false }));
-            ColorHistory = Config.Bind("Data", "Color History", "", new ConfigDescription("The 10 previously set property name/color pairings", null, new KKAPI.Utilities.ConfigurationManagerAttributes { Browsable = false }));
+            FloatHistory = Config.Bind("Data", "Float History", "", new ConfigDescription("The 10 previously set property name/value pairings", null, new ConfigurationManagerAttributes { Browsable = false }));
+            ColorHistory = Config.Bind("Data", "Color History", "", new ConfigDescription("The 10 previously set property name/color pairings", null, new ConfigurationManagerAttributes { Browsable = false }));
 
             KKAPI.Studio.StudioAPI.StudioLoadedChanged += (x, y) => {
                 studio = Singleton<Studio.Studio>.Instance;
                 controller = MEStudio.GetSceneController();
-                shaders = MaterialEditorAPI.MaterialEditorPluginBase.XMLShaderProperties.Keys.Where(z => z != "default").Select(z => z.Trim()).ToList();
+                shaders = MaterialEditorPluginBase.XMLShaderProperties.Keys.Where(z => z != "default").Select(z => z.Trim()).ToList();
 
             };
             KKAPI.Maker.MakerAPI.MakerFinishedLoading += (x, y) => {
                 makerMenu = (FindObjectOfType(typeof(CustomChangeMainMenu)) as CustomChangeMainMenu);
                 controller = MEStudio.GetSceneController();
-                shaders = MaterialEditorAPI.MaterialEditorPluginBase.XMLShaderProperties.Keys.Where(z => z != "default").Select(z => z.Trim()).ToList();
+                shaders = MaterialEditorPluginBase.XMLShaderProperties.Keys.Where(z => z != "default").Select(z => z.Trim()).ToList();
                 makerTabID = 0;
             };
 
@@ -121,6 +122,7 @@ namespace MassShaderEditor.Koikatu {
 
             HookPatch.Init();
             if (IsDebug.Value) Log("Awoken!");
+            Log(Paths.BepInExConfigPath);
         }
 
         private void Update() {
@@ -195,7 +197,7 @@ namespace MassShaderEditor.Koikatu {
                 setReset = false;
                 if (IsDebug.Value) Log($"LMB detected! setReset: {setReset}");
             }
-            if (shaderDrop > 0 && (Input.GetMouseButton(1) || Input.GetMouseButton(0)) && !dropRect.Contains(Input.mousePosition.InvertScreenY())) {
+            if (shaderDrop > 0 && (Input.GetMouseButton(1) || Input.GetMouseButton(0)) && !shaderRect.Contains(Input.mousePosition.InvertScreenY())) {
                 shaderDrop = 0;
             }
             if (historyDrop && (Input.GetMouseButton(1) || Input.GetMouseButton(0)) && !historyRect.Contains(Input.mousePosition.InvertScreenY())) {
@@ -207,7 +209,7 @@ namespace MassShaderEditor.Koikatu {
                     if (!showWarning) {
                         windowRect = GUILayout.Window(587, windowRect, WindowFunction, $"Mass Shader Editor v{Version}", newSkin.window, GUILayout.MaxWidth(defaultSize[2] * UIScale.Value));
                         DrawTooltip(tooltip[0]);
-                        KKAPI.Utilities.IMGUIUtils.EatInputInRect(windowRect);
+                        IMGUIUtils.EatInputInRect(windowRect);
                         Redraw(1587, windowRect, redrawNum);
 
                         helpRect.position = windowRect.position + new Vector2(windowRect.size.x + 3, 0);
@@ -220,13 +222,13 @@ namespace MassShaderEditor.Koikatu {
 
                         if (tab == SettingType.Color && setModeColor == 1) {
                             mixRect = GUILayout.Window(586, mixRect, MixFunction, "", newSkin.box);
-                            KKAPI.Utilities.IMGUIUtils.EatInputInRect(mixRect);
+                            IMGUIUtils.EatInputInRect(mixRect);
                             Redraw(1586, mixRect, redrawNum-1, true);
                         }
                         if (tab == SettingType.Texture) {
                             Vector2 oldPos = texRect.position;
                             texRect = GUILayout.Window(600, texRect, TexFunction, "Selected Texture", newSkin.window);
-                            KKAPI.Utilities.IMGUIUtils.EatInputInRect(texRect);
+                            IMGUIUtils.EatInputInRect(texRect);
                             Redraw(1600, texRect, redrawNum);
                             if ((texRect.position - oldPos) != Vector2.zero) {
                                 windowRect.position += texRect.position - oldPos;
@@ -235,7 +237,7 @@ namespace MassShaderEditor.Koikatu {
                         if (isHelp) {
                             Vector2 oldPos = helpRect.position;
                             helpRect = GUILayout.Window(588, helpRect, HelpFunction, "How to use?", newSkin.window, GUILayout.MaxWidth(defaultSize[2] * UIScale.Value * 0.8f));
-                            KKAPI.Utilities.IMGUIUtils.EatInputInRect(helpRect);
+                            IMGUIUtils.EatInputInRect(helpRect);
                             Redraw(1588, helpRect, redrawNum);
                             if ((helpRect.position - oldPos) != Vector2.zero) {
                                 windowRect.position += helpRect.position - oldPos;
@@ -245,7 +247,7 @@ namespace MassShaderEditor.Koikatu {
                             Vector2 oldPos = setRect.position;
                             setRect = GUILayout.Window(588, setRect, SettingFunction, "Settings ۞", newSkin.window, GUILayout.MaxWidth(defaultSize[2] * UIScale.Value * 0.8f));
                             DrawTooltip(tooltip[0]);
-                            KKAPI.Utilities.IMGUIUtils.EatInputInRect(setRect);
+                            IMGUIUtils.EatInputInRect(setRect);
                             Redraw(1588, setRect, redrawNum);
                             if ((setRect.position - oldPos) != Vector2.zero) {
                                 windowRect.position += setRect.position - oldPos;
@@ -256,20 +258,20 @@ namespace MassShaderEditor.Koikatu {
                                 fontSize = 1
                             };
                             infoRect = GUILayout.Window(589, infoRect, InfoFunction, "", boxStyle);
-                            KKAPI.Utilities.IMGUIUtils.EatInputInRect(infoRect);
+                            IMGUIUtils.EatInputInRect(infoRect);
                             Redraw(1589, infoRect, redrawNum, true);
                         }
                         if (shaderDrop > 0) {
-                            dropRect.position = windowRect.position + new Vector2(commonWidth + newSkin.window.border.left + 4, GUI.skin.label.CalcSize(new GUIContent("TEST")).y + (newSkin.label.CalcSize(new GUIContent("TEST")).y + 4) * (shaderDrop + 1));
-                            dropRect = GUILayout.Window(593, dropRect, ShaderDropFunction, "", newSkin.box, GUILayout.MaxWidth(defaultSize[2]));
-                            KKAPI.Utilities.IMGUIUtils.EatInputInRect(dropRect);
-                            Redraw(1593, dropRect, redrawNum, true);
+                            shaderRect.position = windowRect.position + new Vector2(commonWidth + newSkin.window.border.left + 4, GUI.skin.label.CalcSize(new GUIContent("TEST")).y + (newSkin.label.CalcSize(new GUIContent("TEST")).y + 4) * (shaderDrop + 1));
+                            shaderRect = GUILayout.Window(593, shaderRect, ShaderDropFunction, "", newSkin.box, GUILayout.MaxWidth(defaultSize[2]));
+                            IMGUIUtils.EatInputInRect(shaderRect);
+                            Redraw(1593, shaderRect, redrawNum, true);
                             GUI.BringWindowToFront(593);
                         }
                         if (historyDrop == true) {
                             historyRect.position = windowRect.position + new Vector2(commonWidth + newSkin.window.border.left + 4, GUI.skin.label.CalcSize(new GUIContent("TEST")).y + (newSkin.label.CalcSize(new GUIContent("TEST")).y + 4) * 3);
                             historyRect = GUILayout.Window(595, historyRect, HistoryDropFunction, "", newSkin.box, GUILayout.MaxWidth(defaultSize[2]));
-                            KKAPI.Utilities.IMGUIUtils.EatInputInRect(historyRect);
+                            IMGUIUtils.EatInputInRect(historyRect);
                             Redraw(1595, historyRect, redrawNum, true);
                             GUI.BringWindowToFront(595);
                         }
@@ -279,7 +281,7 @@ namespace MassShaderEditor.Koikatu {
                         GUI.Box(screenRect, "");
                         warnRect.position = new Vector2((Screen.width - warnRect.size.x) / 2, (Screen.height - warnRect.size.y) / 2);
                         warnRect = GUILayout.Window(590, warnRect, WarnFunction, "", newSkin.window);
-                        KKAPI.Utilities.IMGUIUtils.EatInputInRect(screenRect);
+                        IMGUIUtils.EatInputInRect(screenRect);
                         Redraw(1590, warnRect, redrawNum);
                     }
                 } else {
@@ -287,7 +289,7 @@ namespace MassShaderEditor.Koikatu {
                     GUI.Box(screenRect, "");
                     warnRect.position = new Vector2((Screen.width - warnRect.size.x) / 2, (Screen.height - warnRect.size.y) / 2);
                     warnRect = GUILayout.Window(591, warnRect, IntroFunction, "", newSkin.window);
-                    KKAPI.Utilities.IMGUIUtils.EatInputInRect(screenRect);
+                    IMGUIUtils.EatInputInRect(screenRect);
                     Redraw(1591, warnRect, redrawNum);
                 }
             }

@@ -1,12 +1,12 @@
 ﻿using BepInEx;
 using System;
+using System.IO;
 using System.Linq;
 using System.Collections.Generic;
 using KKAPI;
 using ChaCustom;
 using UnityEngine;
-using UnityEngine.UI;
-using Mono.Cecil;
+using HarmonyLib;
 using KKAPI.Utilities;
 
 namespace MassShaderEditor.Koikatu {
@@ -29,7 +29,7 @@ namespace MassShaderEditor.Koikatu {
         private Rect infoRect = new Rect();
         private Rect texRect = new Rect();
         private Rect warnRect = new Rect(0, 0, 360, 200);
-        private Rect dropRect = new Rect(defaultSize[0], defaultSize[1], defaultSize[2] * 0.9f, defaultSize[3] * 1.2f);
+        private Rect shaderRect = new Rect(defaultSize[0], defaultSize[1], defaultSize[2] * 0.9f, defaultSize[3] * 1.2f);
         private Rect historyRect = new Rect(defaultSize[0], defaultSize[1], defaultSize[2] * 0.9f, defaultSize[3] * 1.2f);
         private Vector2 shaderScrollPos;
         private Vector2 historyScrollPos;
@@ -48,7 +48,7 @@ namespace MassShaderEditor.Koikatu {
         private int setModeColor = 0;
         private Color setCol = Color.white;
         internal string setShader = "";
-        public ScaledTex setTex = new ScaledTex();
+        internal ScaledTex setTex = new ScaledTex();
         private bool setTexAffectTex = true;
         private bool setTexAffectDims = false;
         private int setQueue = 0;
@@ -68,6 +68,8 @@ namespace MassShaderEditor.Koikatu {
         private string setQueueInput = "";
         public readonly List<HistoryItem> floatHist = new List<HistoryItem>();
         public readonly List<HistoryItem> colHist = new List<HistoryItem>();
+        public readonly List<HistoryItem> texHist = new List<HistoryItem>();
+        private readonly Dictionary<HistoryItem, GUIContent> dicHistContent = new Dictionary<HistoryItem, GUIContent>();
 
         internal int currentFilter = 2;
         internal string filterInput = "";
@@ -185,12 +187,14 @@ namespace MassShaderEditor.Koikatu {
             {
                 GUILayout.BeginHorizontal();
                 GUILayout.Label(new GUIContent(filterText, "Only shaders matching these filters will be edited"), newSkin.label, GUILayout.Width(commonWidth));
+                var filterInputStyle = new GUIStyle(newSkin.textField);
+                filterInputStyle.fontSize = (int)(filterInputStyle.fontSize * 0.8);
                 filterInput = GUILayout.TextField(filterInput, newSkin.textField, GUILayout.Height(commonHeight));
                 if (currentFilter == 2) {
                     if (GUILayout.Button("▼", newSkin.button, GUILayout.ExpandWidth(false))) {
                         onShaderSelect = (s) => { filters[2] = s; filterInput = s; };
                         CalcShaderDropSize();
-                        shaderScrollPos = dropRect.position;
+                        shaderScrollPos = shaderRect.position;
                         shaderDrop = 1;
                     }
                 }
@@ -225,7 +229,7 @@ namespace MassShaderEditor.Koikatu {
                     setNameInput = GUILayout.TextField(setNameInput, newSkin.textField, GUILayout.Height(commonHeight));
                     setName = setNameInput.Trim();
                     if (GUILayout.Button("▼", newSkin.button, GUILayout.ExpandWidth(false))) {
-                        if ((tab == SettingType.Float && floatHist.Count > 0) || (tab == SettingType.Color && colHist.Count > 0)) {
+                        if ((tab == SettingType.Float && floatHist.Count > 0) || (tab == SettingType.Color && colHist.Count > 0) || (tab == SettingType.Texture && texHist.Count > 0)) {
                             onHistorySelect = (i) => {
                                 if (tab == SettingType.Float) {
                                     setName = floatHist[i].name;
@@ -235,12 +239,28 @@ namespace MassShaderEditor.Koikatu {
                                 } else if (tab == SettingType.Color) {
                                     setName = colHist[i].name;
                                     setNameInput = setName;
-                                    setCol = colHist[i].col;
+                                    setCol = colHist[i].col.ToColor();
                                     if (IsDebug.Value) Log($"Restoring history item: {colHist[i].name} to {colHist[i].col}");
+                                } else if (tab == SettingType.Texture) {
+                                    setName = texHist[i].name;
+                                    setNameInput = setName;
+                                    setTex.data = texHist[i].texData;
+                                    if (setTex.data != null) {
+                                        var tex = new Texture2D(1, 1);
+                                        tex.LoadImage(setTex.data);
+                                        setTex.tex = tex;
+                                    } else setTex.tex = null;
+                                    if (texHist[i].texScale != null && texHist[i].texOffset != null) {
+                                        setTex.scale = texHist[i].texScale;
+                                        setTex.offset = texHist[i].texOffset;
+                                    }
+                                    setTexAffectTex = texHist[i].texData != null;
+                                    setTexAffectDims = texHist[i].texScale != null;
+                                    if (IsDebug.Value) Log($"Restoring history item: {texHist[i].name} with{((texHist[i].texData == null) ? "out" : "")} a texture{((texHist[i].texScale == null) ? "" : $" - Scale ({texHist[i].texScale[0]},{texHist[i].texScale[1]}) Offset ({texHist[i].texOffset[0]},{texHist[i].texOffset[1]})")}");
                                 }
                             };
                             CalcHistoryDropSize();
-                            historyScrollPos = dropRect.position;
+                            historyScrollPos = shaderRect.position;
                             historyDrop = true;
                         }
                     }
@@ -450,7 +470,7 @@ namespace MassShaderEditor.Koikatu {
                     if (GUILayout.Button("▼", newSkin.button, GUILayout.ExpandWidth(false))) {
                         onShaderSelect = (s) => { setShader = s; setShaderInput = s; };
                         CalcShaderDropSize();
-                        shaderScrollPos = dropRect.position;
+                        shaderScrollPos = shaderRect.position;
                         shaderDrop = 2;
                     }
                     GUILayout.EndHorizontal();
@@ -521,9 +541,6 @@ namespace MassShaderEditor.Koikatu {
             GUILayout.EndVertical();
 
             GUI.DragWindow();
-
-            // if (isHelp) windowRect.position = helpRect.position - new Vector2(windowRect.size.x + 3, 0);
-            // if (isSetting) windowRect.position = setRect.position - new Vector2(windowRect.size.x + 3, 0);
 
             if (windowRect.position.x < -windowRect.size.x * 0.9f) windowRect.position -= new Vector2(windowRect.position.x + windowRect.size.x * 0.9f, 0);
             if (windowRect.position.y < 0) windowRect.position -= new Vector2(0, windowRect.position.y);
@@ -761,31 +778,20 @@ namespace MassShaderEditor.Koikatu {
         }
 
         private void HistoryDropFunction(int windowID) {
-            historyScrollPos = GUILayout.BeginScrollView(historyScrollPos, false, true, GUIStyle.none, newSkin.verticalScrollbar, GUILayout.Height(windowRect.height * 1.2f), GUILayout.Width(historyDropWidth));
+            historyScrollPos = GUILayout.BeginScrollView(historyScrollPos, false, true, GUIStyle.none, newSkin.verticalScrollbar,
+                new GUILayoutOption[] { GUILayout.Height(windowRect.height * 1.2f), GUILayout.Width(historyDropWidth) });
             var scrollBtnStyle = new GUIStyle(newSkin.button) {
                 alignment = TextAnchor.MiddleLeft
             };
             List<HistoryItem> items = null;
             if (tab == SettingType.Float) items = floatHist;
             else if (tab == SettingType.Color) items = colHist;
+            else if (tab == SettingType.Texture) items = texHist;
             items.Reverse();
             foreach (HistoryItem item in items) {
-                if (tab == SettingType.Float) {
-                    if (GUILayout.Button(item.name + ": " + item.val.ToString("0.000"), scrollBtnStyle)) {
-                        onHistorySelect.Invoke(items.IndexOf(item));
-                        historyDrop = false;
-                    }
-                } else if (tab == SettingType.Color) {
-                    var img = new Texture2D(3 * newSkin.label.fontSize, newSkin.label.fontSize);
-                    for (int i = 0; i < 3 * newSkin.label.fontSize; i++)
-                        for (int j = 0; j < newSkin.label.fontSize; j++)
-                            img.SetPixel(i, j, item.col);
-                    img.Apply();
-                    GUIContent content = new GUIContent(" " + item.name, img);
-                    if (GUILayout.Button(content, scrollBtnStyle)) {
-                        onHistorySelect.Invoke(items.IndexOf(item));
-                        historyDrop = false;
-                    }
+                if (GUILayout.Button(GetHistoryContent(item), scrollBtnStyle)) {
+                    onHistorySelect.Invoke(items.IndexOf(item));
+                    historyDrop = false;
                 }
             }
             items.Reverse();
@@ -811,7 +817,7 @@ namespace MassShaderEditor.Koikatu {
             if (setTex.tex != null) {
                 GUILayout.Label(new GUIContent(setTex.tex), imgLabelStyle, new GUILayoutOption[] { GUILayout.Width(imgSize), GUILayout.Height(imgSize) });
             } else {
-                GUILayout.Label(new GUIContent("No Image"), imgLabelStyle, new GUILayoutOption[] { GUILayout.Width(imgSize), GUILayout.Height(imgSize) });
+                GUILayout.Label(new GUIContent("No Texture"), imgLabelStyle, new GUILayoutOption[] { GUILayout.Width(imgSize), GUILayout.Height(imgSize) });
             }
 
             GUI.DragWindow();
@@ -864,27 +870,23 @@ namespace MassShaderEditor.Koikatu {
         }
 
         private void CalcShaderDropSize() {
+            shaderRect.width = 1;
             List<float> widths = new List<float>();
             foreach (var shader in shaders) widths.Add(newSkin.button.CalcSize(new GUIContent(shader)).x);
             shaderDropWidth = widths.Max() + newSkin.button.CalcSize(new GUIContent("TEST")).y;
         }
 
         private void CalcHistoryDropSize() {
+            historyRect.width = 1;
             List<float> widths = new List<float>();
             List<HistoryItem> items = null;
             if (tab == SettingType.Float) items = floatHist;
             else if (tab == SettingType.Color) items = colHist;
-            GUIContent content = null;
+            else if (tab == SettingType.Texture) items = texHist;
             foreach (var item in items) {
-                if (tab == SettingType.Float) {
-                    content = new GUIContent(item.name + ": " + item.val.ToString("0.000"));
-                } else if (tab == SettingType.Color) {
-                    var img = new Texture2D(3 * newSkin.label.fontSize, newSkin.label.fontSize);
-                    content = new GUIContent(" " + item.name, img);
-                }
-                widths.Add(newSkin.button.CalcSize(content).x);
+                widths.Add(newSkin.button.CalcSize(GetHistoryContent(item)).x);
             }
-            historyDropWidth = widths.Max() + newSkin.button.CalcSize(new GUIContent("TEST")).y;
+            historyDropWidth = widths.Max() + newSkin.button.CalcSize(new GUIContent("TEST")).y * 2;
         }
 
         private void InitUI() {
@@ -913,7 +915,7 @@ namespace MassShaderEditor.Koikatu {
 
         private void ScaleUI(float scale) {
             windowRect.size = new Vector2(windowRect.size.x * scale / prevScale, 1);
-            dropRect.size = new Vector2(dropRect.size.x, windowRect.size.y * 1.3f);
+            shaderRect.size = new Vector2(shaderRect.size.x, windowRect.size.y * 1.3f);
             mixRect.size = new Vector2(1, windowRect.size.y);
             texRect.size = new Vector2(10, 10);
             warnRect.size *= scale / prevScale;
@@ -958,7 +960,7 @@ namespace MassShaderEditor.Koikatu {
         }
 
         private void DrawTooltip(string _tip) {
-            if (!_tip.IsNullOrEmpty() && ShowTooltips.Value && (shaderDrop == 0 || !dropRect.Contains(Input.mousePosition.InvertScreenY()))) {
+            if (!_tip.IsNullOrEmpty() && ShowTooltips.Value && (shaderDrop == 0 || !shaderRect.Contains(Input.mousePosition.InvertScreenY()))) {
                 var tipStyle = new GUIStyle(newSkin.box) {
                     wordWrap = true,
                     alignment = TextAnchor.MiddleCenter
@@ -1001,12 +1003,15 @@ namespace MassShaderEditor.Koikatu {
             string colString = "";
             for (int i = 0; i < colHist.Count; i++) {
                 colString += colHist[i].name + "," +
-                    colHist[i].col.r.ToString("0.000") + "," +
-                    colHist[i].col.g.ToString("0.000") + "," +
-                    colHist[i].col.b.ToString("0.000") + "," +
-                    colHist[i].col.a.ToString("0.000") + ";";
+                    colHist[i].col.ToColor().r.ToString("0.000") + "," +
+                    colHist[i].col.ToColor().g.ToString("0.000") + "," +
+                    colHist[i].col.ToColor().b.ToString("0.000") + "," +
+                    colHist[i].col.ToColor().a.ToString("0.000") + ";";
             }
             ColorHistory.Value = colString;
+            if (SaveTextures.Value) {
+                WriteToBinaryFile(GetDataPath(), texHist, false);
+            }
         }
 
         private void ReadHistory() {
@@ -1033,8 +1038,15 @@ namespace MassShaderEditor.Koikatu {
                             Studio.Utility.StringToFloat(currentParts[2]),
                             Studio.Utility.StringToFloat(currentParts[3]),
                             Studio.Utility.StringToFloat(currentParts[4])
-                        )
+                        ).ToArray()
                     });
+                }
+            }
+            if (File.Exists(GetDataPath())) {
+                texHist.Clear();
+                var textures = (List<HistoryItem>)ReadFromBinaryFile(GetDataPath());
+                for (int i = 0; i < textures.Count; i++) {
+                    texHist.Add(textures[i]);
                 }
             }
         }
@@ -1042,34 +1054,119 @@ namespace MassShaderEditor.Koikatu {
         private void HistoryAppend<T>(T _value) {
             if (_value is float floatval) {
                 if (setReset) {
-                    HistoryAppend(setName, 0, null);
+                    HistoryAppend(setName, 0, null, null);
                 } else {
-                    HistoryAppend(setName, floatval, null);
+                    HistoryAppend(setName, floatval, null, null);
                 }
             } else if (_value is Color colval) {
                 if (setReset) {
-                    HistoryAppend(setName, null, Color.black);
+                    HistoryAppend(setName, null, new Color(0, 0, 0, 0), null);
                 } else {
-                    HistoryAppend(setName, null, colval);
+                    HistoryAppend(setName, null, colval, null);
+                }
+            } else if (_value is ScaledTex texval) {
+                if (setReset) {
+                    HistoryAppend(setName, null, null, new ScaledTex());
+                } else {
+                    HistoryAppend(setName, null, null, texval);
                 }
             }
         }
 
-        private void HistoryAppend(string name, float? val, Color? col) {
+        private void HistoryAppend(string name, float? val, Color? col, ScaledTex tex) {
             if (val != null) {
                 if (floatHist.Count == 10) floatHist.RemoveAt(0);
                 floatHist.Add(new HistoryItem { name = name, val = (float)val });
-            } else if (col != null) {
+            }
+            if (col != null) {
                 if (colHist.Count == 10) colHist.RemoveAt(0);
-                colHist.Add(new HistoryItem { name = name, col = (Color)col });
+                colHist.Add(new HistoryItem { name = name, col = col?.ToArray() });
+            }
+            if (tex != null) {
+                if (texHist.Count == 10) texHist.RemoveAt(0);
+                texHist.Add(new HistoryItem {
+                    name = name,
+                    texData = setTexAffectTex ? tex.data : null,
+                    texScale = setTexAffectDims ? tex.scale : null,
+                    texOffset = setTexAffectDims ? tex.offset : null
+                });
             }
             SaveHistory();
+            dicHistContent.Clear();
         }
 
+        private string GetDataPath() {
+            var parts = Paths.BepInExConfigPath.Split(Path.DirectorySeparatorChar).ToList();
+            parts[parts.Count - 1] = $"{GUID}.data";
+            return parts.Join(x => x, Path.DirectorySeparatorChar.ToString());
+        }
+
+        private GUIContent GetHistoryContent(HistoryItem item) {
+            if (dicHistContent.ContainsKey(item)) return dicHistContent[item];
+            GUIContent content = null;
+            if (tab == SettingType.Float) {
+                content = new GUIContent(item.name + ": " + item.val.ToString("0.000"));
+            } else if (tab == SettingType.Color) {
+                var img = new Texture2D(3 * newSkin.label.fontSize, newSkin.label.fontSize);
+                for (int i = 0; i < 3 * newSkin.label.fontSize; i++)
+                    for (int j = 0; j < newSkin.label.fontSize; j++)
+                        img.SetPixel(i, j, item.col.ToColor());
+                img.Apply();
+                content = new GUIContent(" " + item.name, img);
+            } else if (tab == SettingType.Texture) {
+                string text = " " + item.name;
+                if (item.texScale != null && item.texOffset != null) {
+                    text += $" - Offset: ({item.texOffset[0]},{item.texOffset[1]}) Scale: ({item.texScale[0]},{item.texScale[1]})";
+                }
+                Texture2D img;
+                if (item.texData != null) {
+                    img = new Texture2D(1, 1);
+                    img.LoadImage(item.texData);
+                    float scale = (2f * newSkin.label.fontSize) / Mathf.Max(img.height, img.width);
+                    img = img.ResizeTexture(TextureUtils.ImageFilterMode.Biliner, scale);
+                } else {
+                    img = new Texture2D(2 * newSkin.label.fontSize, newSkin.label.fontSize, TextureFormat.RGBAHalf, false);
+                }
+                content = new GUIContent(text, img);
+            }
+            if (content != null) {
+                dicHistContent[item] = content;
+                return content;
+            }
+            throw new Exception("Tried generating history item for unknown tab!");
+        }
+
+        private void WriteToBinaryFile<T>(string filePath, T objectToWrite, bool append = false) {
+            try {
+                using (Stream stream = File.Open(filePath, append ? FileMode.Append : FileMode.Create)) {
+                    var binaryFormatter = new System.Runtime.Serialization.Formatters.Binary.BinaryFormatter();
+                    binaryFormatter.Serialize(stream, objectToWrite);
+                }
+            } catch (Exception e) {
+                Log(e.Source + e.Message, 3);
+            }
+        }
+
+        private object ReadFromBinaryFile(string filePath) {
+            try {
+                using (Stream stream = File.Open(filePath, FileMode.Open)) {
+                    var binaryFormatter = new System.Runtime.Serialization.Formatters.Binary.BinaryFormatter();
+                    return binaryFormatter.Deserialize(stream);
+                }
+            } catch (Exception e) {
+                Log(e.Source + e.Message, 3);
+                return null;
+            }
+        }
+
+        [Serializable]
         public class HistoryItem {
             public string name = "";
             public float val = 0;
-            public Color col = Color.black;
+            public float[] col = null;
+            public byte[] texData = null;
+            public float[] texScale = null;
+            public float[] texOffset = null;
         }
 
         public class ScaledTex {
