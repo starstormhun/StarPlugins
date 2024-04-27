@@ -236,7 +236,7 @@ namespace MassShaderEditor.Koikatu {
                         }
                         if (isHelp) {
                             Vector2 oldPos = helpRect.position;
-                            helpRect = GUILayout.Window(588, helpRect, HelpFunction, "How to use?", newSkin.window, GUILayout.MaxWidth(defaultSize[2] * UIScale.Value * 0.8f));
+                            helpRect = GUILayout.Window(588, helpRect, HelpFunction, "How to use?", newSkin.window, GUILayout.MaxWidth(defaultSize[2] * UIScale.Value * 0.9f));
                             IMGUIUtils.EatInputInRect(helpRect);
                             Redraw(1588, helpRect, redrawNum);
                             if ((helpRect.position - oldPos) != Vector2.zero) {
@@ -245,7 +245,7 @@ namespace MassShaderEditor.Koikatu {
                         }
                         if (isSetting) {
                             Vector2 oldPos = setRect.position;
-                            setRect = GUILayout.Window(588, setRect, SettingFunction, "Settings ۞", newSkin.window, GUILayout.MaxWidth(defaultSize[2] * UIScale.Value * 0.8f));
+                            setRect = GUILayout.Window(588, setRect, SettingFunction, "Settings ۞", newSkin.window, GUILayout.MaxWidth(defaultSize[2] * UIScale.Value * 0.9f));
                             DrawTooltip(tooltip[0]);
                             IMGUIUtils.EatInputInRect(setRect);
                             Redraw(1588, setRect, redrawNum);

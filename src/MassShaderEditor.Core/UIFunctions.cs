@@ -115,6 +115,7 @@ namespace MassShaderEditor.Koikatu {
         private const string missingPropertyMessage = "You need to input the name of the property to be modified!";
         private const string texNoAffectChecksMessage = "Please choose to affect either at least texture data or offset / scale values!";
         private const string texEmptyMessage = "Please specify a texture to use!";
+        private const string saveTexExplainText = "Whether to save texture edit history to disk. Note: In-session the edit history will always be remembered.";
         private const string valueExplainText = "The value to be used in the modification, according to the method chosen below.";
         private const string colorExplainText = "The color to be assigned to the specified propety.";
         private const string textureExplainText = "The texture to be assigned to the specified property.";
@@ -646,11 +647,18 @@ namespace MassShaderEditor.Koikatu {
                     GUILayout.EndHorizontal(); GUILayout.Space(8);
                 } // End UI Scale
 
-                // Show tooltips
-                GUILayout.BeginHorizontal();
-                if (GUILayout.Button($"Tooltips: {(ShowTooltips.Value ? "Yes" : "No")}", newSkin.button, GUILayout.Width(halfWidth)))
-                    ShowTooltips.Value = !ShowTooltips.Value;
-                GUILayout.FlexibleSpace(); GUILayout.EndHorizontal();
+                // Misc
+                {
+                    
+                    GUILayout.BeginHorizontal();
+                    // Tooltips
+                    if (GUILayout.Button($"Tooltips: {(ShowTooltips.Value ? "Yes" : "No")}", newSkin.button, GUILayout.MaxWidth(halfWidth)))
+                        ShowTooltips.Value = !ShowTooltips.Value;
+                    // Save textures
+                    if (GUILayout.Button(new GUIContent($"Save textures: {(SaveTextures.Value ? "Yes" : "No")}", saveTexExplainText), newSkin.button, GUILayout.MaxWidth(halfWidth)))
+                        SaveTextures.Value = !SaveTextures.Value;
+                    GUILayout.FlexibleSpace(); GUILayout.EndHorizontal();
+                }
             } // End general
 
             Spacer();
