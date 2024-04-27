@@ -641,8 +641,8 @@ namespace MassShaderEditor.Koikatu {
                     GUILayout.Label("→ " + newScale.ToString("0.00"), newSkin.label, GUILayout.ExpandWidth(false));
 
                     // Button
-                    if (GUILayout.Button("Set", newSkin.button, GUILayout.ExpandWidth(false)))
-                        UIScale.Value = newScale;
+                    if (GUILayout.Button(new GUIContent("Set", "Right click to reset to 1.5"), newSkin.button, GUILayout.ExpandWidth(false)))
+                        UIScale.Value = setReset ? 1.5f : newScale;
 
                     GUILayout.EndHorizontal(); GUILayout.Space(8);
                 } // End UI Scale
