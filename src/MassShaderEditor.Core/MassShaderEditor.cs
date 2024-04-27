@@ -122,7 +122,6 @@ namespace MassShaderEditor.Koikatu {
 
             HookPatch.Init();
             if (IsDebug.Value) Log("Awoken!");
-            Log(Paths.BepInExConfigPath);
         }
 
         private void Update() {
