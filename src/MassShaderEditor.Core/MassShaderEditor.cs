@@ -189,11 +189,11 @@ namespace MassShaderEditor.Koikatu {
             }
 
             // Set / reset logic
-            if (Input.GetMouseButtonDown(1) && windowRect.Contains(Input.mousePosition.InvertScreenY()) && !showWarning) {
+            if (Input.GetMouseButtonDown(1) && (windowRect.Contains(Input.mousePosition.InvertScreenY()) || setRect.Contains(Input.mousePosition.InvertScreenY())) && !showWarning) {
                 setReset = true;
                 if (IsDebug.Value) Log($"RMB detected! setReset: {setReset}");
             }
-            if (Input.GetMouseButtonDown(0) && windowRect.Contains(Input.mousePosition.InvertScreenY()) && !showWarning) {
+            if (Input.GetMouseButtonDown(0) && (windowRect.Contains(Input.mousePosition.InvertScreenY()) || setRect.Contains(Input.mousePosition.InvertScreenY())) && !showWarning) {
                 setReset = false;
                 if (IsDebug.Value) Log($"LMB detected! setReset: {setReset}");
             }

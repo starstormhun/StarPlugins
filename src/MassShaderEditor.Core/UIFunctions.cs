@@ -190,7 +190,8 @@ namespace MassShaderEditor.Koikatu {
                 GUILayout.Label(new GUIContent(filterText, "Only shaders matching these filters will be edited"), newSkin.label, GUILayout.Width(commonWidth));
                 var filterInputStyle = new GUIStyle(newSkin.textField);
                 filterInputStyle.fontSize = (int)(filterInputStyle.fontSize * 0.8);
-                filterInput = GUILayout.TextField(filterInput, newSkin.textField, GUILayout.Height(commonHeight));
+                filterInputStyle.alignment = TextAnchor.MiddleLeft;
+                filterInput = GUILayout.TextField(filterInput, filterInputStyle, GUILayout.Height(commonHeight));
                 if (currentFilter == 2) {
                     if (GUILayout.Button("▼", newSkin.button, GUILayout.ExpandWidth(false))) {
                         onShaderSelect = (s) => { filters[2] = s; filterInput = s; };
