@@ -236,7 +236,7 @@ namespace MassShaderEditor.Koikatu {
                         }
                         if (isHelp) {
                             Vector2 oldPos = helpRect.position;
-                            helpRect = GUILayout.Window(588, helpRect, HelpFunction, "How to use?", newSkin.window, GUILayout.MaxWidth(defaultSize[2] * UIScale.Value * 0.9f));
+                            helpRect = GUILayout.Window(588, helpRect, HelpFunction, "How to use?", newSkin.window, GUILayout.MaxWidth(defaultSize[2] * UIScale.Value * 1.1f));
                             IMGUIUtils.EatInputInRect(helpRect);
                             Redraw(1588, helpRect, redrawNum);
                             if ((helpRect.position - oldPos) != Vector2.zero) {

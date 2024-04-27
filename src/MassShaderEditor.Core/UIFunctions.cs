@@ -91,24 +91,51 @@ namespace MassShaderEditor.Koikatu {
         private string newScaleText = "1.00";
         private float newScaleSlider = 1;
 
+        private int helpSection = 0;
         private int helpPage = 0;
-        private readonly string[] tooltip = new string[]{ "",""};
+        private readonly string[] tooltip = new string[]{ "","" };
         private delegate void OnShaderSelectFunc(string s);
         private delegate void OnHistorySelectFunc(int i);
 
-        private readonly List<string> helpText = new List<string>{
-            "To use, first choose whether the property you want to edit is a value, or a color using the buttons at the top of the UI. Afterwards you can input its name, and set the desired value/color using the fields below those.",
-            "You can either type in the name of the property you want to edit, or you can click its name in the MaterialEditor UI, or click the timeline integration button that you can enable in the ME settings. Clicking these things will autofill the property name.",
-            "You can also set up a shader name filter by clicking the 'Shader' label or Timeline button in MaterialEditor next to the dropdown list of the shader, but it can also be inputted manually. The filter doesn't have to be the full name of the shader. If left empty, all shaders will be edited.",
-            "When modifying slider properties, you can choose from 5 operations to perform on the old value with the button row that appears: Replace, Add, Multiply, Minimum (Every affedted value will be at LEAST the set amount), or Maximum (Every affected value will be at MOST the set amount)",
-            "When modifying color properties, you can also choose from 5 operations: Set(Replaces colors), Mix (Averages colors), Add 1 (Adds the individual color values and caps them at 1), Add 2 (Adds the values without capping), or Subtract(Does not subtract below 0)",
-            "While mixing colors, an additional slider will appear to the left of the window which controls how much the set value is taken into consideration. At 1, the mix operation is the same as Set, and at 0, it does nothing.",
-            "After filtering and naming the property, and choosing the operation, you can click 'Modify Selected', or 'Modify ALL'. In Studio, 'Modify Selected' will modify items you currently have selected in the Workspace. Also in Studio, 'Modify ALL' will modify EVERYTHING in the scene.",
-            "In Character Maker, 'Modify Selected' will affect only the currently edited clothing piece or accessory. When in the face or body menus, the appropriate body part will be affected instead. The 'Modify ALL' button in Maker affects all of the currently edited category.",
-            "Right-clicking either of these two buttons will reset the specified property of the appropriate items to the default value instead of setting the one you have currently inputted.",
-            "Apart from modifying float and color values of shaders, you can also replace shaders with other shaders by choosing the Shader tab in the menu bar. You can filter for shaders to be modified like in the previous cases, and you can select the desired shader from the dropdown list.",
-            "Autofilling the shader filter works the same in all three tabs. Additionally, you can autofill the shader to be set by SHIFT + clicking the Shader: label or timeline integration button.",
-            "While replacing shaders, you can also specify the render queue of the shader. If left blank, invalid, or 0, the render queue will not be modified. Render queue can also be modified in the Value tab, by inputting its name in the property field, or clicking 'Render Queue:' in Material Editor, which autofills it for you."
+        private readonly List<string> helpSections = new List<string> { "General", "Filtering", "Values", "Settings", "Info" };
+        private readonly List<List<string>> helpText = new List<List<string>>{
+            new List<string> {
+                "Mass Shader Editor can do four different things with shaders:\n- Edit numeric properties\n- Edit color properties\n- Copy and paste textures\n- Swap shaders\nIt works on items and characters both, and it's possible to filter exactly which items and properties it will modify.",
+                "To use the plugin, you have to choose one of the four tabs from the top bar, optionally set up filters, pick a property name to edit, and give it's value.\nOnce all of those are set up, you can click either \"Modify Selected\" or \"Modify ALL\". The way these buttons work is slightly different in Studio and in Maker.",
+                "In Maker, when you click \"Modify Selected\" the plugin will look at the currently selected item and look for shaders to edit in that item.\nFor example, if you're editing the Legwear of a character, it will only affect that.",
+                "In contrast, \"Modify ALL\" will affect the entire category of items you're currently editing: in the previous example, it would affect every piece of clothing on the current outfit.\nThe different categories of items that can be affected are: Body, Hair, Clothing, Accessories.",
+                "In Studio, \"Modify Selected\" will affect only the items / characters that are currently selected in the Workspace, whereas \"Modify ALL\" will affect every single item and character in the entire scene.",
+                "Right-clicking \"Modify Selected\" or \"Modify ALL\" in either Maker or Studio will RESET the specified shader properties instead of setting them.",
+                "Next to the property selector there is a dropdown arrow, which will let you restore previously used values and property names. The value/color histories will always be saved, but saving the texture history has to be toggled from the settings."
+            },
+            new List<string> {
+                "There are three kinds of filters you can set up: Renderer, Material, Shader.\nThey will filter which shaders to affect based on the names of their respective renderers and materials, and their own names.",
+                "To choose which shader to set up, click the R/M/S buttons next to the filter input.\nAn asterisk (*) after the letter indicates that the filter is active. All active filters will be applied when modifying.\nTo clear all filters, click the × button.",
+                "When setting up a shader name filter, a dropdown will appear with all MaterialEditor-available shader names to choose from.\nYou can filter different shaders as well, but you have to input their names manually.",
+                "Every filter is a wildcard, meaning that if you want to affect all \"KKUTShair', \"KKUTS', and \"KKUTSeye\" shaders you can simply input \"KKUTS\" or \"UTS\" in the shader filter.\nYou can auto-fill filters by clicking their names in Material Editor. For shaders you have to click the \"Shader:\" label to the left of the dropdown.",
+                "The property field specifies which property to affect. This is case-sensitive and you have to type the full name of the property here.\nThese can also be auto-filled by clicking the appropriate labels in Material Editor. If you shift+click a \"Shader:\" label then its value will be put into the \"Shader\" field on the \"Shader\" tab, instead of the \"Filter\" field."
+            },
+            new List<string> {
+                "On the \"Value\" tab you can specify the value in two ways: Manual input or slider. The limits of the slider are configurable.\nAfter choosing a value, you also have to choose what way the value will be applied to the shader property.",
+                "There are five options for choosing what to do with the specified value:\n- \"=\": Replace with the specified value\n- \"+\": Add to the current value\n- \"×\": Multiply the current value\n- \"Min\": Replace values lower than the specified\n- \"Max\": Replace values higher than the specified",
+                "On the \"Color\" tab you can specify the color in three ways: Hex input, color picker, or value input. To open the color picker, click the color display.\nYou can manually set components above 1 or below 0, but if you do then the text input will be set to ########.",
+                "There are five options for choosing what to do with the specified color:\n- \"Set\": Replace the current color\n- \"Mix\": Mix with the current color\n- \"Add1\": Add to the color, capping at 1\n- \"Add2\": Add to the color, no cap\n- \"Sub\": Subtract from the color, floor 0\nThe mix ratio can be set by the slider that pops up on the left. (Higher = more effect)",
+                "On the \"Texture\" tab you can specify the texture in two ways: By selecting a file from the disk, or by copying an existing texture from a material. When copying, the first texture that matches the filters and the property name will be selected.",
+                "On this same tab you can also specify texture scales/offsets to be set when modifying a texture.\nWhether the texture or the scale/offset will be modified can be toggled with two checkboxes at the end of the respective lines.",
+                "On the \"Shader\" tab you can swap shaders for other shaders by filtering similar to the other tabs and choosing a shader to be set. The shader name to be set has to match the shader name EXACTLY. For this reason it is recommended to use the dropdown.",
+                "Together with shader swapping, the plugin is also able to modify filtered shaders\" render queue, which can be set on this tab. If left empty, 0, or non-numeric, it will not be modified.\nThe render queue can also be modified on the \"Value\" tab by inputting \"RQ', \"Render Queue', \"RenderQueue', or differently capitalised versions of those in the Property selector."
+            },
+            new List<string> {
+                "The settings tab can be opened via the cogwheel icon in the top right next to the \"?\" button, and it lets you toggle most settings of the plugin.\nThese settings are different for Maker and Studio, but there are some common elements.",
+                "In both Maker and Studio, you can set the UI Scale, which will modify the size of the plugin's UI. You can also toggle whether tooltips will be shown and whether you want to save texture edit history to disk.",
+                "In Maker, you can choose whether to affect miscellaneous body parts such as eyes/tongue/noseline/penis/etc. If set to Yes, then they will only be affected when you're on the Face or Body tabs in the editor, and if you hit \"Modify ALL\".",
+                "The other setting in Maker is \"Hair accs are hair\". When using \"Modify Selected', this setting has no effect, but when using \"Modify ALL', and if this setting is turned on to Yes, then hair accessories will ONLY be modified if you're on the Hair tab in the editor.",
+                "In Studio, you can set whether to \"Dive\" folders and items. This modifies the behaviour of the \"Modify Selected\" button: If the selected items include an item which is set as diveable, then its children will also be modified. This is recursive, so if there are diveable items among the children, then their children are included as well.",
+                "Furthermore, you can choose if you want characters to be affected at all, and if yes, then which parts of them. \"Misc parts\" refers to parts of characters such as tongue, eyebrows, and such, like in Maker, but unlike in Maker, \"Modify Selected\" will affect them as well."
+            },
+            new List<string> {
+                $"MassShaderEditor Version {Version}\nPlugin made by Starstorm"
+            }
         };
         private const string introText = "Welcome to Mass Shader Editor! To get started, I first recommend checking out the Help section, which will tell you how to best use this plugin, and any specifics on what each of the buttons and options do.\n\nTo access the help section, click the yellow '?' symbol in the top right corner of the plugin window.\n\nAfterwards, you should check out the various settings of the plugin, accessible either in the F1 menu or by clicking the cogwheel icon next to the help button. The available settings are different in Maker and in Studio!\n\nHappy creating!";
         private const string shaderNameWrongMessage = "You need to input the full name (CASE-sensitive) of the shader to be set! The name has to be from the dropdown list.";
@@ -567,28 +594,48 @@ namespace MassShaderEditor.Koikatu {
             GUILayout.BeginHorizontal();
             if (GUILayout.Button("<<", newSkin.button)) {
                 helpPage = 0;
-                CalcSizes();
-            }
-            Spacer();
-            if (GUILayout.Button(" < ", newSkin.button)) {
-                if (--helpPage < 0) helpPage++;
+                if (--helpSection < 0) helpSection = helpSections.Count - 1;
                 CalcSizes();
             }
 
-            GUILayout.FlexibleSpace(); GUILayout.Label($"Page {helpPage+1}/{helpText.Count}", newSkin.label); GUILayout.FlexibleSpace();
+            GUILayout.FlexibleSpace(); GUILayout.Label($"Section {helpSection + 1}/{helpSections.Count} ({helpSections[helpSection]})", newSkin.label); GUILayout.FlexibleSpace();
+
+            if (GUILayout.Button(">>", newSkin.button)) {
+                helpPage = 0;
+                if (++helpSection == helpSections.Count) helpSection = 0;
+                CalcSizes();
+            }
+
+            GUILayout.EndHorizontal();
+            GUILayout.BeginHorizontal();
+
+            if (GUILayout.Button(" < ", newSkin.button)) {
+                if (--helpPage < 0) {
+                    if (--helpSection < 0) helpSection = helpSections.Count - 1;
+                    helpPage = helpText[helpSection].Count - 1;
+                }
+                CalcSizes();
+            }
+
+            GUILayout.FlexibleSpace(); GUILayout.Label($"Page {helpPage + 1}/{helpText[helpSection].Count}", newSkin.label); GUILayout.FlexibleSpace();
 
             if (GUILayout.Button(" > ", newSkin.button)) {
-                if (++helpPage == helpText.Count) helpPage--;
+                if (++helpPage == helpText[helpSection].Count) {
+                    if (++helpSection == helpSections.Count) helpSection = 0;
+                    helpPage = 0;
+                }
                 CalcSizes();
             }
-            Spacer();
-            if (GUILayout.Button(">>", newSkin.button)) {
-                helpPage = helpText.Count - 1;
-                CalcSizes();
-            }
+
+            var helpStyle = new GUIStyle(newSkin.label);
+            if (helpSection == helpSections.Count - 1)
+                helpStyle.alignment = TextAnchor.MiddleCenter;
+            else
+                helpStyle.stretchWidth = true;
+
             GUILayout.EndHorizontal();
             GUILayout.FlexibleSpace();
-            GUILayout.Label(helpText[helpPage], newSkin.label);
+            GUILayout.Label(helpText[helpSection][helpPage], helpStyle);
             GUILayout.FlexibleSpace(); GUILayout.EndVertical();
             GUI.DragWindow();
         }
@@ -886,7 +933,7 @@ namespace MassShaderEditor.Koikatu {
         }
 
         private void CalcSizes() {
-            helpRect.size = new Vector2(windowRect.size.x, newSkin.label.CalcHeight(new GUIContent(helpText[helpPage]), windowRect.size.x) + newSkin.label.CalcHeight(new GUIContent("temp"), windowRect.size.x) + 10 * UIScale.Value);
+            helpRect.size = new Vector2(windowRect.size.x, newSkin.label.CalcHeight(new GUIContent(helpText[helpSection][helpPage]), windowRect.size.x) + newSkin.label.CalcHeight(new GUIContent("temp"), windowRect.size.x) + 10 * UIScale.Value);
             setRect.size = new Vector2(windowRect.size.x, newSkin.label.CalcHeight(new GUIContent("TEST"), setRect.size.x) + 10);
             infoRect.size = new Vector2(windowRect.size.x, 10);
         }
