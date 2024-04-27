@@ -322,12 +322,13 @@ namespace MassShaderEditor.Koikatu {
 
                     // Text input
                     {
-                        if (!setCol.Matches(setColString.ToColor()) && setCol.maxColorComponent <= 1 && setCol.a <= 1) {
+                        if (!setCol.Matches(setColString.ToColor()) && (setCol.ToArray().Max() <= 1) && (setCol.ToArray().Min() >= 0)) {
                             setColString = setCol.ToHex();
                             setColStringInput = setColString;
                             setColStringInputMemory = setColStringInput;
                         }
-                        setColStringInput = GUILayout.TextField(setColStringInput, newSkin.textField, GUILayout.Height(commonHeight));
+                        float colInputWidth = newSkin.textField.CalcSize(new GUIContent("########")).x * 1.2f;
+                        setColStringInput = GUILayout.TextField(setColStringInput, newSkin.textField, new GUILayoutOption[] { GUILayout.Height(commonHeight), GUILayout.Width(colInputWidth) });
                         if (setColStringInputMemory != setColStringInput) {
                             try {
                                 Color colConvert = setColStringInput.ToColor(); // May throw exception if hexcode is faulty
@@ -352,9 +353,15 @@ namespace MassShaderEditor.Koikatu {
                             setColPicker = setCol;
                             if (isPicker) ColorPicker(setColPicker, actPicker, true);
                         }
-                        if (GUILayout.Button(new GUIContent("Click", colorExplainText), Colorbutton(setColPicker.Clamp()))) {
-                            if (!isPicker) setColPicker = setColPicker.Clamp();
+                        if (GUILayout.Button(new GUIContent("Click", colorExplainText), Colorbutton(setColPicker))) {
                             isPicker = !isPicker;
+                            if (isPicker) {
+                                setColPicker = setColPicker.Clamp();
+                                setCol = setColPicker;
+                                setColString = setCol.ToHex();
+                                setColStringInput = setColString;
+                                setColStringInputMemory = setColString;
+                            }
                             ColorPicker(setColPicker, actPicker);
                         }
                         void actPicker(Color c) {
@@ -374,6 +381,9 @@ namespace MassShaderEditor.Koikatu {
                             setColNum = setCol.ToArray();
                         }
                         float[] buffer = (float[])setColNum.Clone();
+                        for (int i = 0; i < 4; i++) {
+                            buffer[i] = Mathf.Round(buffer[i] * 1000) / 1000f;
+                        }
                         GUILayout.Label("R", newSkin.label, GUILayout.ExpandWidth(false)); setColNum[0] = Studio.Utility.StringToFloat(GUILayout.TextField(setColNum[0].ToString("0.000"), newSkin.textField));
                         GUILayout.Label("  G", newSkin.label, GUILayout.ExpandWidth(false)); setColNum[1] = Studio.Utility.StringToFloat(GUILayout.TextField(setColNum[1].ToString("0.000"), newSkin.textField));
                         GUILayout.Label("  B", newSkin.label, GUILayout.ExpandWidth(false)); setColNum[2] = Studio.Utility.StringToFloat(GUILayout.TextField(setColNum[2].ToString("0.000"), newSkin.textField));
@@ -381,7 +391,7 @@ namespace MassShaderEditor.Koikatu {
                         if (!buffer.Matches(setColNum)) {
                             if (IsDebug.Value) Log($"Color changed from {setCol} to {setColNum.ToColor()} based on value input!");
                             setCol = setColNum.ToColor();
-                            if (setCol.maxColorComponent > 1 || setCol.a > 1) {
+                            if (setCol.ToArray().Max() > 1 || setCol.ToArray().Min() < 0) {
                                 if (isPicker) {
                                     isPicker = false;
                                     ColorPicker(Color.black, null);
@@ -389,7 +399,7 @@ namespace MassShaderEditor.Koikatu {
                                 setColStringInput = "########";
                                 setColStringInputMemory = "########";
                             }
-                            if (buffer.Max() > 1 && setCol.maxColorComponent <= 1 && setCol.a <= 1) {
+                            if ((buffer.Max() > 1 || buffer.Min() < 0) && (setCol.ToArray().Max() <= 1 && setCol.ToArray().Min() >=0)) {
                                 setColString = setCol.ToHex();
                                 setColStringInput = setColString;
                                 setColStringInputMemory = setColStringInput;
@@ -833,7 +843,7 @@ namespace MassShaderEditor.Koikatu {
 
         private void ColorPicker(Color col, Action<Color> act, bool update = false) {
             if (KoikatuAPI.GetCurrentGameMode() == GameMode.Studio) {
-                if (studio.colorPalette.visible && !update) {
+                if (studio.colorPalette.visible && !update && (studio.colorPalette.textWinTitle.m_text == pickerName)) {
                     studio.colorPalette.visible = false;
                 } else {
                     studio.colorPalette._outsideVisible = true;
@@ -852,15 +862,18 @@ namespace MassShaderEditor.Koikatu {
         }
 
         private GUIStyle Colorbutton(Color col) {
-            GUIStyle gUIStyle = new GUIStyle(newSkin.button);
+            GUIStyle guiStyle = new GUIStyle(newSkin.button);
             Texture2D texture2D = new Texture2D(1, 1, TextureFormat.RGBAFloat, false);
-            texture2D.SetPixel(0, 0, col);
+            float max = Mathf.Max(col.maxColorComponent, 1);
+            Color newCol = new Color(col.r / max, col.g / max, col.b / max, col.a);
+            texture2D.SetPixel(0, 0, newCol);
             texture2D.Apply();
-            gUIStyle.normal.background = texture2D;
-            gUIStyle.hover = gUIStyle.normal;
-            gUIStyle.onHover = gUIStyle.normal;
-            gUIStyle.onActive = gUIStyle.normal;
-            return gUIStyle;
+            guiStyle.normal.background = texture2D;
+            guiStyle.normal.textColor = ((col.maxColorComponent * col.a) > 0.7) ? new Color(0.1f, 0.1f, 0.1f) : new Color(0.9f, 0.9f, 0.9f);
+            guiStyle.hover = guiStyle.normal;
+            guiStyle.onHover = guiStyle.normal;
+            guiStyle.onActive = guiStyle.normal;
+            return guiStyle;
         }
 
         private void CalcSizes() {
