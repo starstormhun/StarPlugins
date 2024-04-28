@@ -21,8 +21,6 @@ namespace LightSettings.Koikatu {
 
         private static void Init() {
             if (!initialised) {
-
-
                 // Dummy container for reference elements
                 Transform mgr = GameObject.Find("BepInEx_Manager").transform;
                 GameObject templates = new GameObject("UIElement Templates");
@@ -49,34 +47,58 @@ namespace LightSettings.Koikatu {
 
                 // Setting up the reference control dicitonary to be cloned for custom UI elements
                 // Label
-                GameObject refLabel = Object.Instantiate(chaCtrl.Find("01_State/Viewport/Content/Cos"), templates.transform).gameObject;
-                refLabel.name = "Template_Label";
-                DelUnneeded(refLabel.transform, new List<string> { "Text" });
-                refControls.Add(ControlType.Label, refLabel);
+                {
+                    GameObject refLabel = Object.Instantiate(chaCtrl.Find("01_State/Viewport/Content/Cos"), templates.transform).gameObject;
+                    refLabel.name = "Template_Label";
+                    DelUnneeded(refLabel.transform, new List<string> { "Text" });
+                    refControls.Add(ControlType.Label, refLabel);
+                }
 
                 // Toggle
-                GameObject refToggle = Object.Instantiate(chaCtrl.Find("01_State/Viewport/Content/Etc/Son"), templates.transform).gameObject;
-                refToggle.name = "Template_Toggle";
-                refControls.Add(ControlType.Toggle, refToggle);
+                {
+                    GameObject refToggle = Object.Instantiate(chaCtrl.Find("01_State/Viewport/Content/Etc/Son"), templates.transform).gameObject;
+                    refToggle.name = "Template_Toggle";
+                    refControls.Add(ControlType.Toggle, refToggle);
+                }
 
                 // Slider
-                GameObject refSlider = Object.Instantiate(itemCtrl.Find("Image Alpha"), templates.transform).gameObject;
-                Object.DestroyImmediate(refSlider.GetComponent<Image>());
-                refSlider.name = "Template_Slider";
-                refControls.Add(ControlType.Toggle, refSlider);
+                {
+                    GameObject refSlider = Object.Instantiate(itemCtrl.Find("Image Alpha"), templates.transform).gameObject;
+                    Object.DestroyImmediate(refSlider.GetComponent<Image>());
+                    refSlider.name = "Template_Slider";
+                    refControls.Add(ControlType.Slider, refSlider);
+                }
 
                 // Color
-                GameObject refColor = Object.Instantiate(itemCtrl.GetChild(0), templates.transform).gameObject;
-                Object.DestroyImmediate(refColor.GetComponent<Image>());
-                Object.DestroyImmediate(refColor.transform.GetChild(refColor.transform.childCount - 1));
-                refColor.name = "Template_Color";
-                refControls.Add(ControlType.Color, refColor);
+                {
+                    GameObject refColor = Object.Instantiate(itemCtrl.GetChild(0), templates.transform).gameObject;
+                    Object.DestroyImmediate(refColor.GetComponent<Image>());
+                    Object.DestroyImmediate(refColor.transform.GetChild(refColor.transform.childCount - 1));
+                    refColor.name = "Template_Color";
+                    refControls.Add(ControlType.Color, refColor);
+                }
 
                 // Text
-                GameObject refText = Object.Instantiate(folderCtrl.GetChild(0), templates.transform).gameObject;
-                Object.Instantiate(refText.transform.GetChild(2), refText.transform);
-                for (int i = 0; i < refText.transform.childCount; i++) {
-                    refText.transform.GetChild(i).localPosition
+                {
+                    GameObject refText = Object.Instantiate(folderCtrl.GetChild(0), templates.transform).gameObject;
+                    GameObject refName = Object.Instantiate(refText.transform.GetChild(2), refText.transform).gameObject;
+                    refText.name = "Template_Text";
+                    refName.name = "Name";
+                    refName.GetComponent<RectTransform>().offsetMin = new Vector2(-35f, 0);
+                    refName.GetComponent<RectTransform>().offsetMax = new Vector2(-78f, 0);
+                    refText.transform.GetChild(2).GetComponent<RectTransform>().offsetMin = new Vector2(42f, 0);
+                    refText.transform.GetChild(2).GetComponent<RectTransform>().offsetMin = new Vector2(105f, 0);
+                    refControls.Add(ControlType.Text, refText);
+                }
+
+                // Choice
+                {
+
+                }
+
+                // Dropdown
+                {
+
                 }
 
                 initialised = true;
