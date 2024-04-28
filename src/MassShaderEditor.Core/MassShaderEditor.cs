@@ -29,7 +29,7 @@ namespace MassShaderEditor.Koikatu {
 	/// </info>
     public partial class MassShaderEditor : BaseUnityPlugin {
         public const string GUID = "starstorm.massshadereditor";
-        public const string Version = "1.1.0." + BuildNumber.Version;
+        public const string Version = "1.1.1." + BuildNumber.Version;
 
         // General
         public ConfigEntry<float> UIScale { get; private set; }
@@ -168,8 +168,9 @@ namespace MassShaderEditor.Koikatu {
                 IsShown = false;
 
             if (fileToOpen != "") {
+                setTex.data = System.IO.File.ReadAllBytes(fileToOpen);
                 Texture2D newTex = new Texture2D(1, 1);
-                newTex.LoadImage(System.IO.File.ReadAllBytes(fileToOpen));
+                newTex.LoadImage(setTex.data);
                 setTex.tex = newTex;
 
                 fileToOpen = "";
