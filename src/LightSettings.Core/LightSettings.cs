@@ -1,6 +1,6 @@
 using BepInEx;
 using BepInEx.Configuration;
-using UnityEngine;
+using KKAPI.Utilities;
 
 [assembly: System.Reflection.AssemblyFileVersion(LightSettings.Koikatu.LightSettings.Version)]
 
@@ -19,6 +19,9 @@ namespace LightSettings.Koikatu {
         public ConfigEntry<bool> Enabled { get; private set; }
 
         private void Awake() {
+            IsDebug = Config.Bind("Advanced", "Logging", false, new ConfigDescription("Enable verbose logging for debugging purposes", null, new KKAPI.Utilities.ConfigurationManagerAttributes { IsAdvanced = true }));
+            Enabled = Config.Bind("General", "Enable plugin", true, new ConfigDescription("Enable/disable the plugin entirely. You need to save/reload the scene after changing this.", null, new ConfigurationManagerAttributes { Order = 10 }));
+
             Log.SetLogSource(Logger);
 
             if (IsDebug.Value) Log.Info($"Plugin {GUID} has awoken!");

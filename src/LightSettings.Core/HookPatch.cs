@@ -24,9 +24,9 @@ namespace LightSettings.Koikatu {
                 _harmony.UnpatchSelf();
             }
 
-            // Description
+            // Explanation
             [HarmonyPostfix]
-            [HarmonyPatch(typeof(Studio.Studio), "Dummy")]
+            [HarmonyPatch(typeof(Studio.Studio), "Placeholder")]
             private static void PostfixPlaceholder() {
                 // Placeholder
             }

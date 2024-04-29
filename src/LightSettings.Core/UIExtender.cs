@@ -1,30 +1,42 @@
-﻿using System.Collections.Generic;
+﻿using BepInEx;
+using BepInEx.Configuration;
+using BepInEx.Logging;
+using KKAPI.Utilities;
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
 
 namespace LightSettings.Koikatu {
-    public static class UIExtender {
+    [BepInDependency(KKAPI.KoikatuAPI.GUID)]
+    [BepInProcess(KKAPI.KoikatuAPI.StudioProcessName)]
+    [BepInPlugin(GUID, "UI Extender", Version)]
+
+    public class UIExtender : BaseUnityPlugin {
+        public const string GUID = "starstorm.uiextender";
+        public const string Version = "0.1.0." + BuildNumber.Version;
+
+        internal static ManualLogSource logger;
+        private static int hello = 0;
         private static bool initialised = false;
         private static Sprite refBg;
         private static Sprite refBlack;
         private static Dictionary<ControlType, object> refControls = new Dictionary<ControlType, object>();
 
-        private enum ControlType {
-            Label,
-            Toggle,
-            Slider,
-            Color,
-            Text,
-            Choice,
-            Dropdown
+        private void Awake() {
+            logger = Logger;
+
+            // KKAPI.Studio.StudioAPI.StudioLoadedChanged += (x,y) => Init();
+
+            Log.Info($"Plugin {GUID} has awoken!");
         }
 
         private static void Init() {
             if (!initialised) {
                 // Dummy container for reference elements
                 Transform mgr = GameObject.Find("BepInEx_Manager").transform;
-                GameObject templates = new GameObject("UIElement Templates");
-                templates.transform.SetParent(mgr);
+                GameObject templates = Instantiate(GameObject.Find("StudioScene/Canvas Main Menu"), mgr);
+                templates.name = "UIElement Templates";
+                DelUnneeded(templates.transform, new List<string>());
                 templates.SetActive(false);
 
                 // Studio hierarchy object accesses grouped together for clarity
@@ -48,22 +60,22 @@ namespace LightSettings.Koikatu {
                 // Setting up the reference control dicitonary to be cloned for custom UI elements
                 // Label
                 {
-                    GameObject refLabel = Object.Instantiate(chaCtrl.Find("01_State/Viewport/Content/Cos"), templates.transform).gameObject;
+                    GameObject refLabel = Instantiate(chaCtrl.Find("01_State/Viewport/Content/Cos"), templates.transform).gameObject;
                     refLabel.name = "Template_Label";
                     DelUnneeded(refLabel.transform, new List<string> { "Text" });
                     refControls.Add(ControlType.Label, refLabel);
                 }
-
+                /*
                 // Toggle
                 {
-                    GameObject refToggle = Object.Instantiate(chaCtrl.Find("01_State/Viewport/Content/Etc/Son"), templates.transform).gameObject;
+                    GameObject refToggle = Instantiate(chaCtrl.Find("01_State/Viewport/Content/Etc/Son"), templates.transform).gameObject;
                     refToggle.name = "Template_Toggle";
                     refControls.Add(ControlType.Toggle, refToggle);
                 }
 
                 // Slider
                 {
-                    GameObject refSlider = Object.Instantiate(itemCtrl.Find("Image Alpha"), templates.transform).gameObject;
+                    GameObject refSlider = Instantiate(itemCtrl.Find("Image Alpha"), templates.transform).gameObject;
                     Object.DestroyImmediate(refSlider.GetComponent<Image>());
                     refSlider.name = "Template_Slider";
                     refControls.Add(ControlType.Slider, refSlider);
@@ -71,42 +83,77 @@ namespace LightSettings.Koikatu {
 
                 // Color
                 {
-                    GameObject refColor = Object.Instantiate(itemCtrl.GetChild(0), templates.transform).gameObject;
+                    GameObject refColor = Instantiate(itemCtrl.GetChild(0), templates.transform).gameObject;
                     Object.DestroyImmediate(refColor.GetComponent<Image>());
-                    Object.DestroyImmediate(refColor.transform.GetChild(refColor.transform.childCount - 1));
+                    Object.DestroyImmediate(refColor.transform.GetChild(refColor.transform.childCount - 1).gameObject);
                     refColor.name = "Template_Color";
                     refControls.Add(ControlType.Color, refColor);
                 }
 
                 // Text
                 {
-                    GameObject refText = Object.Instantiate(folderCtrl.GetChild(0), templates.transform).gameObject;
-                    GameObject refName = Object.Instantiate(refText.transform.GetChild(2), refText.transform).gameObject;
+                    GameObject refText = Instantiate(folderCtrl.GetChild(0), templates.transform).gameObject;
+                    GameObject refName = Instantiate(refText.transform.GetChild(1), refText.transform).gameObject;
                     refText.name = "Template_Text";
                     refName.name = "Name";
                     refName.GetComponent<RectTransform>().offsetMin = new Vector2(-35f, 0);
                     refName.GetComponent<RectTransform>().offsetMax = new Vector2(-78f, 0);
-                    refText.transform.GetChild(2).GetComponent<RectTransform>().offsetMin = new Vector2(42f, 0);
-                    refText.transform.GetChild(2).GetComponent<RectTransform>().offsetMin = new Vector2(105f, 0);
+                    refText.transform.GetChild(1).GetComponent<RectTransform>().offsetMin = new Vector2(42f, 0);
+                    refText.transform.GetChild(1).GetComponent<RectTransform>().offsetMin = new Vector2(105f, 0);
                     refControls.Add(ControlType.Text, refText);
                 }
 
                 // Choice
                 {
+                    var refChoice = new Dictionary<ChoiceControls.ChoiceType, GameObject>();
+                    var refChoiceContainer = new GameObject("Template_Choice");
+                    refChoiceContainer.transform.SetParent(templates.transform);
 
+                    var refChoiceOnOff = Instantiate(chaCtrl.Find("01_State/Viewport/Content/Clothing Details/Gloves"), refChoiceContainer.transform).gameObject;
+                    refChoiceOnOff.name = "Choice_OnOff";
+                    refChoice.Add(ChoiceControls.ChoiceType.OnOff, refChoiceOnOff);
+
+                    var refChoiceOnHalfOff = Instantiate(chaCtrl.Find("01_State/Viewport/Content/Clothing Details/Top"), refChoiceContainer.transform).gameObject;
+                    refChoiceOnHalfOff.name = "Choice_OnHalfOff";
+                    refChoice.Add(ChoiceControls.ChoiceType.OnHalfOff, refChoiceOnHalfOff);
+
+                    var refChoiceOnHalfHalfOff = Instantiate(chaCtrl.Find("01_State/Viewport/Content/Clothing Details/Shorts"), refChoiceContainer.transform).gameObject;
+                    refChoiceOnHalfHalfOff.name = "Choice_OnHalfHalfOff";
+                    refChoice.Add(ChoiceControls.ChoiceType.OnHalfHalfOff, refChoiceOnHalfHalfOff);
+
+                    var refChoiceOffOneTwo = Instantiate(chaCtrl.Find("01_State/Viewport/Content/Liquid"), refChoiceContainer.transform).gameObject;
+                    DelUnneeded(refChoiceOffOneTwo.transform, new List<string> { "Text Face", "Button Face 1", "Button Face 2", "Button Face 3" });
+                    refChoiceOffOneTwo.name = "Choice_OffOneTwo";
+                    refChoice.Add(ChoiceControls.ChoiceType.OffOneTwo, refChoiceOffOneTwo);
+
+                    var refChoiceOffOneTwoTwo = Instantiate(refChoiceOffOneTwo, refChoiceContainer.transform).gameObject;
+                    var extraTwo = Instantiate(refChoiceOffOneTwoTwo.transform.GetChild(3), refChoiceOffOneTwoTwo.transform).gameObject;
+                    extraTwo.transform.localPosition += new Vector3(30f, 0, 0);
+                    refChoiceOffOneTwoTwo.name = "Choice_OffOneTwoTwo";
+                    refChoice.Add(ChoiceControls.ChoiceType.OffOneTwoTwo, refChoiceOffOneTwoTwo);
+
+                    var refChoiceNullOneTwoThree = Instantiate(chaCtrl.Find("01_State/Viewport/Content/Etc/Tears"), refChoiceContainer.transform).gameObject;
+                    refChoiceNullOneTwoThree.name = "Choice_NullOneTwoThree";
+                    refChoice.Add(ChoiceControls.ChoiceType.NullOneTwoThree, refChoiceNullOneTwoThree);
+
+                    refControls.Add(ControlType.Choice, refChoice);
                 }
 
                 // Dropdown
                 {
-
+                    var refDropdown = Instantiate(chaCtrl.Find("01_State/Viewport/Content/Cos"), templates.transform).gameObject;
+                    DelUnneeded(refDropdown.transform, new List<string> { "Text Type", "Dropdown" });
+                    refDropdown.name = "Template_Dropdown";
+                    refControls.Add(ControlType.Dropdown, refDropdown);
                 }
+                */
 
                 initialised = true;
             }
 
             void DelUnneeded(Transform tf, List<string> keep) {
                 for (int k = tf.childCount - 1; k >= 0; k--) {
-                    if (!keep.Contains(tf.GetChild(k).name)) Object.DestroyImmediate(tf.GetChild(k));
+                    if (!keep.Contains(tf.GetChild(k).name)) DestroyImmediate(tf.GetChild(k).gameObject);
                 }
             }
         }
@@ -169,7 +216,7 @@ namespace LightSettings.Koikatu {
             public enum ChoiceType {
                 OnOff,
                 OnHalfOff,
-                OnHalfHalfQOff,
+                OnHalfHalfOff,
                 OffOneTwo,
                 OffOneTwoTwo,
                 NullOneTwoThree
@@ -185,6 +232,16 @@ namespace LightSettings.Koikatu {
             public string label;
         }
 
+        public enum ControlType {
+            Label,
+            Toggle,
+            Slider,
+            Color,
+            Text,
+            Choice,
+            Dropdown
+        }
+
         public enum PanelType {
             ChaState,
             Item,
@@ -196,6 +253,10 @@ namespace LightSettings.Koikatu {
             Options,
             ChaLight,
             SceneEffects
+        }
+
+        private static void Hello() {
+            logger.LogInfo($"Hello {++hello}!");
         }
     }
 }
