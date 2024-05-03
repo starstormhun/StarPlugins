@@ -26,10 +26,9 @@ namespace LightSettings.Koikatu {
             // Create background
             var bg = new Texture2D(1, 1);
             bg.LoadImage(Convert.FromBase64String(backgroundImage));
-            var lightPanel = GameObject.Find("StudioScene/Canvas Main Menu/02_Manipulate/02_Light");
-            var newBg = GameObject.Instantiate(lightPanel.transform.GetChild(0), container);
+            var newBg = GameObject.Instantiate(lightCtrl.transform.GetChild(0), container);
             newBg.localPosition = new Vector2(0, -180);
-            var old = lightPanel.transform.GetChild(0).GetComponent<Image>().sprite;
+            var old = lightCtrl.transform.GetChild(0).GetComponent<Image>().sprite;
             var spr = Sprite.Create(bg, new Rect(0, 0, bg.width, bg.height), old.pivot, old.pixelsPerUnit);
             newBg.GetComponent<Image>().sprite = spr;
             newBg.GetComponent<RectTransform>().sizeDelta = new Vector2(190f / 154f * bg.width, 190f / 154f * bg.height);
@@ -151,7 +150,7 @@ namespace LightSettings.Koikatu {
             Transform newLabel = GameObject.Instantiate(lightCtrl.transform.GetChild(3), _parent);
 
             newLabel.localPosition = _pos;
-            newLabel.GetComponent<Text>().text = "Culling Mask";
+            newLabel.GetComponent<Text>().text = _name;
 
             return newLabel;
         }
