@@ -20,21 +20,22 @@ namespace MassShaderEditor.Koikatu {
         }
 
         private static void SetName(MassShaderEditor MSE, MassShaderEditor.SettingType type, string name) {
-            if (MSE.IsDebug.Value) Log.Info($"Property name set: {name.Replace(':', ' ').Replace('*', ' ').Trim()}");
+            if (MSE.IsDebug.Value) MSE.Log($"Property name set: {name.Replace(':', ' ').Replace('*', ' ').Trim()}");
             MSE.tab = type;
             MSE.setName = name.Replace(':', ' ').Replace('*', ' ').Trim();
             MSE.setNameInput = MSE.setName;
         }
 
-        private static void SetFilter(MassShaderEditor MSE, string filter) {
-            if (MSE.IsDebug.Value) Log.Info($"Shader name to be autofilled: {filter}");
-            if (Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCode.RightShift)) {
+        private static void SetFilter(MassShaderEditor MSE, string filter, int type) {
+            if (MSE.IsDebug.Value) MSE.Log($"Shader name to be autofilled: {filter}");
+            if ((Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCode.RightShift)) && type == 2) {
                 MSE.tab = MassShaderEditor.SettingType.Shader;
-                MSE.setShader = filter;
-                MSE.setShaderInput = filter;
+                MSE.setShader = filter.Trim();
+                MSE.setShaderInput = filter.Trim();
             } else {
-                MSE.filter = filter.Trim();
-                MSE.filterInput = MSE.filter;
+                MSE.currentFilter = type;
+                MSE.filters[type] = filter.Trim();
+                MSE.filterInput = MSE.filters[type];
             }
         }
 
@@ -61,14 +62,17 @@ namespace MassShaderEditor.Koikatu {
                     GameObject content = GameObject.Find("BepInEx_Manager");
                     foreach (Transform child in content.transform.GetComponentsInChildren<Transform>())
                         if (child.name == "MaterialEditorWindow") {content = child.gameObject; break; }
-                    if (MSE.IsDebug.Value && content != null) Log.Info("Found content!");
+                    if (MSE.IsDebug.Value && content != null) MSE.Log("Found content!");
 
                     var txtList = content.GetComponentsInChildren<Text>(true).ToList();
-                    if (MSE.IsDebug.Value) Log.Info($"Found {txtList.Count} text components...");
+                    if (MSE.IsDebug.Value) MSE.Log($"Found {txtList.Count} text components...");
 
-                    var accepted = new List<string> { "FloatLabel", "ColorLabel", "ShaderLabel", "ShaderRenderQueueLabel" };
+                    var accepted = new List<string> {
+                        "FloatLabel", "ColorLabel", "TextureLabel", "RendererText", "MaterialText",
+                        "ShaderLabel", "ShaderRenderQueueLabel", "OffsetScaleLabel", "OffsetXText"
+                    };
                     txtList = txtList.FindAll(x => accepted.Contains(x.gameObject.name));
-                    if (MSE.IsDebug.Value) Log.Info($"Found {txtList.Count} labels!");
+                    if (MSE.IsDebug.Value) MSE.Log($"Found {txtList.Count} labels!");
 
                     foreach (var txt in txtList) {
                         var btn = txt.gameObject.AddComponent<Button>();
@@ -79,13 +83,44 @@ namespace MassShaderEditor.Koikatu {
                             case "ColorLabel":
                                 btn.onClick.AddListener(() => SetName(MSE, MassShaderEditor.SettingType.Color, txt.text));
                                 break;
+                            case "TextureLabel":
+                                btn.onClick.AddListener(() => SetName(MSE, MassShaderEditor.SettingType.Texture, txt.text));
+                                break;
+                            case "RendererText":
+                                btn.onClick.AddListener(() => SetFilter(MSE, txt.text, 0));
+                                break;
+                            case "MaterialText":
+                                btn.onClick.AddListener(() => SetFilter(MSE, txt.text, 1));
+                                break;
                             case "ShaderLabel":
                                 GameObject shaderDropdown = null;
                                 foreach (Transform tr in txt.transform.parent.GetComponentsInChildren<Transform>(true)) if (tr.name == "ShaderDropdown") { shaderDropdown = tr.gameObject; break; }
-                                btn.onClick.AddListener(() => SetFilter(MSE, shaderDropdown.GetComponentInChildren<Text>().text));
+                                btn.onClick.AddListener(() => SetFilter(MSE, shaderDropdown.GetComponentInChildren<Text>().text, 2));
                                 break;
                             case "ShaderRenderQueueLabel":
                                 btn.onClick.AddListener(() => SetName(MSE, MassShaderEditor.SettingType.Float, "Render Queue"));
+                                break;
+                            case "OffsetScaleLabel":
+                            case "OffsetXText":
+                                Transform panel = txt.transform.parent;
+                                btn.onClick.AddListener(() => {
+                                    var values = new float[] { 0, 0, 0, 0 };
+                                    foreach (InputField child in panel.GetComponentsInChildren<InputField>()) {
+                                        switch (child.name) {
+                                            case "OffsetXInput":
+                                                values[0] = Studio.Utility.StringToFloat(child.text); break;
+                                            case "OffsetYInput":
+                                                values[1] = Studio.Utility.StringToFloat(child.text); break;
+                                            case "ScaleXInput":
+                                                values[2] = Studio.Utility.StringToFloat(child.text); break;
+                                            case "ScaleYInput":
+                                                values[3] = Studio.Utility.StringToFloat(child.text); break;
+                                        }
+                                    }
+                                    MSE.tab = MassShaderEditor.SettingType.Texture;
+                                    MSE.setTex.offset = new float[] { values[0], values[1] };
+                                    MSE.setTex.scale = new float[] { values[2], values[3] };
+                                });
                                 break;
                         }
                     }
@@ -122,10 +157,10 @@ namespace MassShaderEditor.Koikatu {
             public static void SetupHooks() {
                 var MSE = (Object.FindObjectOfType(typeof(MassShaderEditor)) as MassShaderEditor);
 
-                if (MSE.IsDebug.Value) Log.Info("Attempting to patch timeline buttons...");
+                if (MSE.IsDebug.Value) MSE.Log("Attempting to patch timeline buttons...");
                 if (typeof(MaterialEditorAPI.MaterialEditorUI).GetMethod("SelectInterpolableButtonOnClick", BindingFlags.NonPublic | BindingFlags.Instance) != null) {
                     _harmony = Harmony.CreateAndPatchAll(typeof(HookPatch.ConditionalHooks), null);
-                    if (MSE.IsDebug.Value) Log.Info("Patched timeline buttons!");
+                    if (MSE.IsDebug.Value) MSE.Log("Patched timeline buttons!");
                 }
             }
 
@@ -141,11 +176,12 @@ namespace MassShaderEditor.Koikatu {
                 var MSE = (Object.FindObjectOfType(typeof(MassShaderEditor)) as MassShaderEditor);
                 if (rowType == RowItemType.FloatProperty) SetName(MSE, MassShaderEditor.SettingType.Float, propertyName);
                 if (rowType == RowItemType.ColorProperty) SetName(MSE, MassShaderEditor.SettingType.Color, propertyName);
+                if (rowType == RowItemType.TextureProperty) SetName(MSE, MassShaderEditor.SettingType.Texture, propertyName);
                 if (rowType == RowItemType.Shader)
                     foreach (var rend in GetRendererList(go))
                         foreach (var mat in GetMaterials(go, rend))
                             if (mat.NameFormatted() == materialName)
-                                SetFilter(MSE, mat.shader.NameFormatted());
+                                SetFilter(MSE, mat.shader.NameFormatted(), 2);
             }
         }
 
