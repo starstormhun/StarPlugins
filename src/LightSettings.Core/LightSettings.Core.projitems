@@ -10,7 +10,7 @@
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="$(MSBuildThisFileDirectory)HookPatch.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)UIExtender.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)UIHandler.cs" />
     <Compile Include="..\LightSettings.Core\LightSaveData.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)LightSettings.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)SceneDataController.cs" />

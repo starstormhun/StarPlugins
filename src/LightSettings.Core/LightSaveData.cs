@@ -12,7 +12,7 @@ namespace LightSettings.Koikatu {
         public float shadowBias;
         public float shadowNormalBias;
         public float shadowNearPlane;
-        public UnityEngine.LightRenderMode renderMode;
+        public LightRenderMode renderMode;
         public int cullingMask; // 1024 = chara, 2048 = map
     }
 }

@@ -1,4 +1,5 @@
 ﻿using HarmonyLib;
+using UnityEngine;
 using Studio;
 
 namespace LightSettings.Koikatu {
@@ -24,11 +25,25 @@ namespace LightSettings.Koikatu {
                 _harmony.UnpatchSelf();
             }
 
-            // Explanation
+            // Patch extra settings panel movement according to light type
             [HarmonyPostfix]
-            [HarmonyPatch(typeof(Studio.Studio), "Placeholder")]
-            private static void PostfixPlaceholder() {
-                // Placeholder
+            [HarmonyPatch(typeof(TreeNodeCtrl), "SelectSingle")]
+            private static void PostfixPlaceholder(TreeNodeObject _node, bool _deselect = true) {
+                if (_deselect && Studio.Studio.Instance.dicInfo.TryGetValue(_node, out ObjectCtrlInfo _info)) {
+                    if (_info is OCILight _ociLight) {
+                        switch (_ociLight.lightType) {
+                            case UnityEngine.LightType.Directional:
+                                UIHandler.container.localPosition = new Vector2(0, 0);
+                                break;
+                            case UnityEngine.LightType.Point:
+                                UIHandler.container.localPosition = new Vector2(0, -50f);
+                                break;
+                            case UnityEngine.LightType.Spot:
+                                UIHandler.container.localPosition = new Vector2(0, -90f);
+                                break;
+                        }
+                    }
+                }
             }
         }
     }

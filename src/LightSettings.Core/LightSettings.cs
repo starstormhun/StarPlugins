@@ -1,5 +1,6 @@
 using BepInEx;
 using BepInEx.Configuration;
+using BepInEx.Logging;
 using KKAPI.Utilities;
 
 [assembly: System.Reflection.AssemblyFileVersion(LightSettings.Koikatu.LightSettings.Version)]
@@ -13,7 +14,10 @@ namespace LightSettings.Koikatu {
 	/// </info>
     public partial class LightSettings : BaseUnityPlugin {
         public const string GUID = "starstorm.lightsettings";
-        public const string Version = "1.0.0." + BuildNumber.Version;
+        public const string Version = "0.1.0." + BuildNumber.Version;
+
+        internal static ManualLogSource logger;
+        internal static int hello = 0;
 
         public ConfigEntry<bool> IsDebug { get; private set; }
         public ConfigEntry<bool> Enabled { get; private set; }
@@ -23,12 +27,21 @@ namespace LightSettings.Koikatu {
             Enabled = Config.Bind("General", "Enable plugin", true, new ConfigDescription("Enable/disable the plugin entirely. You need to save/reload the scene after changing this.", null, new ConfigurationManagerAttributes { Order = 10 }));
 
             Log.SetLogSource(Logger);
+            logger = Logger;
+
+            KKAPI.Studio.StudioAPI.StudioLoadedChanged += (x, y) => UIHandler.Init();
+
+            HookPatch.Init();
 
             if (IsDebug.Value) Log.Info($"Plugin {GUID} has awoken!");
         }
 
         private void Update() {
 
+        }
+
+        internal static void Hello() {
+            logger.LogInfo($"Hello {++hello}!");
         }
     }
 }
