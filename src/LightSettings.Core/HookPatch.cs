@@ -29,19 +29,20 @@ namespace LightSettings.Koikatu {
             [HarmonyPostfix]
             [HarmonyPatch(typeof(TreeNodeCtrl), "SelectSingle")]
             private static void PostfixPlaceholder(TreeNodeObject _node, bool _deselect = true) {
-                if (_deselect && Studio.Studio.Instance.dicInfo.TryGetValue(_node, out ObjectCtrlInfo _info)) {
+                if (_deselect && (_node != null) && Studio.Studio.Instance.dicInfo.TryGetValue(_node, out ObjectCtrlInfo _info)) {
                     if (_info is OCILight _ociLight) {
                         switch (_ociLight.lightType) {
                             case UnityEngine.LightType.Directional:
-                                UIHandler.containerItem.localPosition = new Vector2(0, 0);
+                                UIHandler.containerLight.localPosition = new Vector2(0, 0);
                                 break;
                             case UnityEngine.LightType.Point:
-                                UIHandler.containerItem.localPosition = new Vector2(0, -50f);
+                                UIHandler.containerLight.localPosition = new Vector2(0, -50f);
                                 break;
                             case UnityEngine.LightType.Spot:
-                                UIHandler.containerItem.localPosition = new Vector2(0, -90f);
+                                UIHandler.containerLight.localPosition = new Vector2(0, -90f);
                                 break;
                         }
+                        UIHandler.SyncGUI(ref UIHandler.containerLight, _ociLight.light);
                     }
                 }
             }

@@ -6,6 +6,7 @@ namespace LightSettings.Koikatu {
     public class LightSaveData {
         public int ObjectId;
 
+        public bool state;
         public LightShadows shadows;
         public UnityEngine.Rendering.LightShadowResolution shadowResolution;
         public float shadowStrength;
