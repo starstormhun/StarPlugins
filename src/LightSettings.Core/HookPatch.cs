@@ -33,13 +33,13 @@ namespace LightSettings.Koikatu {
                     if (_info is OCILight _ociLight) {
                         switch (_ociLight.lightType) {
                             case UnityEngine.LightType.Directional:
-                                UIHandler.container.localPosition = new Vector2(0, 0);
+                                UIHandler.containerItem.localPosition = new Vector2(0, 0);
                                 break;
                             case UnityEngine.LightType.Point:
-                                UIHandler.container.localPosition = new Vector2(0, -50f);
+                                UIHandler.containerItem.localPosition = new Vector2(0, -50f);
                                 break;
                             case UnityEngine.LightType.Spot:
-                                UIHandler.container.localPosition = new Vector2(0, -90f);
+                                UIHandler.containerItem.localPosition = new Vector2(0, -90f);
                                 break;
                         }
                     }
