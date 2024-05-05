@@ -2,6 +2,8 @@
 using UnityEngine;
 using Studio;
 using System.Linq;
+using System.Collections.Generic;
+using System.Reflection.Emit;
 
 namespace LightSettings.Koikatu {
     public static class HookPatch {
@@ -107,6 +109,44 @@ namespace LightSettings.Koikatu {
                 if (__instance is Light light && value) {
                     if (SceneDataController.dicDisabledLights.ContainsKey(light)) light.enabled = false;
                 }
+            }
+
+            // Bunches of patches to unlock vanilla light intensity controls
+            private static float editedIntensity = 0;
+            private const float newLimit = 50f;
+
+            [HarmonyTranspiler]
+            [HarmonyPatch(typeof(MPLightCtrl), "OnValueChangeIntensity")]
+            [HarmonyPatch(typeof(MPLightCtrl), "OnEndEditIntensity")]
+            [HarmonyPatch(typeof(CameraLightCtrl.LightCalc), "OnEndEditIntensity")]
+            private static IEnumerable<CodeInstruction> UnlockIntensitiesTranspiler(IEnumerable<CodeInstruction> instructions) {
+                foreach (var instruction in instructions) {
+                    if (instruction.opcode == OpCodes.Ldc_R4 && (float)instruction.operand == 2f) {
+                        instruction.operand = newLimit;
+                    }
+                    yield return instruction;
+                }
+            }
+
+            [HarmonyPrefix]
+            [HarmonyPatch(typeof(MPLightCtrl), "OnEndEditIntensity")]
+            [HarmonyPatch(typeof(CameraLightCtrl.LightCalc), "OnEndEditIntensity")]
+            private static bool IntensityUnlockEditPrefix(object __instance, ref string _text) {
+                if (LightSettings.Instance.IsDebug.Value) LightSettings.logger.LogInfo($"Edited intensity _value: {_text}");
+                float.TryParse(_text, out editedIntensity);
+                _text = Mathf.Min(newLimit, editedIntensity).ToString("0.00");
+                if (__instance is MPLightCtrl mpl) mpl.viIntensity.inputField.text = _text;
+                if (__instance is CameraLightCtrl.LightCalc lc) lc.inputIntensity.text = _text;
+                return true;
+            }
+
+            [HarmonyPrefix]
+            [HarmonyPatch(typeof(MPLightCtrl), "OnValueChangeIntensity")]
+            [HarmonyPatch(typeof(CameraLightCtrl.LightCalc), "OnValueChangeIntensity")]
+            private static bool IntensityUnlockValueChangePrefix(ref float _value) {
+                if (editedIntensity > 2 && _value == 2) return false;
+                editedIntensity = _value;
+                return true;
             }
         }
     }

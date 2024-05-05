@@ -7,9 +7,6 @@ using TMPro;
 using System.Linq;
 using HarmonyLib;
 using Studio;
-using ChaCustom;
-using KKAPI;
-using static ADV.Info;
 
 namespace LightSettings.Koikatu {
     internal static class UIHandler {

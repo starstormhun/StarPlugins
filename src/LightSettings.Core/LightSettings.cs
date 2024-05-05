@@ -10,8 +10,6 @@ using KKAPI.Studio.SaveLoad;
 using KKAPI.Utilities;
 using Studio;
 using UnityEngine;
-using static HSceneProc;
-using static Illusion.Utils;
 
 [assembly: System.Reflection.AssemblyFileVersion(LightSettings.Koikatu.LightSettings.Version)]
 
