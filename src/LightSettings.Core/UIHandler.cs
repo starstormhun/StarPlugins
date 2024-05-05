@@ -7,6 +7,9 @@ using TMPro;
 using System.Linq;
 using HarmonyLib;
 using Studio;
+using ChaCustom;
+using KKAPI;
+using static ADV.Info;
 
 namespace LightSettings.Koikatu {
     internal static class UIHandler {
@@ -19,16 +22,95 @@ namespace LightSettings.Koikatu {
         internal static bool charaToggleMade = false;
         internal static bool syncing = false;
 
-        private static Image itemPanelImage;
         private static Transform itemPanelToggle;
 
         internal static void Init() {
+            // Setup the item control panel for the extra settings then create settings
+            Transform itemLightSettingsPanel = SetupItemPanel();
+            MakeGUI(ref containerItem, itemLightSettingsPanel);
+            containerItem.localPosition = new Vector2(0, -20);
+
             // Create item light settings GUI
             MakeGUI(ref containerLight, Studio.Studio.Instance.manipulatePanelCtrl.lightPanelInfo.mpLightCtrl.transform);
 
             // Create chara light settings GUI
             MakeGUI(ref containerChara, Studio.Studio.Instance.cameraLightCtrl.transform);
             containerChara.localPosition = new Vector2(0, -40);
+        }
+
+        private static Transform SetupItemPanel() {
+            // Studio reference
+            var itemCtrl = Studio.Studio.Instance.manipulatePanelCtrl.itemPanelInfo.mpItemCtrl.transform;
+            var lightCtrl = Studio.Studio.Instance.manipulatePanelCtrl.lightPanelInfo.mpLightCtrl.transform;
+
+            // Setup displacer and container
+            Transform displacer = new GameObject("LightSettings Panel Container").transform;
+            displacer.SetParent(itemCtrl);
+            displacer.localPosition = new Vector2(0, -30);
+            displacer.localScale = Vector3.one;
+            displacer.SetAsFirstSibling();
+
+            Transform container = GameObject.Instantiate(lightCtrl, displacer);
+            container.name = "LightSettings Panel";
+            container.localPosition = new Vector2(280, 30);
+            container.localScale = Vector3.one;
+
+            // Setup copied light panel element positions and background
+            GameObject.DestroyImmediate(container.Find("Image Directional").gameObject);
+            GameObject.DestroyImmediate(container.Find("Image Spot").gameObject);
+            GameObject.DestroyImmediate(container.Find("Spot Angle").gameObject);
+            container.Find("Range").gameObject.SetActive(true);
+            Image bg = container.Find("Image Point").GetComponent<Image>();
+            bg.gameObject.SetActive(true);
+            Rect newRect = new Rect(bg.sprite.textureRect.x, bg.sprite.textureRect.y, bg.sprite.textureRect.width, bg.sprite.textureRect.height - 24);
+            Sprite newBg = Sprite.Create(bg.sprite.texture, newRect, bg.sprite.pivot, bg.sprite.pixelsPerUnit, 0, SpriteMeshType.FullRect, new Vector4(0, 4, 0, 4));
+            bg.sprite = newBg;
+            bg.type = Image.Type.Sliced;
+            bg.gameObject.GetComponent<RectTransform>().sizeDelta = bg.gameObject.GetComponent<RectTransform>().sizeDelta - new Vector2(0, 30);
+            for (int i = 1; i < container.childCount; i++) {
+                container.GetChild(i).localPosition += new Vector3(0, 30, 0);
+            }
+
+            // Setup copied panel controls
+            GameObject.DestroyImmediate(container.GetComponent<MPLightCtrl>());
+            GameObject.DestroyImmediate(container.Find("Toggle Target").GetChild(0).GetChild(0).gameObject);
+            container.Find("Toggle Target").GetChild(0).GetComponent<Image>().color = new Color(0.8f, 0.8f, 0.8f, 0.5f);
+            container.Find("Toggle Target").GetComponent<Toggle>().m_Interactable = false;
+            GameObject.DestroyImmediate(container.Find("Range").gameObject);
+            GameObject.DestroyImmediate(container.Find("Text Intensity").gameObject);
+            GameObject.DestroyImmediate(container.Find("Slider Intensity").gameObject);
+            GameObject.DestroyImmediate(container.Find("InputField Intensity").gameObject);
+            GameObject.DestroyImmediate(container.Find("Button Intensity Default").gameObject);
+
+            UnityAction<float> intensityCallback = (x) => LightSettings.SetLightSetting(LightSettings.SettingType.LightStrength, x);
+            var sliderIntensity = MakeSlider(container, "Strength", new Vector2(0, -105), 0.1f, 2, 1, intensityCallback);
+
+            UnityAction<float> rangeCallback = (x) => LightSettings.SetLightSetting(LightSettings.SettingType.LightRange, x);
+            var sliderRange = MakeSlider(container, "Intensity", new Vector2(0, -150), 0.1f, 100, 15, rangeCallback);
+
+            GameObject.DestroyImmediate(container.Find("Toggle Visible").gameObject);
+            UnityAction<bool> toggleCallback = (x) => LightSettings.SetLightSetting(LightSettings.SettingType.State, x);
+            var toggleOnOff = MakeToggle(container, "Light On/Off", new Vector2(0, -30), new Vector2(110, 0), toggleCallback);
+
+            Image colorImg = container.Find("Image Color Sample").GetComponent<Image>();
+            Action<Color> colorCallback = (c) => {
+                colorImg.color = c;
+                LightSettings.SetLightSetting(LightSettings.SettingType.Color, c);
+            };
+            colorImg.GetComponent<Button>().onClick.AddListener(() => ColorPicker(colorImg.color, colorCallback));
+
+            // Setup UI toggle Image and Sprite for adjustable background
+            Image img = itemCtrl.Find("Image FK").GetComponent<Image>();
+            Sprite newSpr = Sprite.Create(img.sprite.texture, img.sprite.textureRect, img.sprite.pivot, img.sprite.pixelsPerUnit, 0, SpriteMeshType.FullRect, new Vector4(0, 4, 0, 4));
+            img.sprite = newSpr;
+            img.type = Image.Type.Sliced;
+
+            // Add new toggle
+            itemPanelToggle = MakeToggle(img.transform, "Light controls", new Vector2(0, -53), new Vector2(80, 0), (x) => container.gameObject.SetActive(x));
+            itemPanelToggle.gameObject.SetActive(false);
+            itemPanelToggle.GetChild(1).GetComponent<RectTransform>().sizeDelta = new Vector2(80, 0);
+
+            return container;
         }
 
         internal static void MakeCharaToggle() {
@@ -116,11 +198,11 @@ namespace LightSettings.Koikatu {
             Transform dropResolution = MakeDropDown(container, "Shadow Resolution", new Vector2(0, -230f), resolutionOptions, resolutionCallback);
 
             // Create all slider controls
-            UnityAction<float> strengthCallback = (x) => LightSettings.SetLightSetting(LightSettings.SettingType.Strength, x);
+            UnityAction<float> strengthCallback = (x) => LightSettings.SetLightSetting(LightSettings.SettingType.ShadowStrength, x);
             Transform sliderStrength = MakeSlider(container, "Shadow Strength", new Vector2(0, -276f), 0, 1, 1, strengthCallback);
 
             UnityAction<float> biasCallback = (x) => LightSettings.SetLightSetting(LightSettings.SettingType.Bias, x);
-            Transform sliderBias = MakeSlider(container, "Shadow Bias", new Vector2(0, -320f), 0, 0.5f, 0.05f, biasCallback);
+            Transform sliderBias = MakeSlider(container, "Shadow Bias", new Vector2(0, -320f), 0, 0.1f, 0.05f, biasCallback);
 
             UnityAction<float> normalBiasCallback = (x) => LightSettings.SetLightSetting(LightSettings.SettingType.NormalBias, x);
             Transform sliderNormalBias = MakeSlider(container, "Shadow Normal Bias", new Vector2(0, -365f), 0, 1, 0.4f, normalBiasCallback);
@@ -145,7 +227,7 @@ namespace LightSettings.Koikatu {
             MakeToggle(cullMask, "Map", new Vector2(100f, -20f), new Vector2(60f, 0), mapToggleCallback);
         }
 
-        internal static void SyncGUI(ref Transform container, Light _light) {
+        internal static void SyncGUI(ref Transform container, Light _light, bool syncExtra = false) {
             syncing = true;
 
             // Dropdowns
@@ -170,6 +252,15 @@ namespace LightSettings.Koikatu {
             container.Find("Culling Mask").GetChild(1).GetComponentInChildren<Toggle>(true).isOn = (_light.cullingMask & (1 << 10)) != 0;
             container.Find("Culling Mask").GetChild(2).GetComponentInChildren<Toggle>(true).isOn = (_light.cullingMask & (1 << 11)) != 0;
 
+            // State / Color / Intensity / Range
+            if (syncExtra) {
+                var parent = container.parent;
+                parent.Find("Image Color Sample").GetComponentInChildren<Image>(true).color = _light.color;
+                parent.Find("Light OnOff").GetComponentInChildren<Toggle>(true).isOn = _light.enabled;
+                parent.Find("Strength").GetComponentInChildren<InputField>(true).text = _light.intensity.ToString("0.000");
+                parent.Find("Intensity").GetComponentInChildren<InputField>(true).text = _light.range.ToString("0.000");
+            }
+
             syncing = false;
 
             int FindOption(Dropdown _dropdown, string value) {
@@ -182,9 +273,16 @@ namespace LightSettings.Koikatu {
             }
         }
 
+        internal static void TogglePanelToggler(bool state) {
+            if (!state) containerItem.parent.gameObject.SetActive(false);
+            if (state && itemPanelToggle.GetComponent<Toggle>().isOn) containerItem.parent.gameObject.SetActive(true);
+            itemPanelToggle.gameObject.SetActive(state);
+            itemPanelToggle.parent.GetComponent<LayoutElement>().minHeight = state ? 78 : 55;
+        }
+
         private static Transform MakeDropDown(Transform _parent, string _name, Vector2 _pos, List<string> _options, UnityAction<int> _callback) {
             Transform lutCtrl = Studio.Studio.Instance.systemButtonCtrl.transform.Find("01_Screen Effect").GetChild(0).GetChild(0).GetChild(0).GetChild(1);
-            Transform newDrop = (new GameObject(_name)).transform;
+            Transform newDrop = (new GameObject(_name.Split('/').Join((x) => x, ""))).transform;
 
             newDrop.SetParent(_parent);
             newDrop.localScale = Vector3.one;
@@ -205,7 +303,7 @@ namespace LightSettings.Koikatu {
             Transform lightCtrl = Studio.Studio.Instance.manipulatePanelCtrl.lightPanelInfo.mpLightCtrl.transform;
             Transform newSlider = GameObject.Instantiate(lightCtrl.Find("Spot Angle"), _parent);
 
-            newSlider.name = _name;
+            newSlider.name = _name.Split('/').Join((x) => x, "");
             newSlider.localPosition = _pos;
             newSlider.GetChild(0).GetComponent<Text>().text = _name;
             newSlider.gameObject.SetActive(true);
@@ -249,6 +347,7 @@ namespace LightSettings.Koikatu {
         private static Transform MakeToggle(Transform _parent, string _name, Vector2 _pos, Vector2 _toggleOffset, UnityAction<bool> _callback) {
             Transform lightCtrl = Studio.Studio.Instance.manipulatePanelCtrl.lightPanelInfo.mpLightCtrl.transform;
             Transform choice = GameObject.Instantiate(lightCtrl.GetChild(5), _parent);
+            choice.name = _name.Split('/').Join((x)=>x, "");
 
             choice.localPosition = _pos;
             choice.GetChild(1).GetComponent<Text>().text = _name;
@@ -262,6 +361,7 @@ namespace LightSettings.Koikatu {
             Transform lightCtrl = Studio.Studio.Instance.manipulatePanelCtrl.lightPanelInfo.mpLightCtrl.transform;
             Transform newLabel = GameObject.Instantiate(lightCtrl.transform.GetChild(3), _parent);
 
+            newLabel.name = _name.Split('/').Join((x) => x, "");
             newLabel.localPosition = _pos;
             newLabel.GetComponent<Text>().text = _name;
 
@@ -274,6 +374,12 @@ namespace LightSettings.Koikatu {
                 optionList.Add(new Dropdown.OptionData(option));
             }
             return optionList;
+        }
+
+        private static void ColorPicker(Color col, Action<Color> act) {
+            var studio = Studio.Studio.Instance;
+            studio.colorPalette.Setup("Lighting", col, act, false);
+            studio.colorPalette.visible = true;
         }
     }
 }

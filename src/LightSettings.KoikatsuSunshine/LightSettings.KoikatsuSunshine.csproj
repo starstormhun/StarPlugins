@@ -22,6 +22,11 @@
     <PackageReference Include="IllusionLibs.KoikatsuSunshine.UnityEngine.UI" Version="2019.4.9" />
     <PackageReference Include="IllusionModdingAPI.KKSAPI" Version="1.36.0" />
   </ItemGroup>
+  <ItemGroup>
+    <Reference Include="KKS_Autosave">
+      <HintPath>..\..\lib\KKS_Autosave.dll</HintPath>
+    </Reference>
+  </ItemGroup>
   <Import Project="..\Common.Core\Common.Core.projitems" Label="Shared" />
   <Import Project="..\LightSettings.Core\LightSettings.Core.projitems" Label="Shared" />
 </Project>

@@ -15,5 +15,10 @@ namespace LightSettings.Koikatu {
         public float shadowNearPlane;
         public LightRenderMode renderMode;
         public int cullingMask; // 1024 = chara, 2048 = map
+
+        // Extra for lights attached to items
+        public Color color;
+        public float intensity;
+        public float range;
     }
 }
