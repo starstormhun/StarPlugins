@@ -4,23 +4,26 @@ using Studio;
 using System.Linq;
 using System.Collections.Generic;
 using System.Reflection.Emit;
+using BepInEx;
 
 namespace LightSettings.Koikatu {
     public static class HookPatch {
         internal static void Init() {
-            HookPatch.Hooks.SetupHooks();
+            AlwaysHooks.SetupHooks();
+            ConditionalHooks.SetupHooks();
         }
 
         internal static void Deactivate() {
-            HookPatch.Hooks.UnregisterHooks();
+            AlwaysHooks.UnregisterHooks();
+            ConditionalHooks.UnregisterHooks();
         }
 
-        private static class Hooks {
+        private static class AlwaysHooks {
             private static Harmony _harmony;
 
             // Setup Harmony and patch methods
             public static void SetupHooks() {
-                _harmony = Harmony.CreateAndPatchAll(typeof(HookPatch.Hooks), null);
+                _harmony = Harmony.CreateAndPatchAll(typeof(AlwaysHooks), null);
             }
 
             // Disable Harmony patches of this plugin
@@ -45,21 +48,44 @@ namespace LightSettings.Koikatu {
                                 UIHandler.containerLight.localPosition = new Vector2(0, -90f);
                                 break;
                         }
-                        UIHandler.SyncGUI(ref UIHandler.containerLight, _ociLight.light);
+                        UIHandler.SyncGUI(UIHandler.containerLight, _ociLight.light);
                     } else if (_info is OCIItem _ociItem) {
                         var lights = _ociItem.objectItem.GetComponentsInChildren<Light>(true).ToList();
                         UIHandler.TogglePanelToggler(lights.Count > 0);
                         if (lights.Count > 0) {
-                            UIHandler.SyncGUI(ref UIHandler.containerItem, lights[0], true);
+                            UIHandler.SyncGUI(UIHandler.containerItem, lights[0], true);
                         }
                     }
                 }
             }
 
+            // UI synchronisation on map selection
+            [HarmonyPostfix]
+            [HarmonyPatch(typeof(RootButtonCtrl), "OnClick")]
+            private static void AfterRootButtonCtrlOnClick(int _kind) {
+                if (_kind == 0) MapLightChecker();
+            }
+            [HarmonyPostfix]
+            [HarmonyPatch(typeof(Studio.Studio), "SetupMap")]
+            [HarmonyPatch(typeof(MapCtrl), "OnClickSunLightType")]
+            private static void AfterMapListOnClick() {
+                MapLightChecker();
+            }
+            private static void MapLightChecker() {
+                var map = GameObject.Find("/Map");
+                if (map) {
+                    var lights = map.GetComponentsInChildren<Light>(true).ToList();
+                    if (lights.Count > 0) {
+                        UIHandler.SetMapGUI(true);
+                        UIHandler.SyncGUI(UIHandler.containerMap, lights[0], true);
+                    } else UIHandler.SetMapGUI(false);
+                } else UIHandler.SetMapGUI(false);
+            }
+
             // Save data of lights attached to items
             [HarmonyPrefix]
             [HarmonyPatch(typeof(Studio.Studio), "SaveScene")]
-            private static bool BeforeStudioSaveScene() {
+            internal static bool BeforeStudioSaveScene() {
                 LightSettings.logger.LogInfo("Saving data");
                 SceneDataController.itemLightDatas = new System.Collections.Generic.List<LightSaveData>();
                 foreach (OCIItem ociItem in Studio.Studio.Instance.dicObjectCtrl.Values.OfType<OCIItem>()) {
@@ -75,7 +101,7 @@ namespace LightSettings.Koikatu {
             // Restore data of lights attached to items
             [HarmonyPostfix]
             [HarmonyPatch(typeof(Studio.Studio), "SaveScene")]
-            private static void AfterStudioSaveScene() {
+            internal static void AfterStudioSaveScene() {
                 LightSettings.logger.LogInfo("Restoring data");
                 foreach (LightSaveData data in SceneDataController.itemLightDatas) {
                     if (Studio.Studio.Instance.dicObjectCtrl.TryGetValue(data.ObjectId, out ObjectCtrlInfo oci)) {
@@ -87,19 +113,6 @@ namespace LightSettings.Koikatu {
                         }
                     }
                 }
-            }
-
-            // Patch AutoSave to save/restore data correctly
-            [HarmonyPrefix]
-            [HarmonyPatch(typeof(KK_Plugins.Autosave), "SetText")]
-            private static bool BeforeAutoSaveSetText(string text) {
-                if (text.ToLower().Contains("saving.")) BeforeStudioSaveScene();
-                return true;
-            }
-            [HarmonyPostfix]
-            [HarmonyPatch(typeof(KK_Plugins.Autosave), "SetText")]
-            private static void AfterAutoSaveSetText(string text) {
-                if (text.ToLower().Contains("saved")) AfterStudioSaveScene();
             }
 
             // Patch light enabled property
@@ -147,6 +160,39 @@ namespace LightSettings.Koikatu {
                 if (editedIntensity > 2 && _value == 2) return false;
                 editedIntensity = _value;
                 return true;
+            }
+        }
+
+        private static class ConditionalHooks {
+            private static Harmony _harmony;
+
+            // Enable conditional patches
+            public static void SetupHooks() {
+                var plugins = LightSettings.Instance.gameObject.GetComponents<BaseUnityPlugin>();
+                foreach (var plugin in plugins) {
+                    if (plugin.GetType().ToString() == "KK_Plugins.Autosave") {
+                        _harmony = Harmony.CreateAndPatchAll(typeof(ConditionalHooks), null);
+                        break;
+                    }
+                }
+            }
+
+            // Disable conditional patches
+            public static void UnregisterHooks() {
+                _harmony.UnpatchSelf();
+            }
+
+            // Patch AutoSave to save/restore data correctly
+            [HarmonyPrefix]
+            [HarmonyPatch(typeof(KK_Plugins.Autosave), "SetText")]
+            private static bool BeforeAutoSaveSetText(string text) {
+                if (text.ToLower().Contains("saving.")) AlwaysHooks.BeforeStudioSaveScene();
+                return true;
+            }
+            [HarmonyPostfix]
+            [HarmonyPatch(typeof(KK_Plugins.Autosave), "SetText")]
+            private static void AfterAutoSaveSetText(string text) {
+                if (text.ToLower().Contains("saved")) AlwaysHooks.AfterStudioSaveScene();
             }
         }
     }

@@ -15,22 +15,28 @@ using UnityEngine;
 
 namespace LightSettings.Koikatu {
     [BepInDependency(KKAPI.KoikatuAPI.GUID)]
-    [BepInDependency(Autosave.PluginGUID)]
-	[BepInProcess(KKAPI.KoikatuAPI.StudioProcessName)]
+    [BepInDependency(Autosave.PluginGUID, BepInDependency.DependencyFlags.SoftDependency)]
+    [BepInProcess(KKAPI.KoikatuAPI.StudioProcessName)]
     [BepInPlugin(GUID, "Light Settings", Version)]
-	/// <info>
-	/// Plugin structure thanks to Keelhauled
-	/// </info>
+    /// <info>
+    /// Plugin structure thanks to Keelhauled
+    /// </info>
     public partial class LightSettings : BaseUnityPlugin {
         public static LightSettings Instance { get; private set; }
 
         public const string GUID = "starstorm.lightsettings";
         public const string Version = "0.1.0." + BuildNumber.Version;
 
+        internal static Dictionary<string, byte[]> cookieDict = new Dictionary<string, byte[]>();
+        internal static Dictionary<string, Texture> cookieDirectionalDict = new Dictionary<string, Texture>();
+        internal static Dictionary<string, Texture> cookieSpotDict = new Dictionary<string, Texture>();
+        internal static Dictionary<string, Cubemap> cookiePointDict = new Dictionary<string, Cubemap>();
+
         internal static ManualLogSource logger;
         internal static int hello = 0;
 
         internal static int charaLightSetCountDown = -1;
+        private static string fileToRead = "";
 
         public ConfigEntry<bool> IsDebug { get; private set; }
         public ConfigEntry<bool> Enabled { get; private set; }
@@ -41,7 +47,7 @@ namespace LightSettings.Koikatu {
 
             IsDebug = Config.Bind("Advanced", "Logging", false, new ConfigDescription("Enable verbose logging for debugging purposes", null, new KKAPI.Utilities.ConfigurationManagerAttributes { IsAdvanced = true }));
             Enabled = Config.Bind("General", "Enable plugin", true, new ConfigDescription("Enable/disable the plugin entirely. You need to save/reload the scene after changing this. Changes take effect on Studio restart.", null, new ConfigurationManagerAttributes { Order = 10 }));
-            CharaLightToggleType = Config.Bind("General", "Character light toggle", "Cramped", new ConfigDescription("How the character light on/off toggle will be handled. Changes take effect on Studio restart.", new AcceptableValueList<string>(new string[] {"None", "Cramped", "Below Vanilla"}), new ConfigurationManagerAttributes { Order = 0 }));
+            CharaLightToggleType = Config.Bind("General", "Character light toggle", "Cramped", new ConfigDescription("How the character light on/off toggle will be handled. Changes take effect on Studio restart.", new AcceptableValueList<string>(new string[] { "None", "Cramped", "Below Vanilla" }), new ConfigurationManagerAttributes { Order = 0 }));
 
             Log.SetLogSource(Logger);
             logger = Logger;
@@ -73,13 +79,37 @@ namespace LightSettings.Koikatu {
         }
 
         private void Update() {
+            // Try making chara toggle until it's made
             if (!UIHandler.charaToggleMade && Enabled.Value) {
                 UIHandler.MakeCharaToggle();
             }
-            if (--charaLightSetCountDown == 0) {
+
+            // Load chara light data
+            if (charaLightSetCountDown > 0) {
+                charaLightSetCountDown--;
                 var charaLight = Studio.Studio.Instance.gameObject.GetComponentInChildren<Light>(true);
                 SceneDataController.SetLoadedData(SceneDataController.charaLightData, new List<Light> { charaLight }, true);
-                UIHandler.SyncGUI(ref UIHandler.containerChara, charaLight);
+                UIHandler.SyncGUI(UIHandler.containerChara, charaLight);
+            }
+
+            // Load cookie
+            if (fileToRead != "") {
+                if (Instance.IsDebug.Value) logger.LogInfo("Loading file...");
+                var lights = GetCurrentLights(SettingType.None, "", out bool isChaLight);
+                if (lights.Count > 0) {
+                    var data = System.IO.File.ReadAllBytes(fileToRead);
+                    fileToRead = "";
+
+                    foreach (Light light in lights) {
+                        if (Instance.IsDebug.Value) logger.LogInfo($"Setting up light {light.name}");
+                        Texture cookie = LightCookieFromBytes(data, light);
+                        light.cookie = cookie;
+                    }
+                    if (isChaLight) {
+                        SceneDataController.charaLightData.cookieHash = GetHashSHA1(data);
+                    }
+                    UIHandler.DisplayCookie(LightCookieFromBytes(data, lights[0]));
+                }
             }
         }
 
@@ -97,32 +127,7 @@ namespace LightSettings.Koikatu {
         internal static void SetLightSetting<T>(SettingType _type, T _value) {
             if (UIHandler.syncing) return;
 
-            List<Light> lights = new List<Light>();
-            bool isChaLight = false;
-            if (Studio.Studio.Instance.manipulatePanelCtrl.lightPanelInfo.mpLightCtrl.gameObject.activeSelf) {
-                var list = KKAPI.Studio.StudioAPI.GetSelectedObjects().ToList();
-                if (list.Count == 0) return;
-                lights.Add((list[0] as OCILight).light);
-            } else if (Studio.Studio.Instance.manipulatePanelCtrl.itemPanelInfo.mpItemCtrl.gameObject.activeSelf) {
-                var list = KKAPI.Studio.StudioAPI.GetSelectedObjects().ToList();
-                if (list.Count == 0) return;
-                lights = (list[0] as OCIItem).objectItem.GetComponentsInChildren<Light>(true).ToList();
-                if (_type == SettingType.State && list[0] is OCIItem ociItem && _value is bool stateVal) {
-                    if (stateVal) {
-                        if (SceneDataController.listDisabledLights.Remove(ociItem))
-                            foreach (Light light in lights)
-                                SceneDataController.dicDisabledLights.Remove(light);
-                    } else {
-                        if (!SceneDataController.listDisabledLights.Contains(ociItem)) {
-                            SceneDataController.listDisabledLights.Add(ociItem);
-                            foreach (Light light in lights) SceneDataController.dicDisabledLights.Add(light, ociItem);
-                        }
-                    }
-                }
-            } else {
-                lights.Add(Studio.Studio.Instance.gameObject.GetComponentInChildren<Light>(true));
-                isChaLight = true;
-            }
+            var lights = GetCurrentLights(_type, _value, out bool isChaLight);
 
             foreach (Light light in lights) {
                 switch (_type) {
@@ -169,6 +174,12 @@ namespace LightSettings.Koikatu {
                             if (Instance.IsDebug.Value) logger.LogInfo($"Light culling mask set to {light.cullingMask}");
                         }
                         break;
+                    case SettingType.CookieSize:
+                        if (Instance.IsDebug.Value) logger.LogInfo($"Cookie size set to {_value}");
+                        if (_value is float cookieSizeVal) light.cookieSize = cookieSizeVal;
+                        if (isChaLight) SceneDataController.charaLightData.cookieSize = light.cookieSize;
+                        break;
+
                     // These are exclusive to lights attached to items, since those controls needed to be recreated
                     case SettingType.LightStrength:
                         if (Instance.IsDebug.Value) logger.LogInfo($"Light intensity set to {_value}");
@@ -177,6 +188,10 @@ namespace LightSettings.Koikatu {
                     case SettingType.LightRange:
                         if (Instance.IsDebug.Value) logger.LogInfo($"Light range set to {_value}");
                         if (_value is float rangeVal) light.range = rangeVal;
+                        break;
+                    case SettingType.SpotAngle:
+                        if (Instance.IsDebug.Value) logger.LogInfo($"Spot angle set to {_value}");
+                        if (_value is float spotRangeVal) light.spotAngle = spotRangeVal;
                         break;
                     case SettingType.Color:
                         if (Instance.IsDebug.Value) logger.LogInfo($"Light color set to {_value}");
@@ -192,11 +207,153 @@ namespace LightSettings.Koikatu {
             }
         }
 
+        internal static void SetCookie(bool on) {
+            var lights = GetCurrentLights(SettingType.None, "", out bool isChaLight);
+
+            if (on) {
+                if (Instance.IsDebug.Value) logger.LogInfo("Opening file dialog...");
+                string filter = "Images (*.png;.jpg)|*.png;*.jpg|All files|*.*";
+                OpenFileDialog.Show(OnFileAccept, "Open image", Application.dataPath, filter, "png");
+            } else {
+                foreach (var light in lights) {
+                    light.cookie = null;
+                }
+                if (isChaLight) SceneDataController.charaLightData.cookieHash = "";
+            }
+
+            void OnFileAccept(string[] strings) {
+                if (strings == null || strings.Length == 0 || strings[0].IsNullOrEmpty()) {
+                    return;
+                }
+                if (Instance.IsDebug.Value) logger.LogInfo("File chosen!");
+                fileToRead = strings[0];
+            }
+        }
+
+        internal static List<Light> GetCurrentLights<T>(SettingType _type, T _value, out bool isChaLight) {
+            List<Light> lights = new List<Light>();
+            isChaLight = false;
+            if (Studio.Studio.Instance.manipulatePanelCtrl.lightPanelInfo.mpLightCtrl.gameObject.activeSelf) {
+                var list = KKAPI.Studio.StudioAPI.GetSelectedObjects().ToList();
+                if (list.Count == 0) return null;
+                lights.Add((list[0] as OCILight).light);
+            } else if (Studio.Studio.Instance.manipulatePanelCtrl.itemPanelInfo.mpItemCtrl.gameObject.activeSelf) {
+                var list = KKAPI.Studio.StudioAPI.GetSelectedObjects().ToList();
+                if (list.Count == 0) return null;
+                lights = (list[0] as OCIItem).objectItem.GetComponentsInChildren<Light>(true).ToList();
+                if (_type == SettingType.State && list[0] is OCIItem ociItem && _value is bool stateVal) {
+                    if (stateVal) {
+                        if (SceneDataController.listDisabledLights.Remove(ociItem))
+                            foreach (Light light in lights)
+                                SceneDataController.dicDisabledLights.Remove(light);
+                    } else {
+                        if (!SceneDataController.listDisabledLights.Contains(ociItem)) {
+                            SceneDataController.listDisabledLights.Add(ociItem);
+                            foreach (Light light in lights) SceneDataController.dicDisabledLights.Add(light, ociItem);
+                        }
+                    }
+                }
+            } else if (Studio.Studio.Instance.transform.Find("Canvas Main Menu/01_Add").gameObject.activeSelf) {
+                var map = GameObject.Find("/Map");
+                if (map == null) return null;
+                lights = map.GetComponentsInChildren<Light>(true).ToList();
+            } else {
+                lights.Add(Studio.Studio.Instance.gameObject.GetComponentInChildren<Light>(true));
+                isChaLight = true;
+            }
+            return lights;
+        }
+
         private static T EnumParser<T>(string _val) {
             return (T)Enum.Parse(typeof(T), _val.Split(' ').Join((x) => x, ""), true);
         }
 
+        private static string GetHashSHA1(byte[] data) {
+            using (var sha1 = new System.Security.Cryptography.SHA1CryptoServiceProvider()) {
+                return sha1.ComputeHash(data).Select(x => x.ToString("X2")).ToList().Join(x => x, "");
+            }
+        }
+
+        internal static Texture LightCookieFromBytes(byte[] bytes, Light light) {
+            var hash = GetHashSHA1(bytes);
+            Texture tex;
+
+            if (!cookieDict.ContainsKey(hash)) {
+                cookieDict.Add(hash, bytes);
+            }
+
+            if (!cookieDirectionalDict.TryGetValue(hash, out tex) || light.type != LightType.Directional) {
+                if (!cookieSpotDict.TryGetValue(hash, out tex) || light.type != LightType.Spot) {
+                    if (!cookiePointDict.TryGetValue(hash, out Cubemap cubeMap) || light.type != LightType.Point) {
+                        var loadedTex = new Texture2D(1, 1);
+                        loadedTex.LoadImage(bytes);
+
+                        var newTex = new Texture2D(loadedTex.width, loadedTex.height, TextureFormat.ARGB32, false, false);
+                        newTex.filterMode = FilterMode.Trilinear;
+                        var pixels = loadedTex.GetPixels();
+                        var min_alpha = 1f;
+                        foreach (Color pixel in pixels) if (pixel.a < min_alpha) min_alpha = pixel.a;
+                        if (min_alpha > 0.99) {
+                            if (Instance.IsDebug.Value) logger.LogInfo($"Converting brightness to alpha... (Minimum alpha was: {min_alpha})");
+                            for (int i = 0; i< pixels.Count(); i++) {
+                                float gray = 0.299f * pixels[i].r + 0.587f * pixels[i].g + 0.114f * pixels[i].b;
+                                pixels[i] = new Color(pixels[i].r, pixels[i].g, pixels[i].b, gray);
+                            }
+                        } else if (Instance.IsDebug.Value) logger.LogInfo($"Skipping alpha conversion! (Minimum alpha was: {min_alpha})");
+                        newTex.SetPixels(pixels);
+                        newTex.Apply();
+
+                        if (light.type == LightType.Directional) {
+                            if (Instance.IsDebug.Value) logger.LogInfo("Adding directional cookie...");
+                            newTex.wrapMode = TextureWrapMode.Repeat;
+                            cookieDirectionalDict.Add(hash, newTex);
+                            tex = newTex;
+                        } else if (light.type == LightType.Spot) {
+                            if (Instance.IsDebug.Value) logger.LogInfo("Adding spot cookie...");
+                            newTex.wrapMode = TextureWrapMode.Clamp;
+                            cookieSpotDict.Add(hash, newTex);
+                            tex = newTex;
+                        } else if (light.type == LightType.Point) {
+                            if (Instance.IsDebug.Value) logger.LogInfo("Adding point cookie...");
+                            cubeMap = CubemapFromTexture2D(newTex);
+                            cubeMap.wrapMode = TextureWrapMode.Repeat;
+                            cookiePointDict.Add(hash, cubeMap);
+                            tex = cubeMap;
+                        }
+                    } else {
+                        tex = cubeMap;
+                    }
+                }
+            }
+            return tex;
+        }
+
+        internal static Cubemap CubemapFromTexture2D(Texture2D tex) {
+            int w = tex.width / 4;
+            Cubemap cubeMap = new Cubemap(w, TextureFormat.ARGB32, false);
+            cubeMap.SetPixels(tex.GetPixels(0, w, w, w), CubemapFace.NegativeX);
+            cubeMap.SetPixels(tex.GetPixels(w, 2 * w, w, w), CubemapFace.NegativeY);
+            cubeMap.SetPixels(tex.GetPixels(w, w, w, w), CubemapFace.PositiveZ);
+            cubeMap.SetPixels(tex.GetPixels(w, 0, w, w), CubemapFace.PositiveY);
+            cubeMap.SetPixels(tex.GetPixels(2 * w, w, w, w), CubemapFace.PositiveX);
+            cubeMap.SetPixels(tex.GetPixels(3 * w, w, w, w), CubemapFace.NegativeZ);
+            cubeMap.Apply();
+            return cubeMap;
+        }
+
+        internal static void FilterCookies(List<string> hashes) {
+            var keys = cookieDict.Keys.ToList();
+            foreach (string key in keys) {
+                if (!hashes.Contains(key)) {
+                    if (cookieDict.ContainsKey(key)) cookieDict.Remove(key);
+                    if (cookieDirectionalDict.ContainsKey(key)) cookieDirectionalDict.Remove(key);
+                    if (cookiePointDict.ContainsKey(key)) cookiePointDict.Remove(key);
+                }
+            }
+        }
+
         internal enum SettingType {
+            None,
             Type,
             Resolution,
             ShadowStrength,
@@ -207,8 +364,10 @@ namespace LightSettings.Koikatu {
             CullingMask,
             LightStrength,
             LightRange,
+            SpotAngle,
             Color,
             State,
+            CookieSize,
         }
     }
 }

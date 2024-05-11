@@ -1,5 +1,4 @@
-﻿using ADV;
-using ExtensibleSaveFormat;
+﻿using ExtensibleSaveFormat;
 using KKAPI.Studio.SaveLoad;
 using KKAPI.Utilities;
 using MessagePack;
@@ -12,8 +11,9 @@ using UnityEngine.Rendering;
 namespace LightSettings.Koikatu {
     internal class SceneDataController : SceneCustomFunctionController {
         // These CANNOT be changed without breaking existing saved files
-        internal const string SaveID = "SavedLightSettings";
+        internal const string SaveID = "LightSettingsData";
         internal const int chaLightID = -10;
+        internal const int mapLightID = -20;
 
         internal static LightSaveData charaLightData;
         internal static List<LightSaveData> itemLightDatas;
@@ -22,14 +22,20 @@ namespace LightSettings.Koikatu {
 
         protected override void OnSceneLoad(SceneOperationKind operation, ReadOnlyDictionary<int, ObjectCtrlInfo> loadedItems) {
             Light charaLight = Singleton<Studio.Studio>.Instance.gameObject.GetComponentInChildren<Light>(true);
-            UIHandler.SyncGUI(ref UIHandler.containerChara, charaLight);
+            UIHandler.SyncGUI(UIHandler.containerChara, charaLight);
 
             var data = GetExtendedData();
             if (data == null)
                 return;
 
             if (LightSettings.Instance.IsDebug.Value) LightSettings.logger.LogInfo("Loading saved data...");
-            if ((operation == SceneOperationKind.Load || operation == SceneOperationKind.Import) && data.data.TryGetValue(SaveID, out var saveDataBytes)) {
+            if (data.data.TryGetValue(SaveID + "_cookies", out var savedCookieDict)) {
+                LightSettings.cookieDict = MessagePackSerializer.Deserialize<Dictionary<string, byte[]>>((byte[])savedCookieDict);
+                LightSettings.cookieSpotDict.Clear();
+                LightSettings.cookieDirectionalDict.Clear();
+                LightSettings.cookiePointDict.Clear();
+            }
+            if ((operation == SceneOperationKind.Load || operation == SceneOperationKind.Import) && data.data.TryGetValue(SaveID + "_lights", out var saveDataBytes)) {
                 var saveData = MessagePackSerializer.Deserialize<List<LightSaveData>>((byte[])saveDataBytes);
                 foreach (var lightData in saveData) {
                     if (LightSettings.Instance.IsDebug.Value) LightSettings.logger.LogInfo($"----- Setting loaded data for item {lightData.ObjectId}... -----");
@@ -39,9 +45,15 @@ namespace LightSettings.Koikatu {
                         } else if (oci is OCIItem ociItem) {
                             SetLoadedData(lightData, ociItem.objectItem.GetComponentsInChildren<Light>(true).ToList(), true, true);
                         }
-                    } else if (lightData.ObjectId == -10) {
+                    } else if (lightData.ObjectId == chaLightID) {
                         charaLightData = lightData;
                         LightSettings.charaLightSetCountDown = 5;
+                    } else if (lightData.ObjectId == mapLightID) {
+                        var map = GameObject.Find("/Map");
+                        if (map) {
+                            var lights = map.GetComponentsInChildren<Light>(true).ToList();
+                            if (lights.Count > 0) SetLoadedData(lightData, lights, true, true);
+                        }
                     }
                 }
                 if (LightSettings.charaLightSetCountDown < 0) {
@@ -57,6 +69,9 @@ namespace LightSettings.Koikatu {
                         shadowNearPlane = 0.1f,
                         renderMode = LightRenderMode.Auto,
                         cullingMask = 1<<10 + 23,
+
+                        cookieHash = "",
+                        cookieSize = 10,
                     };
                     LightSettings.charaLightSetCountDown = 5;
                 }
@@ -69,6 +84,13 @@ namespace LightSettings.Koikatu {
             // Add chara light
             saveData.Add(charaLightData);
 
+            // Add map light
+            var map = GameObject.Find("/Map");
+            if (map) {
+                var light = map.GetComponentsInChildren<Light>(true)[0];
+                if (light) AddSaveData(saveData, mapLightID, light);
+            }
+
             // Add item lights
             foreach (var item in Studio.Studio.Instance.dicObjectCtrl.Values.OfType<OCILight>()) {
                 if (item.light) AddSaveData(saveData, KKAPI.Studio.StudioObjectExtensions.GetSceneId(item), item.light);
@@ -76,54 +98,80 @@ namespace LightSettings.Koikatu {
 
             // Add lights attached to items
             saveData.AddRange(itemLightDatas);
-            /* foreach (var item in Studio.Studio.Instance.dicObjectCtrl.Values.OfType<OCIItem>()) {
-                var light = item.objectItem.GetComponentInChildren<Light>();
-                if (light != null) AddSaveData(saveData, KKAPI.Studio.StudioObjectExtensions.GetSceneId(item), light);
-            } */
+
+            // Filter out unused textures
+            LightSettings.FilterCookies(saveData.Select((x) => x.cookieHash).ToList());
 
             // Save
             if (saveData.Count > 0) {
                 var data = new PluginData();
-                data.data.Add(SaveID, MessagePackSerializer.Serialize(saveData));
+                data.data.Add(SaveID + "_lights", MessagePackSerializer.Serialize(saveData));
+                data.data.Add(SaveID + "_cookies", MessagePackSerializer.Serialize(LightSettings.cookieDict));
                 SetExtendedData(data);
             }
         }
 
-        internal static void SetLoadedData(LightSaveData lightData, List<Light> lights, bool setState = false, bool setColIntRange = false) {
+        internal static void SetLoadedData(LightSaveData lightData, List<Light> lights, bool setState = false, bool setExtra = false) {
             foreach (var light in lights) {
                 if (LightSettings.Instance.IsDebug.Value) LightSettings.logger.LogInfo($"Loading data for {light.name}!");
                 if (setState) {
-                    if (LightSettings.Instance.IsDebug.Value) LightSettings.logger.LogInfo($"Light {(lightData.state ? "enabled" : "disabled")}!");
                     light.enabled = lightData.state;
                 }
-                if (LightSettings.Instance.IsDebug.Value) LightSettings.logger.LogInfo($"Shadow type set to {lightData.shadows}");
                 light.shadows = lightData.shadows;
-                if (LightSettings.Instance.IsDebug.Value) LightSettings.logger.LogInfo($"Shadow resolution set to {lightData.shadowResolution}");
                 light.shadowResolution = lightData.shadowResolution;
-                if (LightSettings.Instance.IsDebug.Value) LightSettings.logger.LogInfo($"Shadow strength set to {lightData.shadowStrength}");
                 light.shadowStrength = lightData.shadowStrength;
-                if (LightSettings.Instance.IsDebug.Value) LightSettings.logger.LogInfo($"Shadow bias set to {lightData.shadowBias}");
                 light.shadowBias = lightData.shadowBias;
-                if (LightSettings.Instance.IsDebug.Value) LightSettings.logger.LogInfo($"Shadow normal bias set to {lightData.shadowNormalBias}");
                 light.shadowNormalBias = lightData.shadowNormalBias;
-                if (LightSettings.Instance.IsDebug.Value) LightSettings.logger.LogInfo($"Shadow near plane set to {lightData.shadowNearPlane}");
                 light.shadowNearPlane = lightData.shadowNearPlane;
-                if (LightSettings.Instance.IsDebug.Value) LightSettings.logger.LogInfo($"Light render mode set to {lightData.renderMode}");
                 light.renderMode = lightData.renderMode;
-                if (LightSettings.Instance.IsDebug.Value) LightSettings.logger.LogInfo($"Light culling mask set to {lightData.cullingMask}");
                 light.cullingMask = lightData.cullingMask;
-                if (setColIntRange) {
-                    if (LightSettings.Instance.IsDebug.Value) LightSettings.logger.LogInfo($"Light color set to {lightData.color}!");
+
+                // Cookie
+                if (LightSettings.cookieDict.TryGetValue(lightData.cookieHash, out byte[] data)) {
+                    light.cookie = LightSettings.LightCookieFromBytes(data, light);
+                    light.cookieSize = lightData.cookieSize;
+                } else {
+                    light.cookie = null;
+                    light.cookieSize = 0;
+                }
+
+                // Exclusive to lights attached to items
+                if (setExtra) {
                     light.color = lightData.color;
-                    if (LightSettings.Instance.IsDebug.Value) LightSettings.logger.LogInfo($"Light intensity set to {lightData.intensity}!");
                     light.intensity = lightData.intensity;
-                    if (LightSettings.Instance.IsDebug.Value) LightSettings.logger.LogInfo($"Light range set to {lightData.range}!");
                     light.range = lightData.range;
+                    light.spotAngle = lightData.spotAngle;
                 }
             }
         }
 
         internal static void AddSaveData(List<LightSaveData> saveData, int key, Light light) {
+            var hash = "";
+            if (light.cookie != null) {
+                if (light.type == LightType.Point) {
+                    foreach (KeyValuePair<string, Cubemap> kvp in LightSettings.cookiePointDict) {
+                        if (light.cookie == kvp.Value) {
+                            hash = kvp.Key;
+                            break;
+                        }
+                    }
+                } else if (light.type == LightType.Directional) {
+                    foreach (KeyValuePair<string, Texture> kvp in LightSettings.cookieDirectionalDict) {
+                        if (light.cookie == kvp.Value) {
+                            hash = kvp.Key;
+                            break;
+                        }
+                    }
+                } else if (light.type == LightType.Spot) {
+                    foreach (KeyValuePair<string, Texture> kvp in LightSettings.cookieSpotDict) {
+                        if (light.cookie == kvp.Value) {
+                            hash = kvp.Key;
+                            break;
+                        }
+                    }
+                }
+            }
+
             saveData.Add(new LightSaveData {
                 ObjectId = key,
 
@@ -137,9 +185,15 @@ namespace LightSettings.Koikatu {
                 renderMode = light.renderMode,
                 cullingMask = light.cullingMask,
 
+                // Cookie
+                cookieHash = hash,
+                cookieSize = light.cookieSize,
+
+                // Exclusive to lights attached to items
                 color = light.color,
                 intensity = light.intensity,
                 range = light.range,
+                spotAngle = light.spotAngle,
             });
         }
     }

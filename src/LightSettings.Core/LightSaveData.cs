@@ -16,9 +16,14 @@ namespace LightSettings.Koikatu {
         public LightRenderMode renderMode;
         public int cullingMask; // 1024 = chara, 2048 = map
 
+        // Cookie
+        public string cookieHash = "";
+        public float cookieSize;
+
         // Extra for lights attached to items
         public Color color;
         public float intensity;
         public float range;
+        public float spotAngle;
     }
 }
