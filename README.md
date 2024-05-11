@@ -21,6 +21,10 @@ This is an old plugin which I decompiled and modified to also be able to be used
 Fixes the KKUSS shaders when used in Koikatsu Sunshine by making sure they always have at least a flat normal map.
 Can be extended for other shaders having the same problem, hit me up if you find any.
 
+#### Light Settings [KK/KKS]
+Allows changing more properties of lights than available by default.
+Also allows the usage of light cookies, editing of map lights, and toggling of the chara light.
+
 #### Light Toggler [KK/KKS]
 Automatically toggles on/off lights when a parent folder or object is toggled on/off.
 Also works for items that have built-in lights.
