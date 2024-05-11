@@ -31,7 +31,18 @@ namespace LightSettings.Koikatu {
             containerItem.localPosition = new Vector2(0, -60);
 
             // Setup the maplight control panel
-            MakeGUI(ref containerMap, SetupExtendedPanel(Studio.Studio.Instance.transform.Find("Canvas Main Menu/01_Add/03_Map"), new Vector2(170, 0), Vector2.zero));
+            MakeGUI(
+                ref containerMap,
+                SetupExtendedPanel(
+                    Studio.Studio.Instance.transform.Find("Canvas Main Menu/01_Add/03_Map"),
+#if KK
+                    new Vector2(170, 0),
+#else
+                    new Vector2(305, 0),
+#endif
+                    Vector2.zero
+                )
+            );
             containerMap.localPosition = new Vector2(0, -60);
             
             // Create item light settings GUI

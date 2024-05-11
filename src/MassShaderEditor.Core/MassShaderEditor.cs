@@ -29,7 +29,7 @@ namespace MassShaderEditor.Koikatu {
 	/// </info>
     public partial class MassShaderEditor : BaseUnityPlugin {
         public const string GUID = "starstorm.massshadereditor";
-        public const string Version = "1.1.1." + BuildNumber.Version;
+        public const string Version = "1.1.2." + BuildNumber.Version;
 
         // General
         public ConfigEntry<float> UIScale { get; private set; }
@@ -378,9 +378,9 @@ namespace MassShaderEditor.Koikatu {
                         var ctrl = KKAPI.Studio.StudioObjectExtensions.GetChaControl(ociChar);
                         if (AffectChaBody.Value && AffectMiscBodyParts.Value) SetCharaProperties(ctrl.GetController(), ociChar, 0, ObjectType.Character, _value);
                         else if (AffectChaBody.Value) SetCharaProperties(ctrl.GetController(), ociChar, 0, ObjectType.Character, _value,
-                            (Material x) => new List<string> { "cf_m_body", "cm_m_body", "cf_m_face_00" }.Contains(x.NameFormatted().ToLower()));
+                            (Renderer x) => new List<string> { "cf_o_face", "o_body_a" }.Contains(x.NameFormatted().ToLower()));
                         else if (AffectMiscBodyParts.Value) SetCharaProperties(ctrl.GetController(), ociChar, 0, ObjectType.Character, _value,
-                            (Material x) => !new List<string> { "cf_m_body", "cm_m_body", "cf_m_face_00" }.Contains(x.NameFormatted().ToLower()));
+                            (Renderer x) => !new List<string> { "cf_o_face", "o_body_a" }.Contains(x.NameFormatted().ToLower()));
                         if (AffectChaHair.Value) for(int i = 0; i<ctrl.objHair.Length; i++) SetCharaProperties(ctrl.GetController(), ociChar, i, ObjectType.Hair, _value);
                         if (AffectChaClothes.Value) for (int i = 0; i < ctrl.objClothes.Length; i++) SetCharaProperties(ctrl.GetController(), ociChar, i, ObjectType.Clothing, _value);
                         for (int i = 0; i < ctrl.objAccessory.Length; i++)
