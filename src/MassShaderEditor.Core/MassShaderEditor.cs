@@ -29,7 +29,7 @@ namespace MassShaderEditor.Koikatu {
 	/// </info>
     public partial class MassShaderEditor : BaseUnityPlugin {
         public const string GUID = "starstorm.massshadereditor";
-        public const string Version = "1.1.2." + BuildNumber.Version;
+        public const string Version = "1.1.3." + BuildNumber.Version;
 
         // General
         public ConfigEntry<float> UIScale { get; private set; }
@@ -310,14 +310,17 @@ namespace MassShaderEditor.Koikatu {
                     if (type == ObjectType.Clothing) limit = chaCtrl.objClothes.Length;
                     if (type == ObjectType.Accessory) limit = chaCtrl.objAccessory.Length;
 
+                    Predicate<Material> matFilter = (x) => true;
+                    Predicate<Renderer> rendFilter = (x) => true;
+
                     if (type == ObjectType.Character && !AffectMiscBodyParts.Value) {
-                        Predicate<Renderer> filter = (Renderer x) => new List<string> { "cf_o_face", "o_body_a" }.Contains(x.NameFormatted());
-                        for (int i = 0; i < limit; i++) SetCharaProperties(chaCtrl.GetController(), null, i, type, _value, filter);
+                        rendFilter = (Renderer x) => new List<string> { "cf_o_face", "o_body_a" }.Contains(x.NameFormatted());
                     }
                     if (type == ObjectType.Accessory && HairAccIsHair.Value) {
-                        Predicate<Material> filter = (Material x) => !x.shader.NameFormatted().ToLower().Contains("hair");
-                        for (int i = 0; i < limit; i++) SetCharaProperties(chaCtrl.GetController(), null, i, type, _value, filter);
+                        matFilter = (Material x) => !x.shader.NameFormatted().ToLower().Contains("hair");
                     }
+
+                    for (int i = 0; i < limit; i++) SetCharaProperties(chaCtrl.GetController(), null, i, type, _value, matFilter, rendFilter);
                     
                     if (type == ObjectType.Hair && HairAccIsHair.Value)
                         for (int i = 0; i < chaCtrl.objAccessory.Length; i++)
@@ -357,16 +360,16 @@ namespace MassShaderEditor.Koikatu {
                     if (type == ObjectType.Clothing) slot = makerMenu.ccClothesMenu.GetSelectIndex();
                     if (type == ObjectType.Accessory) slot = makerMenu.ccAcsMenu.GetSelectIndex();
 
-                    if (type == ObjectType.Character)
-                        if (makerTabID == 0) {
-                            Predicate<Renderer> filter = (Renderer x) => x.NameFormatted() == "cf_o_face";
-                            SetCharaProperties(chaCtrl.GetController(), null, slot, type, _value, filter);
-                        } else if (makerTabID == 1) {
-                            Predicate<Material> filter = (Material x) => x.NameFormatted() == "cf_m_body" || x.NameFormatted() == "cm_m_body";
-                            SetCharaProperties(chaCtrl.GetController(), null, slot, type, _value, filter);
-                        } else {
-                            SetCharaProperties(chaCtrl.GetController(), null, slot, type, _value);
-                        }
+                    Predicate<Material> matFilter = (x) => true;
+                    Predicate<Renderer> rendFilter = (x) => true;
+
+                    if (makerTabID == 0) {
+                        rendFilter = (Renderer x) => x.NameFormatted() == "cf_o_face";
+                    } else if (makerTabID == 1) {
+                        matFilter = (Material x) => x.NameFormatted() == "cf_m_body" || x.NameFormatted() == "cm_m_body";
+                    }
+                    
+                    SetCharaProperties(chaCtrl.GetController(), null, slot, type, _value, matFilter, rendFilter);
 
                     if (MaterialEditorUI.MaterialEditorWindow.gameObject.activeSelf) MEMaker.Instance.RefreshUI();
                 } else ShowMessage("Please select a valid item category.");
@@ -601,12 +604,6 @@ namespace MassShaderEditor.Koikatu {
                         }
                     }
             }
-
-            string mats = "";
-            foreach (string mat in editedMatList) {
-                mats = mats + mat + ", ";
-            }
-            Log("Mats: " + mats);
         }
 
         private bool GetTargetTexture(out byte[] data, out Texture tex) {
