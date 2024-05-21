@@ -86,7 +86,7 @@ namespace LightSettings.Koikatu {
             [HarmonyPrefix]
             [HarmonyPatch(typeof(Studio.Studio), "SaveScene")]
             internal static bool BeforeStudioSaveScene() {
-                LightSettings.logger.LogInfo("Saving data");
+                if (LightSettings.Instance.IsDebug.Value) LightSettings.logger.LogInfo("Saving data before save...");
                 SceneDataController.itemLightDatas = new System.Collections.Generic.List<LightSaveData>();
                 foreach (OCIItem ociItem in Studio.Studio.Instance.dicObjectCtrl.Values.OfType<OCIItem>()) {
                     var lights = ociItem.objectItem.GetComponentsInChildren<Light>(true).ToList();
@@ -102,7 +102,7 @@ namespace LightSettings.Koikatu {
             [HarmonyPostfix]
             [HarmonyPatch(typeof(Studio.Studio), "SaveScene")]
             internal static void AfterStudioSaveScene() {
-                LightSettings.logger.LogInfo("Restoring data");
+                if (LightSettings.Instance.IsDebug.Value) LightSettings.logger.LogInfo("Restoring data after save...");
                 foreach (LightSaveData data in SceneDataController.itemLightDatas) {
                     if (Studio.Studio.Instance.dicObjectCtrl.TryGetValue(data.ObjectId, out ObjectCtrlInfo oci)) {
                         if (oci is OCIItem ociItem) {

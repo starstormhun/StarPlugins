@@ -25,7 +25,7 @@ namespace LightSettings.Koikatu {
         public static LightSettings Instance { get; private set; }
 
         public const string GUID = "starstorm.lightsettings";
-        public const string Version = "1.0.1." + BuildNumber.Version;
+        public const string Version = "1.0.2." + BuildNumber.Version;
 
         internal static Dictionary<string, byte[]> cookieDict = new Dictionary<string, byte[]>();
         internal static Dictionary<string, Texture> cookieDirectionalDict = new Dictionary<string, Texture>();
@@ -35,7 +35,7 @@ namespace LightSettings.Koikatu {
         internal static ManualLogSource logger;
         internal static int hello = 0;
 
-        internal static int charaLightSetCountDown = -1;
+        internal static int charaLightSetCountDown = 0;
         private static string fileToRead = "";
 
         public ConfigEntry<bool> IsDebug { get; private set; }
@@ -67,7 +67,7 @@ namespace LightSettings.Koikatu {
                         shadowNormalBias = charaLight.shadowNormalBias,
                         shadowNearPlane = charaLight.shadowNearPlane,
                         renderMode = charaLight.renderMode,
-                        cullingMask = charaLight.cullingMask,
+                        cullingMask = charaLight.cullingMask | (1 << 28),
                     };
                 };
                 StudioSaveLoadApi.RegisterExtraBehaviour<SceneDataController>(SceneDataController.SaveID);
@@ -87,9 +87,12 @@ namespace LightSettings.Koikatu {
             // Load chara light data
             if (charaLightSetCountDown > 0) {
                 charaLightSetCountDown--;
-                var charaLight = Studio.Studio.Instance.gameObject.GetComponentInChildren<Light>(true);
-                SceneDataController.SetLoadedData(SceneDataController.charaLightData, new List<Light> { charaLight }, true);
-                UIHandler.SyncGUI(UIHandler.containerChara, charaLight);
+                if (charaLightSetCountDown == 0) {
+                    if (IsDebug.Value) Logger.LogInfo("Loading character light settings...");
+                    var charaLight = Studio.Studio.Instance.gameObject.GetComponentInChildren<Light>(true);
+                    SceneDataController.SetLoadedData(SceneDataController.charaLightData, new List<Light> { charaLight }, true);
+                    UIHandler.SyncGUI(UIHandler.containerChara, charaLight);
+                }
             }
 
             // Load cookie
@@ -170,6 +173,8 @@ namespace LightSettings.Koikatu {
                         if (_value is int maskVal) {
                             if ((light.cullingMask & maskVal) == 0) light.cullingMask |= maskVal;
                             else light.cullingMask &= ~maskVal;
+                            // Make sure character light illuminates the gizmos
+                            if (isChaLight) light.cullingMask |= 1 << 28;
                             if (isChaLight) SceneDataController.charaLightData.cullingMask = light.cullingMask;
                             if (Instance.IsDebug.Value) logger.LogInfo($"Light culling mask set to {light.cullingMask}");
                         }

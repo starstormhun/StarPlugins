@@ -25,56 +25,56 @@ namespace LightSettings.Koikatu {
             UIHandler.SyncGUI(UIHandler.containerChara, charaLight);
 
             var data = GetExtendedData();
-            if (data == null)
-                return;
-
-            if (LightSettings.Instance.IsDebug.Value) LightSettings.logger.LogInfo("Loading saved data...");
-            if (data.data.TryGetValue(SaveID + "_cookies", out var savedCookieDict)) {
-                LightSettings.cookieDict = MessagePackSerializer.Deserialize<Dictionary<string, byte[]>>((byte[])savedCookieDict);
-                LightSettings.cookieSpotDict.Clear();
-                LightSettings.cookieDirectionalDict.Clear();
-                LightSettings.cookiePointDict.Clear();
-            }
-            if ((operation == SceneOperationKind.Load || operation == SceneOperationKind.Import) && data.data.TryGetValue(SaveID + "_lights", out var saveDataBytes)) {
-                var saveData = MessagePackSerializer.Deserialize<List<LightSaveData>>((byte[])saveDataBytes);
-                foreach (var lightData in saveData) {
-                    if (LightSettings.Instance.IsDebug.Value) LightSettings.logger.LogInfo($"----- Setting loaded data for item {lightData.ObjectId}... -----");
-                    if (loadedItems.TryGetValue(lightData.ObjectId, out var oci)) {
-                        if (oci is OCILight ociLight) {
-                            SetLoadedData(lightData, new List<Light> { ociLight.light });
-                        } else if (oci is OCIItem ociItem) {
-                            SetLoadedData(lightData, ociItem.objectItem.GetComponentsInChildren<Light>(true).ToList(), true, true);
-                        }
-                    } else if (lightData.ObjectId == chaLightID) {
-                        charaLightData = lightData;
-                        LightSettings.charaLightSetCountDown = 5;
-                    } else if (lightData.ObjectId == mapLightID) {
-                        var map = GameObject.Find("/Map");
-                        if (map) {
-                            var lights = map.GetComponentsInChildren<Light>(true).ToList();
-                            if (lights.Count > 0) SetLoadedData(lightData, lights, true, true);
+            if (data != null) {
+                if (LightSettings.Instance.IsDebug.Value) LightSettings.logger.LogInfo("Loading saved data...");
+                if (data.data.TryGetValue(SaveID + "_cookies", out var savedCookieDict)) {
+                    LightSettings.cookieDict = MessagePackSerializer.Deserialize<Dictionary<string, byte[]>>((byte[])savedCookieDict);
+                    LightSettings.cookieSpotDict.Clear();
+                    LightSettings.cookieDirectionalDict.Clear();
+                    LightSettings.cookiePointDict.Clear();
+                }
+                if ((operation == SceneOperationKind.Load || operation == SceneOperationKind.Import) && data.data.TryGetValue(SaveID + "_lights", out var saveDataBytes)) {
+                    var saveData = MessagePackSerializer.Deserialize<List<LightSaveData>>((byte[])saveDataBytes);
+                    foreach (var lightData in saveData) {
+                        if (LightSettings.Instance.IsDebug.Value) LightSettings.logger.LogInfo($"----- Setting loaded data for item {lightData.ObjectId}... -----");
+                        if (loadedItems.TryGetValue(lightData.ObjectId, out var oci)) {
+                            if (oci is OCILight ociLight) {
+                                SetLoadedData(lightData, new List<Light> { ociLight.light });
+                            } else if (oci is OCIItem ociItem) {
+                                SetLoadedData(lightData, ociItem.objectItem.GetComponentsInChildren<Light>(true).ToList(), true, true);
+                            }
+                        } else if (lightData.ObjectId == chaLightID) {
+                            charaLightData = lightData;
+                            LightSettings.charaLightSetCountDown = 5;
+                        } else if (lightData.ObjectId == mapLightID) {
+                            var map = GameObject.Find("/Map");
+                            if (map) {
+                                var lights = map.GetComponentsInChildren<Light>(true).ToList();
+                                if (lights.Count > 0) SetLoadedData(lightData, lights, true, true);
+                            }
                         }
                     }
                 }
-                if (LightSettings.charaLightSetCountDown < 0) {
-                    charaLightData = new LightSaveData {
-                        ObjectId = chaLightID,
+            }
+            if (LightSettings.charaLightSetCountDown <= 0) {
+                if (LightSettings.Instance.IsDebug.Value) LightSettings.logger.LogInfo("Chara light data not found, copying existing settings!");
+                charaLightData = new LightSaveData {
+                    ObjectId = chaLightID,
 
-                        state = charaLight.enabled,
-                        shadows = LightShadows.Soft,
-                        shadowResolution = LightShadowResolution.FromQualitySettings,
-                        shadowStrength = 0.8f,
-                        shadowBias = 0.0075f,
-                        shadowNormalBias = 0.4f,
-                        shadowNearPlane = 0.1f,
-                        renderMode = LightRenderMode.Auto,
-                        cullingMask = 1<<10 + 23,
+                    state = charaLight.enabled,
+                    shadows = charaLight.shadows,
+                    shadowResolution = charaLight.shadowResolution,
+                    shadowStrength = charaLight.shadowStrength,
+                    shadowBias = charaLight.shadowBias,
+                    shadowNormalBias = charaLight.shadowNormalBias,
+                    shadowNearPlane = charaLight.shadowNearPlane,
+                    renderMode = charaLight.renderMode,
+                    cullingMask = charaLight.cullingMask | (1 << 28),
 
-                        cookieHash = "",
-                        cookieSize = 10,
-                    };
-                    LightSettings.charaLightSetCountDown = 5;
-                }
+                    cookieHash = "",
+                    cookieSize = charaLight.cookieSize,
+                };
+                LightSettings.charaLightSetCountDown = 5;
             }
         }
 
