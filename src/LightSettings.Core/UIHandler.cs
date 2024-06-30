@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
@@ -324,7 +324,7 @@ namespace LightSettings.Koikatu {
 
             // Add size slider
             UnityAction<float> cookieSizeCallback = (x) => LightSettings.SetLightSetting(LightSettings.SettingType.CookieSize, x);
-            var cookieSizeSlider = MakeSlider(displayContainer, "Cookie Size", new Vector2(0, -207), 0.1f, 10, 10, cookieSizeCallback, false, true, true);
+            var cookieSizeSlider = MakeSlider(displayContainer, "Cookie Size", new Vector2(0, -207), 0.1f, 10, 10, cookieSizeCallback);
 
             return panel;
 
@@ -477,7 +477,7 @@ namespace LightSettings.Koikatu {
             return newDrop;
         }
 
-        private static Transform MakeSlider(Transform _parent, string _name, Vector2 _pos, float _sliderMin, float _sliderMax, float _default, UnityAction<float> _callback, bool _wholeNumbers = false, bool _allowOutOfBounds = true, bool needsBackground = false) {
+        private static Transform MakeSlider(Transform _parent, string _name, Vector2 _pos, float _sliderMin, float _sliderMax, float _default, UnityAction<float> _callback, bool _wholeNumbers = false, bool _allowOutOfBounds = true) {
             Transform lightCtrl = Studio.Studio.Instance.manipulatePanelCtrl.lightPanelInfo.mpLightCtrl.transform;
             Transform newSlider = GameObject.Instantiate(lightCtrl.Find("Spot Angle"), _parent);
 
@@ -520,21 +520,19 @@ namespace LightSettings.Koikatu {
             });
 
             // Add background
-            if (needsBackground) {
-                var newBg = GameObject.Instantiate(lightCtrl.GetChild(0).gameObject, newSlider).transform;
-                newBg.SetAsFirstSibling();
-                var tex = new Texture2D(4, 4);
-                Color[] cols = new Color[16];
-                for (int i = 0; i<16; i++) {
-                    cols[i] = new Color(0, 0, 0, 1);
-                }
-                tex.SetPixels(cols);
-                tex.Apply();
-                var spr = Sprite.Create(tex, new Rect(0, 0, 4, 4), new Vector2(2, 2));
-                newBg.GetComponent<Image>().sprite = spr;
-                newBg.GetComponent<RectTransform>().localPosition = new Vector3(120, -20, 0);
-                newBg.GetComponent<RectTransform>().sizeDelta = new Vector2(30, 20);
+            var newBg = GameObject.Instantiate(lightCtrl.GetChild(0).gameObject, newSlider).transform;
+            newBg.SetAsFirstSibling();
+            var tex = new Texture2D(4, 4);
+            Color[] cols = new Color[16];
+            for (int i = 0; i<16; i++) {
+                cols[i] = new Color(0, 0, 0, 1);
             }
+            tex.SetPixels(cols);
+            tex.Apply();
+            var spr = Sprite.Create(tex, new Rect(0, 0, 4, 4), new Vector2(2, 2));
+            newBg.GetComponent<Image>().sprite = spr;
+            newBg.GetComponent<RectTransform>().localPosition = new Vector3(120, -20, 0);
+            newBg.GetComponent<RectTransform>().sizeDelta = new Vector2(30, 20);
 
             return newSlider;
         }
