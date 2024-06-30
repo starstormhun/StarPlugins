@@ -9,6 +9,7 @@ namespace LightSettings.Koikatu {
         public bool state;
         public LightShadows shadows;
         public UnityEngine.Rendering.LightShadowResolution shadowResolution;
+        public int shadowCustomResolution;
         public float shadowStrength;
         public float shadowBias;
         public float shadowNormalBias;

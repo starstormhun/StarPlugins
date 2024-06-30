@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
@@ -199,7 +199,7 @@ namespace LightSettings.Koikatu {
             var old = lightCtrl.transform.GetChild(0).GetComponent<Image>().sprite;
             var spr = Sprite.Create(bg, new Rect(0, 0, bg.width, bg.height), old.pivot, old.pixelsPerUnit);
             newBg.GetComponent<Image>().sprite = spr;
-            newBg.GetComponent<RectTransform>().sizeDelta = new Vector2(190f / 154f * bg.width, 190f / 154f * bg.height);
+            newBg.GetComponent<RectTransform>().sizeDelta = new Vector2(190f / 154f * bg.width, 1.4f * bg.height);
             newBg.name = "Background";
 
             // Create type / resolution dropdown controls
@@ -220,29 +220,36 @@ namespace LightSettings.Koikatu {
             UnityAction<int> resolutionCallback = (x) => LightSettings.SetLightSetting(LightSettings.SettingType.Resolution, resolutionOptions[x]);
             Transform dropResolution = MakeDropDown(container, "Shadow Resolution", new Vector2(0, -230f), resolutionOptions, resolutionCallback);
 
+            var customResolutionOptions = new List<string> { "-1", "1024", "2048", "4096", "8192", "16384" };
+            UnityAction<int> customResolutionCallback = (x) => {
+                LightSettings.SetLightSetting(LightSettings.SettingType.CustomResolution, customResolutionOptions[x]);
+                dropResolution.GetComponentInChildren<Dropdown>().interactable = x == 0;
+            };
+            Transform dropCustomResolution = MakeDropDown(container, "Shadow Custom Resolution", new Vector2(0, -275f), customResolutionOptions, customResolutionCallback);
+
             // Create all slider controls
             UnityAction<float> strengthCallback = (x) => LightSettings.SetLightSetting(LightSettings.SettingType.ShadowStrength, x);
-            Transform sliderStrength = MakeSlider(container, "Shadow Strength", new Vector2(0, -276f), 0, 1, 1, strengthCallback);
+            Transform sliderStrength = MakeSlider(container, "Shadow Strength", new Vector2(0, -320f), 0, 1, 1, strengthCallback);
 
             UnityAction<float> biasCallback = (x) => LightSettings.SetLightSetting(LightSettings.SettingType.Bias, x);
-            Transform sliderBias = MakeSlider(container, "Shadow Bias", new Vector2(0, -320f), 0, 0.1f, 0.05f, biasCallback);
+            Transform sliderBias = MakeSlider(container, "Shadow Bias", new Vector2(0, -365f), 0, 0.1f, 0.05f, biasCallback);
 
             UnityAction<float> normalBiasCallback = (x) => LightSettings.SetLightSetting(LightSettings.SettingType.NormalBias, x);
-            Transform sliderNormalBias = MakeSlider(container, "Shadow Normal Bias", new Vector2(0, -365f), 0, 1, 0.4f, normalBiasCallback);
+            Transform sliderNormalBias = MakeSlider(container, "Shadow Normal Bias", new Vector2(0, -410f), 0, 1, 0.4f, normalBiasCallback);
 
             UnityAction<float> nearPlaneCallback = (x) => LightSettings.SetLightSetting(LightSettings.SettingType.NearPlane, x);
-            Transform sliderNearPlane = MakeSlider(container, "Shadow Near Plane", new Vector2(0, -410f), 0, 1, 0.2f, nearPlaneCallback);
+            Transform sliderNearPlane = MakeSlider(container, "Shadow Near Plane", new Vector2(0, -455), 0, 1, 0.2f, nearPlaneCallback);
 
             // Create render mode dropdown control
             var renderModeOptions = new List<string> { "Auto", "Force Pixel", "Force Vertex" };
             UnityAction<int> renderModeCallback = (x) => LightSettings.SetLightSetting(LightSettings.SettingType.RenderMode, renderModeOptions[x]);
-            Transform dropRenderMode = MakeDropDown(container, "Light Render Mode", new Vector2(0, -455f), renderModeOptions, renderModeCallback);
+            Transform dropRenderMode = MakeDropDown(container, "Light Render Mode", new Vector2(0, -500), renderModeOptions, renderModeCallback);
 
             // Create culling mask toggles
             Transform cullMask = (new GameObject("Culling Mask")).transform;
             cullMask.SetParent(container);
             cullMask.localScale = Vector3.one;
-            cullMask.localPosition = new Vector2(0, -500);
+            cullMask.localPosition = new Vector2(0, -545);
             MakeLabel(cullMask, "Culling Mask", Vector2.zero);
             UnityAction<bool> charaToggleCallback = (x) => LightSettings.SetLightSetting(LightSettings.SettingType.CullingMask, 1<<10);
             MakeToggle(cullMask, "Chara", new Vector2(10f, -20f), new Vector2(60f, 0), charaToggleCallback);
@@ -347,6 +354,8 @@ namespace LightSettings.Koikatu {
             dropdown.value = FindOption(dropdown, _light.shadows.ToString());
             dropdown = container.Find("Shadow Resolution").GetComponentInChildren<Dropdown>(true);
             dropdown.value = FindOption(dropdown, _light.shadowResolution.ToString());
+            dropdown = container.Find("Shadow Custom Resolution").GetComponentInChildren<Dropdown>(true);
+            dropdown.value = FindOption(dropdown, _light.shadowCustomResolution.ToString());
             dropdown = container.Find("Light Render Mode").GetComponentInChildren<Dropdown>(true);
             dropdown.value = FindOption(dropdown, _light.renderMode.ToString());
 

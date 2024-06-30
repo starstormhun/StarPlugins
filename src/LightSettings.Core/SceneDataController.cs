@@ -64,6 +64,7 @@ namespace LightSettings.Koikatu {
                     state = charaLight.enabled,
                     shadows = charaLight.shadows,
                     shadowResolution = charaLight.shadowResolution,
+                    shadowCustomResolution = charaLight.shadowCustomResolution,
                     shadowStrength = charaLight.shadowStrength,
                     shadowBias = charaLight.shadowBias,
                     shadowNormalBias = charaLight.shadowNormalBias,
@@ -119,6 +120,7 @@ namespace LightSettings.Koikatu {
                 }
                 light.shadows = lightData.shadows;
                 light.shadowResolution = lightData.shadowResolution;
+                light.shadowCustomResolution = lightData.shadowCustomResolution;
                 light.shadowStrength = lightData.shadowStrength;
                 light.shadowBias = lightData.shadowBias;
                 light.shadowNormalBias = lightData.shadowNormalBias;
@@ -178,6 +180,7 @@ namespace LightSettings.Koikatu {
                 state = light.enabled,
                 shadows = light.shadows,
                 shadowResolution = light.shadowResolution,
+                shadowCustomResolution = light.shadowCustomResolution,
                 shadowStrength = light.shadowStrength,
                 shadowBias = light.shadowBias,
                 shadowNormalBias = light.shadowNormalBias,
