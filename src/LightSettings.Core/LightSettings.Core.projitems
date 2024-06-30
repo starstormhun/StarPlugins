@@ -14,5 +14,6 @@
     <Compile Include="..\LightSettings.Core\LightSaveData.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)LightSettings.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)SceneDataController.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)UITextureData.cs" />
   </ItemGroup>
 </Project>
