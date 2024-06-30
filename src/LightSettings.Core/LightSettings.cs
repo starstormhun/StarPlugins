@@ -144,6 +144,11 @@ namespace LightSettings.Koikatu {
                         light.shadowResolution = EnumParser<UnityEngine.Rendering.LightShadowResolution>((_value as string));
                         if (isChaLight) SceneDataController.charaLightData.shadowResolution = light.shadowResolution;
                         break;
+                    case SettingType.CustomResolution:
+                        if (Instance.IsDebug.Value) logger.LogInfo($"Shadow custom resolution set to {_value}");
+                        light.shadowCustomResolution = int.Parse(_value as string);
+                        if (isChaLight) SceneDataController.charaLightData.shadowCustomResolution = light.shadowCustomResolution;
+                        break;
                     case SettingType.ShadowStrength:
                         if (Instance.IsDebug.Value) logger.LogInfo($"Shadow strength set to {_value}");
                         if (_value is float strVal) light.shadowStrength = strVal;
@@ -361,6 +366,7 @@ namespace LightSettings.Koikatu {
             None,
             Type,
             Resolution,
+            CustomResolution,
             ShadowStrength,
             Bias,
             NormalBias,

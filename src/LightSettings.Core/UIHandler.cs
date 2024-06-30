@@ -10,8 +10,6 @@ using Studio;
 
 namespace LightSettings.Koikatu {
     internal static class UIHandler {
-        private const string backgroundImage = "iVBORw0KGgoAAAANSUhEUgAAAJoAAAEnCAYAAABR3FoIAAABhGlDQ1BJQ0MgcHJvZmlsZQAAKJF9kT1Iw0AcxV9TiyIVQYuIOGSoTnZREXEqVSyChdJWaNXB5NIvaNKQpLg4Cq4FBz8Wqw4uzro6uAqC4AeIs4OToouU+L+k0CLGg+N+vLv3uHsHCI0KU82uKKBqlpGKx8RsblXsfkUAAgYwhDmJmXoivZiB5/i6h4+vdxGe5X3uz9Gn5E0G+ETiKNMNi3iDeGbT0jnvE4dYSVKIz4knDLog8SPXZZffOBcdFnhmyMik5olDxGKxg+UOZiVDJZ4mDiuqRvlC1mWF8xZntVJjrXvyFwbz2kqa6zRHEccSEkhChIwayqjAQoRWjRQTKdqPefhHHH+SXDK5ymDkWEAVKiTHD/4Hv7s1C1OTblIwBgRebPtjDOjeBZp12/4+tu3mCeB/Bq60tr/aAGY/Sa+3tfAR0L8NXFy3NXkPuNwBhp90yZAcyU9TKBSA9zP6phwweAv0rrm9tfZx+gBkqKvlG+DgEBgvUva6x7t7Onv790yrvx/DqXLHF0sh1QAAAAZiS0dEAP8A/wD/oL2nkwAAAAlwSFlzAAAuIwAALiMBeKU/dgAAAAd0SU1FB+gFAwAfO5DH9GsAAAAZdEVYdENvbW1lbnQAQ3JlYXRlZCB3aXRoIEdJTVBXgQ4XAAADQ0lEQVR42u3cwWoaURSA4VNnkIG8gNs+XiEboS8hBNwU8nbpoovOIkVBAmK8pgs1oRRKbWe8kzvftxICkVx+zmg43A+LxeIhTpqbJqAr2+3b67pt24iImM1mTobOte23Y2jfH1fH+vYRVV05GTqT9k+xWh/7mjgOrkFoCA2hgdAQGkIDoSE0EBpCY0xqR0BfqkkTKZloeHQiNPAZjSFJh4iqakw0PDoRGggNoSE0EBpCA6EhNIQGQkNoIDSEhtBAaAgNhIbQEBoIDaGB0BAaQgOhITSEBkJDaCA0hIbQQGgIDYSG0BAaCA2hgdAQGkIDoSE0EBpCQ2ggNISG0EBoCA2EhtAQGggNoYHQEBpCA6EhNBAaQkNoIDSEBkJDaAgNhIbQGLnaEeSTIl31/aqoTDRMNHp2v1x+7PP3f5rPv/qMhi8DIDSEBkJDaAgNhIbQQGgIDaGB0BAaQoOe2UcbgCHsi5lomGj8n5w7/CYaQgOhITQQGkJDaCA0hIbQQGgIDYSG0BAadMw+WkbusAUTrTzusAWhITQQGkJDaCA0hAZCQ2gIDYSG0BAaCI0C2EcbAHfYgon2/rnDFoSG0EBoCA2hgdAQGggNoSE0EBpCA6EhNApiHy0jd9iCiVYed9iC0BAaCA2hITQQGkIDoSE0hAZCQ2gIDYRGAeyjDYA7bMFEe//cYQtCQ2ggNISG0EBoCA2EhtAQGggNoYHQEBoFsY+WkTtswUQrx3nCfFne9XqH7e38szts8WUAhIbQQGgIDaGB0BAaCA2hITQQGkJDaNA3+2gZnTds+77D9vw+OTdshZaRq0VBaAgNhIbQEBoIDaGB0BAaQgOhITQQGkKjIPbRMnK1KJho5bBhC0JDaCA0hIbQQGgIDYSG0BAaCA2hgdAQGkIDoSE0hAZCQ2ggNISG0EBoCA2EhtAQGggNocEv6ng5vtjtdzGtp6f69Me/O8Thtal4iajiWVF4dFLUo5PBPGr6myb554mJhok2ns8vkxH8jSA0hAZCQ2gIDYSG0EBoDCW05BQw0RAaCA2hMTIpktC4DvtoA2DDFrqaaJv1JiJSbNY/Yrc/yO8vPO/87/Ey26iftuuIaH77AX/SOIIL/QS+oWVeHiG58wAAAABJRU5ErkJggg==";
-        private const string cookieButton = "iVBORw0KGgoAAAANSUhEUgAAAHwAAAAqCAYAAABxyT9UAAABhWlDQ1BJQ0MgcHJvZmlsZQAAKJF9kT1Iw0AYht+mFkVaBO0gIpihOtlFRRxLFYtgobQVWnUwufQPmjQkKS6OgmvBwZ/FqoOLs64OroIg+APi7OCk6CIlfpcUWsR4x3EP733vy913gNCsMtXsiQGqZhnpRFzM5VfF3lcEaIYwhkGJmXoys5iF5/i6h4/vd1Ge5V335wgpBZMBPpE4xnTDIt4gnt20dM77xGFWlhTic+JJgy5I/Mh12eU3ziWHBZ4ZNrLpeeIwsVjqYrmLWdlQiWeII4qqUb6Qc1nhvMVZrdZZ+578hcGCtpLhOq1RJLCEJFIQIaOOCqqwEKVdI8VEms7jHv4Rx58il0yuChg5FlCDCsnxg//B796axekpNykYBwIvtv0xDvTuAq2GbX8f23brBPA/A1dax19rAnOfpDc6WuQIGNgGLq47mrwHXO4Aw0+6ZEiO5KclFIvA+xl9Ux4YugX619y+tc9x+gBkqVfLN8DBITBRoux1j3f3dfft35p2/34AcZxypvK1dLYAAAAGYktHRAAAAAAAAPlDu38AAAAJcEhZcwAALiMAAC4jAXilP3YAAAAHdElNRQfoBQUPChFS/sNIAAAAGXRFWHRDb21tZW50AENyZWF0ZWQgd2l0aCBHSU1QV4EOFwAADXNJREFUeNrtm2twXPV5xn+7Z+97VrsrrVaXtSRjLEPA8gVL+MbFxcEBimNibsaOm4QayrSdSSCdMLSk0zRNA9MPbUhCMoEhaYbiGDpMMJgkBFMbuwn1INlgfJNl3a8r7eVob+eye04/SDpI2MUytS0Z9vm0c3bP7p7/c973/7zv+xzLa6+9ajAJmUyaXDbLTCKVStPd3UV3d4957L77NgEgKzKp0VGKmD5i8TiH338PAGtxOT5bsF0qf3RwaBAAl8uFJElF5s4BJ1tP0N3dO0b45PTt8/nwerxomjajf1BVFQYGBunt6/swLY2MAKBpGr29Pefldx7/9j9QVzeXwcEBvv34YzN2vR6Phx889TQAL724gzfe+M15/f5odBjDGNu5bSPjCzmxmIFgEF3XZ5Tw7u5uOjo7i6F5IVL66CQBpCgy8UScnu7uGf1Tx44dLzLzWd/DZxqLF1/DrbfdRiQyB7vdjiRJHDp0kBd3vEChUBhbTJuNL2/9KgsXNiCKIoVCgXg8xu4332TPnt3md23e8mcsW9aI1+slFhvh9dd3FQmfTVh93Q1s3foVBEEwj5WWlnLTTWupq63jySe/h2EYfPVr21i+fIX5GUEQqKys4r7NW+joaKerq4P773+QlatWmZ8JhyvYuvUrlxbhuq6TyWQZTaXI5/M4nU4Mw8DtcuH2uHHY7VgslkuSbIvFwsaNdyEIArFYjP94/pf09fexYcOXWLVqNZfPn8+tt61nz3+9ydKl1wDw8sv/ye43f8+8eZfz8CN/g9Vq5corP0csNkLTtdcCMDAwwM+fexZN07j//m3U1NbObsJ1XSeVTpNOZVA1DZfLhdPpQhDy5PN5LBYLsqKSyebIZbOEw+WUlPguwVS+lJKSEgBee20nhw+PNTB+/twzXHHFFZSVhWhoWMTru3byV3/5IJVV1Sxb1si2Bx6itrYGq9VqlpOfu+pqbLaxJd+589d0dJwyb5Cvf+OR2Ut4LpcjOhwz05bVakXTNERRJBgMoqoqqqpiGAYOhwOHw0F0eIRYPEEw4CcQ8F8yhAeDpebrj4rZRCJBWVkIr9cLwLYHHqKp6VqT5CkBYhiIXvHDvsLAwKSqpOuiXc85d9pSqTS9fQNm/QggyzKpVMos57xeL1ar1bwBRFHE7/cTDofJ5mQSieQlQ3g8HjdffzTtBoNBANLpNI2N17J8+QqsVistLc38avsL/NN3v4OqqgAYus7kiqi6OvLh99bUXrTrOacIl2WFnKxQXl6OLMv4/X58Ph/Dw8McOXKE9vZ2NE0jHA7T0NDA4OAgoVDIvBEEQcBms5GURtF1nbKy0llP+AcfvEcmk8Hr9XL77V8kmUjQ19fLHV+6k7KyEADvvXeQisrKMWINg5bmdzl69Ag3r7sFh8MxIQb44IP3URQFp9PJ7eu/yMjIMKqqcudd98w+wrPZHMMjMfx+P4IgYLfbzSivqKggnU7T2tpKPp8nGAxit9sRRRFd1ykpKUEURXK5HBaLBYvFQnR4BJfbhXc8S8wkKiureObZX5x2PJ1O8/A3/ppXd77CPfduoqys7LS9trX1BL/77evMmzef9es3IAgC2x74i0m9jTGCPR4PiiKzf/8+1q79PFVVVTz2t4+bN0mhUJhSBcw44SOxGB6PB7vdTi6Xw+124/V6yefHRNqCBQuor683Cfb5fOTzeTKZjJn6J/bzsrIyFEUhGh3hsrm1sz7Kd+9+g3gizhe+cAuRyBwcDgeSlKSlpYWXXtwOQHt7Gy+9tIN1627B7/czOjrKW2/tpq6ujsbGJubPrwfgV9ufJ69prFy1GlEUkaQku3e/ybp1t5ji8IJWHU8+8X1zPOp0OrDZ7aeJk3yhwIkTJykvL8flcpmRXVlZiWEYZLNZnE4n/f391NTU4PF4CIVCyLLM0NAQ7e3tVFVVoSgKHo+HfD5PX18fiUSCyopyRFGc8nsHDx4i85ERbeOyJQAMDUVJJBLF5sA5IJPJnluEx+MJRFEkn8+jaRqRSMRU5xaLBUmSiMVidHR0oCgKGzZswOPxkEgkiMfjWCwWent7icfjZLNZ1qxZg67r2O124onkaYSfCW2n2gGQksVJ2QVX6ZI0iizLWK1WPB4PDoeDkpISPB4PNpuN5uZmotEoLpeL48eP093djcPhQBAEKioqCIVCGIaBKIpks1kkScLhcOB0OlFVbVrTuauuWlhk62Ls4RPpQBAEBEHA7XaPp38nbrebnp4edF3H4XAgyzIA27dvp66uDr/fj81mw+/3c+DAAQzDIJ1OE41GzX29UCigKKopAv/P9uaqlaxetbLoePkEmOx4OSvh+UIem82G0+lEFEVcLheBQMAkvq2tzVS0iqIgyzKyLJNMJkkkEhiGgSAIrFixgnA4TG9vL/l8HlmWsdvtFAoFstkcougtMjObyjKr1Wp20DRNM/fvhQsX0t3dTTqdxmq1EolE2LJlCy6Xi2QyicfjQVVVFi9eTCaTob6+nlgsRjQaRVGU8TrVOOvvFx0vnxxTHC9nJdoyRrTD4cBqteL1elFVlUKhQCQSoaKignnz5nHo0CFUVeWOO+4w0/tEeTJ37lx0XSeXyyFJkpkFVFUln88jCGeXEhfC8QKwYuVq1qz5E6qrI+OaQmVoaJD9+/ZNGWl+75+fJByuoLm5mZ/+5IeXFOFTHC9nTQE2gUKhQKFQQNd1ZFlGEAQkSSIQCFBaWkooFGLlypUIgkAqlSIQCJj95EQiYQq0TCbDkSNH8Hq9yLJMOp1GlmWCM9Rb37r1a9xw441TjrlcLurq5lJXN5faujp++e/PfbZSusvlGo9CAVVVsdlsphBTFIWWlhbC4TCFQoF8Po/P52N0dNQcpvj9fjo7O0kmk3R2dtLR0cGSJUswDMNsuU6nLDvfWLNmrUl2V1cXr/z6ZTo7O1h6TSMbN96J1+vluuuu550//oHW1uOfHcItFotZYvn9fjPKJUmiv7+fV155hQULFrB+/Xp6enpQVRWn02mmx0KhQEdHB+3t7YyMjDB37lwCgQCqqpLL5cY7ce6LfuE3rf38eI8hzhPf/y75fB6At/e+BcDNN6/jwIH/obvn4ydZd9+9iWuXL6ekxI8sy5w6dYrt259nODo0niHP7oL513/7EaIosnfvHhYtWoTPV8Lhw+/z9I+fmhnR5vOJWK1WbDabKc4URSGfz9PY2EhTUxNHjx7l+PHjrF69mlQqRX9/P6Io4nA40HWd6upq6uvrURSFVCqFpmmoqkppMHDGceKFhCj6qKioAODYsaMm2RN4e+9bJvEfh20PPDTF4eLxeGhoaCASeZR//M7fk8mkp+WCmcD1199grsXkKd1FJ7w0GKSvfwC73Y7L5cLhcKBpmjkSfeGFD31d7777LqFQiFOnTlEoFKipqaGmpgZFUUgkErjdbnOIous6wWDgokd3dXXk/72wc+bU0tQ05l556cUdvL1vD5HqOWx74EFCoXJuu+12du3aeVYXzGTCNU3jxz96ilwux2hqdOYId7tduN0u2tracLvdplhrbm4ml8uhKAowNhxZu3YtbW1tZuetv7+furo6c3oWi8XIZrNkMhksGGYD5mJi8lTqkxqvliy9xrxp7r7nXu6+594p78+7fD7ZbPasLpgp7eO2kxw7dmR21OHVVZVoqkYmmyWVSuF0OmloaCAajVJeXo7X6yWZTKIoCpqmkU6nSafTJJNJlixZgs1mw2Kx4HQ6SSaTpFIpFjVcPSNet8HBD90mEzPtc98WPl5oTtcFMxmj0oXvIE6bcIvFQm3tHE60nkRVVSRJoqSkhKqqKnOfdrvdpFIpIpGISWQgEEDXdaLRqHneWG1ee9Z26oVCIhEnGo0SDoe54sorsdlsU/bxxqblbNx4FwcOvMMbv/sN2TM8XJlMjrl2DMPgm498ndQZUvCECwagpaWZ1hMnaGs7ybcefQyHw4HxkQc+LsYTP+eklqxWKwvq5yOKXjKZDNls1uy+ZTIZJEkiHo8jSZJpb9I0zZyS9fX1MTo6yvz58ygrnVm3y549Y6KstLSUbz36d1x1dQOi6OO6625k8+YvU15ezq23/ik1NXVnPP/IB4fRdR2LxcL9f/4gZaFyFi1eyg+eeppnnv0FmzZtOc0Fc+DAOyxrbJrigpkMw9BnT4RP3v8un3cZw8MjDA4OoSgKVqsVq9Vq1uoT0TLh4pgwQrhdTmpra2Yssifj92/8lpo5taxctYrLLruMhx/+5mmf2bt3DydOHDvj+T09XRw82MKyZY0sXLiQJ574F/O9eDzOrl2vUl4ePqsLZtb20j+K8vIQPp9IPJ4gHk+QG+/ATQgRTdMwDANN03C7XVRXVVFaGpxVTYjnnvsZJ9taueGGNVRVVWK3O8jlsgwNDrFv/9vs37f3Y89/5mc/Qbp3M0uXLqWkxI+qKnR0dLJjxwukUqOkUqPTcsFcTEzL8TIdaJpGJjOmvrGAMN53d7vdphd7uig6Xs4vztnxMh3Y7XYCF9BzXnS8zIBom0kUHS8zvIdfbPzxD/9dZOt8EC5JySnqcXBwkM6u7uLKfFoJ75pEbv/AgPloTBGfUsI7u7qKq1AUbUUUCS/iU4H/BaiqUk8pqVrYAAAAAElFTkSuQmCC";
         private static int frameCounter = 0;
 
         internal static Transform containerLight = null;
@@ -193,13 +191,13 @@ namespace LightSettings.Koikatu {
 
             // Create background
             var bg = new Texture2D(1, 1);
-            bg.LoadImage(Convert.FromBase64String(backgroundImage));
+            bg.LoadImage(Convert.FromBase64String(UITextureData.backgroundImage));
             var newBg = GameObject.Instantiate(lightCtrl.transform.GetChild(0), container);
             newBg.localPosition = new Vector2(0, -180);
             var old = lightCtrl.transform.GetChild(0).GetComponent<Image>().sprite;
             var spr = Sprite.Create(bg, new Rect(0, 0, bg.width, bg.height), old.pivot, old.pixelsPerUnit);
             newBg.GetComponent<Image>().sprite = spr;
-            newBg.GetComponent<RectTransform>().sizeDelta = new Vector2(190f / 154f * bg.width, 190f / 154f * bg.height);
+            newBg.GetComponent<RectTransform>().sizeDelta = new Vector2(190f / 154f * bg.width, 1.4f * bg.height);
             newBg.name = "Background";
 
             // Create type / resolution dropdown controls
@@ -220,29 +218,36 @@ namespace LightSettings.Koikatu {
             UnityAction<int> resolutionCallback = (x) => LightSettings.SetLightSetting(LightSettings.SettingType.Resolution, resolutionOptions[x]);
             Transform dropResolution = MakeDropDown(container, "Shadow Resolution", new Vector2(0, -230f), resolutionOptions, resolutionCallback);
 
+            var customResolutionOptions = new List<string> { "-1", "1024", "2048", "4096", "8192", "16384" };
+            UnityAction<int> customResolutionCallback = (x) => {
+                LightSettings.SetLightSetting(LightSettings.SettingType.CustomResolution, customResolutionOptions[x]);
+                dropResolution.GetComponentInChildren<Dropdown>().interactable = x == 0;
+            };
+            Transform dropCustomResolution = MakeDropDown(container, "Shadow Custom Resolution", new Vector2(0, -275f), customResolutionOptions, customResolutionCallback);
+
             // Create all slider controls
             UnityAction<float> strengthCallback = (x) => LightSettings.SetLightSetting(LightSettings.SettingType.ShadowStrength, x);
-            Transform sliderStrength = MakeSlider(container, "Shadow Strength", new Vector2(0, -276f), 0, 1, 1, strengthCallback);
+            Transform sliderStrength = MakeSlider(container, "Shadow Strength", new Vector2(0, -320f), 0, 1, 1, strengthCallback);
 
             UnityAction<float> biasCallback = (x) => LightSettings.SetLightSetting(LightSettings.SettingType.Bias, x);
-            Transform sliderBias = MakeSlider(container, "Shadow Bias", new Vector2(0, -320f), 0, 0.1f, 0.05f, biasCallback);
+            Transform sliderBias = MakeSlider(container, "Shadow Bias", new Vector2(0, -365f), 0, 0.1f, 0.05f, biasCallback);
 
             UnityAction<float> normalBiasCallback = (x) => LightSettings.SetLightSetting(LightSettings.SettingType.NormalBias, x);
-            Transform sliderNormalBias = MakeSlider(container, "Shadow Normal Bias", new Vector2(0, -365f), 0, 1, 0.4f, normalBiasCallback);
+            Transform sliderNormalBias = MakeSlider(container, "Shadow Normal Bias", new Vector2(0, -410f), 0, 1, 0.4f, normalBiasCallback);
 
             UnityAction<float> nearPlaneCallback = (x) => LightSettings.SetLightSetting(LightSettings.SettingType.NearPlane, x);
-            Transform sliderNearPlane = MakeSlider(container, "Shadow Near Plane", new Vector2(0, -410f), 0, 1, 0.2f, nearPlaneCallback);
+            Transform sliderNearPlane = MakeSlider(container, "Shadow Near Plane", new Vector2(0, -455), 0, 1, 0.2f, nearPlaneCallback);
 
             // Create render mode dropdown control
             var renderModeOptions = new List<string> { "Auto", "Force Pixel", "Force Vertex" };
             UnityAction<int> renderModeCallback = (x) => LightSettings.SetLightSetting(LightSettings.SettingType.RenderMode, renderModeOptions[x]);
-            Transform dropRenderMode = MakeDropDown(container, "Light Render Mode", new Vector2(0, -455f), renderModeOptions, renderModeCallback);
+            Transform dropRenderMode = MakeDropDown(container, "Light Render Mode", new Vector2(0, -500), renderModeOptions, renderModeCallback);
 
             // Create culling mask toggles
             Transform cullMask = (new GameObject("Culling Mask")).transform;
             cullMask.SetParent(container);
             cullMask.localScale = Vector3.one;
-            cullMask.localPosition = new Vector2(0, -500);
+            cullMask.localPosition = new Vector2(0, -545);
             MakeLabel(cullMask, "Culling Mask", Vector2.zero);
             UnityAction<bool> charaToggleCallback = (x) => LightSettings.SetLightSetting(LightSettings.SettingType.CullingMask, 1<<10);
             MakeToggle(cullMask, "Chara", new Vector2(10f, -20f), new Vector2(60f, 0), charaToggleCallback);
@@ -288,7 +293,7 @@ namespace LightSettings.Koikatu {
 
             // Setup appearance
             Texture2D cookie = new Texture2D(1, 1);
-            cookie.LoadImage(Convert.FromBase64String(cookieButton));
+            cookie.LoadImage(Convert.FromBase64String(UITextureData.cookieButton));
 
             Sprite cookieSpr = Sprite.Create(cookie, new Rect(2, 2, 38, 38), new Vector2(21, 21), 100, 0, SpriteMeshType.FullRect, new Vector4(3, 3, 3, 3));
             SetupImage(cookieBtn, cookieSpr, new Vector2(38, 38));
@@ -319,7 +324,7 @@ namespace LightSettings.Koikatu {
 
             // Add size slider
             UnityAction<float> cookieSizeCallback = (x) => LightSettings.SetLightSetting(LightSettings.SettingType.CookieSize, x);
-            var cookieSizeSlider = MakeSlider(displayContainer, "Cookie Size", new Vector2(0, -207), 0.1f, 10, 10, cookieSizeCallback, false, true, true);
+            var cookieSizeSlider = MakeSlider(displayContainer, "Cookie Size", new Vector2(0, -207), 0.1f, 10, 10, cookieSizeCallback);
 
             return panel;
 
@@ -347,6 +352,8 @@ namespace LightSettings.Koikatu {
             dropdown.value = FindOption(dropdown, _light.shadows.ToString());
             dropdown = container.Find("Shadow Resolution").GetComponentInChildren<Dropdown>(true);
             dropdown.value = FindOption(dropdown, _light.shadowResolution.ToString());
+            dropdown = container.Find("Shadow Custom Resolution").GetComponentInChildren<Dropdown>(true);
+            dropdown.value = FindOption(dropdown, _light.shadowCustomResolution.ToString());
             dropdown = container.Find("Light Render Mode").GetComponentInChildren<Dropdown>(true);
             dropdown.value = FindOption(dropdown, _light.renderMode.ToString());
 
@@ -470,7 +477,7 @@ namespace LightSettings.Koikatu {
             return newDrop;
         }
 
-        private static Transform MakeSlider(Transform _parent, string _name, Vector2 _pos, float _sliderMin, float _sliderMax, float _default, UnityAction<float> _callback, bool _wholeNumbers = false, bool _allowOutOfBounds = true, bool needsBackground = false) {
+        private static Transform MakeSlider(Transform _parent, string _name, Vector2 _pos, float _sliderMin, float _sliderMax, float _default, UnityAction<float> _callback, bool _wholeNumbers = false, bool _allowOutOfBounds = true) {
             Transform lightCtrl = Studio.Studio.Instance.manipulatePanelCtrl.lightPanelInfo.mpLightCtrl.transform;
             Transform newSlider = GameObject.Instantiate(lightCtrl.Find("Spot Angle"), _parent);
 
@@ -513,21 +520,19 @@ namespace LightSettings.Koikatu {
             });
 
             // Add background
-            if (needsBackground) {
-                var newBg = GameObject.Instantiate(lightCtrl.GetChild(0).gameObject, newSlider).transform;
-                newBg.SetAsFirstSibling();
-                var tex = new Texture2D(4, 4);
-                Color[] cols = new Color[16];
-                for (int i = 0; i<16; i++) {
-                    cols[i] = new Color(0, 0, 0, 1);
-                }
-                tex.SetPixels(cols);
-                tex.Apply();
-                var spr = Sprite.Create(tex, new Rect(0, 0, 4, 4), new Vector2(2, 2));
-                newBg.GetComponent<Image>().sprite = spr;
-                newBg.GetComponent<RectTransform>().localPosition = new Vector3(120, -20, 0);
-                newBg.GetComponent<RectTransform>().sizeDelta = new Vector2(30, 20);
+            var newBg = GameObject.Instantiate(lightCtrl.GetChild(0).gameObject, newSlider).transform;
+            newBg.SetAsFirstSibling();
+            var tex = new Texture2D(4, 4);
+            Color[] cols = new Color[16];
+            for (int i = 0; i<16; i++) {
+                cols[i] = new Color(0, 0, 0, 1);
             }
+            tex.SetPixels(cols);
+            tex.Apply();
+            var spr = Sprite.Create(tex, new Rect(0, 0, 4, 4), new Vector2(2, 2));
+            newBg.GetComponent<Image>().sprite = spr;
+            newBg.GetComponent<RectTransform>().localPosition = new Vector3(120, -20, 0);
+            newBg.GetComponent<RectTransform>().sizeDelta = new Vector2(30, 20);
 
             return newSlider;
         }
