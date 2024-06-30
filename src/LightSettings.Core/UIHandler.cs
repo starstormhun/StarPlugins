@@ -25,7 +25,7 @@ namespace LightSettings.Koikatu {
 
         internal static void Init() {
             // Setup the item control panel for the extra settings then create settings
-            MakeGUI(ref containerItem, SetupExtendedPanel(Studio.Studio.Instance.manipulatePanelCtrl.itemPanelInfo.mpItemCtrl.transform, new Vector2(0, -30), new Vector2(280, 30)));
+            MakeGUI(ref containerItem, SetupExtendedPanel(Studio.Studio.Instance.manipulatePanelCtrl.itemPanelInfo.mpItemCtrl.transform, new Vector2(0, -30), new Vector2(280, 30), true));
             containerItem.localPosition = new Vector2(0, -60);
 
             // Setup the maplight control panel
@@ -51,7 +51,7 @@ namespace LightSettings.Koikatu {
             containerChara.localPosition = new Vector2(0, -40);
         }
 
-        private static Transform SetupExtendedPanel(Transform _parent, Vector2 _displacement, Vector2 _pos) {
+        private static Transform SetupExtendedPanel(Transform _parent, Vector2 _displacement, Vector2 _pos, bool itemFKPanelToggle = false) {
             // Studio reference
             var itemCtrl = Studio.Studio.Instance.manipulatePanelCtrl.itemPanelInfo.mpItemCtrl.transform;
             var lightCtrl = Studio.Studio.Instance.manipulatePanelCtrl.lightPanelInfo.mpLightCtrl.transform;
@@ -114,16 +114,18 @@ namespace LightSettings.Koikatu {
             };
             colorImg.GetComponent<Button>().onClick.AddListener(() => ColorPicker(colorImg.color, colorCallback));
 
-            // Setup UI toggle Image and Sprite for adjustable background
-            Image img = itemCtrl.Find("Image FK").GetComponent<Image>();
-            Sprite newSpr = Sprite.Create(img.sprite.texture, img.sprite.textureRect, img.sprite.pivot, img.sprite.pixelsPerUnit, 0, SpriteMeshType.FullRect, new Vector4(0, 4, 0, 4));
-            img.sprite = newSpr;
-            img.type = Image.Type.Sliced;
+            if (itemFKPanelToggle) {
+                // Setup UI toggle Image and Sprite for adjustable background
+                Image img = itemCtrl.Find("Image FK").GetComponent<Image>();
+                Sprite newSpr = Sprite.Create(img.sprite.texture, img.sprite.textureRect, img.sprite.pivot, img.sprite.pixelsPerUnit, 0, SpriteMeshType.FullRect, new Vector4(0, 4, 0, 4));
+                img.sprite = newSpr;
+                img.type = Image.Type.Sliced;
 
-            // Add new toggle
-            itemPanelToggle = MakeToggle(img.transform, "Light controls", new Vector2(0, -53), new Vector2(80, 0), (x) => container.gameObject.SetActive(x));
-            itemPanelToggle.gameObject.SetActive(false);
-            itemPanelToggle.GetChild(1).GetComponent<RectTransform>().sizeDelta = new Vector2(80, 0);
+                // Add new toggle
+                itemPanelToggle = MakeToggle(img.transform, "Light controls", new Vector2(0, -53), new Vector2(80, 0), (x) => container.gameObject.SetActive(x));
+                itemPanelToggle.gameObject.SetActive(false);
+                itemPanelToggle.GetChild(1).GetComponent<RectTransform>().sizeDelta = new Vector2(80, 0);
+            }
 
             return container;
 
@@ -195,9 +197,10 @@ namespace LightSettings.Koikatu {
             var newBg = GameObject.Instantiate(lightCtrl.transform.GetChild(0), container);
             newBg.localPosition = new Vector2(0, -180);
             var old = lightCtrl.transform.GetChild(0).GetComponent<Image>().sprite;
-            var spr = Sprite.Create(bg, new Rect(0, 0, bg.width, bg.height), old.pivot, old.pixelsPerUnit);
+            var spr = Sprite.Create(bg, new Rect(0, 0, bg.width, bg.height), old.pivot, old.pixelsPerUnit, 0, SpriteMeshType.FullRect, new Vector4(4,4,4,4));
             newBg.GetComponent<Image>().sprite = spr;
-            newBg.GetComponent<RectTransform>().sizeDelta = new Vector2(190f / 154f * bg.width, 1.4f * bg.height);
+            newBg.GetComponent<Image>().type = Image.Type.Sliced;
+            newBg.GetComponent<RectTransform>().sizeDelta = new Vector2(190, 413);
             newBg.name = "Background";
 
             // Create type / resolution dropdown controls
@@ -218,7 +221,7 @@ namespace LightSettings.Koikatu {
             UnityAction<int> resolutionCallback = (x) => LightSettings.SetLightSetting(LightSettings.SettingType.Resolution, resolutionOptions[x]);
             Transform dropResolution = MakeDropDown(container, "Shadow Resolution", new Vector2(0, -230f), resolutionOptions, resolutionCallback);
 
-            var customResolutionOptions = new List<string> { "-1", "1024", "2048", "4096", "8192", "16384" };
+            var customResolutionOptions = new List<string> { "-1", "512", "1024", "2048", "4096", "8192", "16384" };
             UnityAction<int> customResolutionCallback = (x) => {
                 LightSettings.SetLightSetting(LightSettings.SettingType.CustomResolution, customResolutionOptions[x]);
                 dropResolution.GetComponentInChildren<Dropdown>().interactable = x == 0;
