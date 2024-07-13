@@ -1086,14 +1086,18 @@ namespace MassShaderEditor.Koikatu {
                 float x = Input.mousePosition.x;
                 float y = Screen.height - Input.mousePosition.y + 30f;
                 Rect draw = new Rect(x, y, width+2*winStyle.border.left, height);
-                GUILayout.Window(592, draw, (int id) => { GUILayout.Box(_tip, tipStyle); }, new GUIContent(), winStyle);
-                Redraw(1592, draw, redrawNum - 1, true);
+                GUILayout.Window(WinNum("tooltip"), draw, (int id) => { GUILayout.Box(_tip, tipStyle); }, new GUIContent(), winStyle);
+                Redraw(WinNum("tooltip"), draw, redrawNum - 1, true);
             }
         }
 
+        private int WinNum(string name) {
+            return name.GetHashCode();
+        }
+
         private void Redraw(int id, Rect rect, int num, bool box = false) {
-            for (int i = 0; i<num; i++)
-                GUI.Window(id+9277*i, rect, (x) => { }, "", (box ? newSkin.box : newSkin.window));
+            for (int i = 0; i < num; i++)
+                GUI.Window(id - 1 - i, rect, (x) => { }, "", (box ? newSkin.box : newSkin.window));
         }
 
         private void Spacer(float multiplied = 1) => GUILayout.Space(6 * multiplied * UIScale.Value);

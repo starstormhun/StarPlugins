@@ -207,48 +207,57 @@ namespace MassShaderEditor.Koikatu {
             if (IsShown) {
                 if (IntroShown.Value) {
                     if (!showWarning) {
-                        windowRect = GUILayout.Window(587, windowRect, WindowFunction, $"Mass Shader Editor v{Version}", newSkin.window, GUILayout.MaxWidth(defaultSize[2] * UIScale.Value));
+                        windowRect = GUILayout.Window(WinNum("main"), windowRect, WindowFunction, $"Mass Shader Editor v{Version}", newSkin.window, GUILayout.MaxWidth(defaultSize[2] * UIScale.Value));
                         DrawTooltip(tooltip[0]);
                         IMGUIUtils.EatInputInRect(windowRect);
-                        Redraw(1587, windowRect, redrawNum);
+                        Redraw(WinNum("main"), windowRect, redrawNum);
 
+                        // Below main window
+                        infoRect.position = windowRect.position + new Vector2(0, windowRect.size.y + 3);
+
+                        // To the right of main window
                         helpRect.position = windowRect.position + new Vector2(windowRect.size.x + 3, 0);
                         setRect.position = windowRect.position + new Vector2(windowRect.size.x + 3, 0);
-                        infoRect.position = windowRect.position + new Vector2(0, windowRect.size.y + 3);
-                        texRect.position = windowRect.position - new Vector2(texRect.size.x + 3, 0);
 
+                        // To the left of main window
+                        texRect.position = windowRect.position - new Vector2(texRect.size.x + 3, 0);
                         mixRect.position = windowRect.position - new Vector2(mixRect.size.x + 3, 0);
                         mixRect.size = new Vector2(mixRect.size.x, windowRect.size.y);
 
                         if (tab == SettingType.Color && setModeColor == 1) {
-                            mixRect = GUILayout.Window(586, mixRect, MixFunction, "", newSkin.box);
+                            mixRect = GUILayout.Window(WinNum("mix"), mixRect, MixFunction, "", newSkin.box);
                             IMGUIUtils.EatInputInRect(mixRect);
-                            Redraw(1586, mixRect, redrawNum-1, true);
+                            Redraw(WinNum("mix"), mixRect, redrawNum-1, true);
+                        }
+                        if ((new SettingType[] { SettingType.Float, SettingType.Color }.Contains(tab)) && setRandom) {
+                            randRect = GUILayout.Window(WinNum("random"), randRect, RandFunction, "", newSkin.box);
+                            IMGUIUtils.EatInputInRect(randRect);
+                            Redraw(WinNum("random"), mixRect, redrawNum - 1, true);
                         }
                         if (tab == SettingType.Texture) {
                             Vector2 oldPos = texRect.position;
-                            texRect = GUILayout.Window(600, texRect, TexFunction, "Selected Texture", newSkin.window);
+                            texRect = GUILayout.Window(WinNum("texture"), texRect, TexFunction, "Selected Texture", newSkin.window);
                             IMGUIUtils.EatInputInRect(texRect);
-                            Redraw(1600, texRect, redrawNum);
+                            Redraw(WinNum("texture"), texRect, redrawNum);
                             if ((texRect.position - oldPos) != Vector2.zero) {
                                 windowRect.position += texRect.position - oldPos;
                             }
                         }
                         if (isHelp) {
                             Vector2 oldPos = helpRect.position;
-                            helpRect = GUILayout.Window(588, helpRect, HelpFunction, "How to use?", newSkin.window, GUILayout.MaxWidth(defaultSize[2] * UIScale.Value * 1.1f));
+                            helpRect = GUILayout.Window(WinNum("help"), helpRect, HelpFunction, "How to use?", newSkin.window, GUILayout.MaxWidth(defaultSize[2] * UIScale.Value * 1.1f));
                             IMGUIUtils.EatInputInRect(helpRect);
-                            Redraw(1588, helpRect, redrawNum);
+                            Redraw(WinNum("help"), helpRect, redrawNum);
                             if ((helpRect.position - oldPos) != Vector2.zero) {
                                 windowRect.position += helpRect.position - oldPos;
                             }
                         }
                         if (isSetting) {
                             Vector2 oldPos = setRect.position;
-                            setRect = GUILayout.Window(588, setRect, SettingFunction, "Settings ۞", newSkin.window, GUILayout.MaxWidth(defaultSize[2] * UIScale.Value * 0.9f));
+                            setRect = GUILayout.Window(WinNum("settings"), setRect, SettingFunction, "Settings ۞", newSkin.window, GUILayout.MaxWidth(defaultSize[2] * UIScale.Value * 0.9f));
                             DrawTooltip(tooltip[0]);
                             IMGUIUtils.EatInputInRect(setRect);
-                            Redraw(1588, setRect, redrawNum);
+                            Redraw(WinNum("settings"), setRect, redrawNum);
                             if ((setRect.position - oldPos) != Vector2.zero) {
                                 windowRect.position += setRect.position - oldPos;
                             }
@@ -257,40 +266,40 @@ namespace MassShaderEditor.Koikatu {
                             var boxStyle = new GUIStyle(newSkin.box) {
                                 fontSize = 1
                             };
-                            infoRect = GUILayout.Window(589, infoRect, InfoFunction, "", boxStyle);
+                            infoRect = GUILayout.Window(WinNum("info"), infoRect, InfoFunction, "", boxStyle);
                             IMGUIUtils.EatInputInRect(infoRect);
-                            Redraw(1589, infoRect, redrawNum, true);
+                            Redraw(WinNum("info"), infoRect, redrawNum, true);
                         }
                         if (shaderDrop > 0) {
                             shaderRect.position = windowRect.position + new Vector2(commonWidth + newSkin.window.border.left + 4, GUI.skin.label.CalcSize(new GUIContent("TEST")).y + (newSkin.label.CalcSize(new GUIContent("TEST")).y + 4) * (shaderDrop + 1));
-                            shaderRect = GUILayout.Window(593, shaderRect, ShaderDropFunction, "", newSkin.box, GUILayout.MaxWidth(defaultSize[2]));
+                            shaderRect = GUILayout.Window(WinNum("shaderDrop"), shaderRect, ShaderDropFunction, "", newSkin.box, GUILayout.MaxWidth(defaultSize[2]));
                             IMGUIUtils.EatInputInRect(shaderRect);
-                            Redraw(1593, shaderRect, redrawNum, true);
-                            GUI.BringWindowToFront(593);
+                            Redraw(WinNum("shaderDrop"), shaderRect, redrawNum, true);
+                            GUI.BringWindowToFront(WinNum("shaderDrop"));
                         }
                         if (historyDrop == true) {
                             historyRect.position = windowRect.position + new Vector2(commonWidth + newSkin.window.border.left + 4, GUI.skin.label.CalcSize(new GUIContent("TEST")).y + (newSkin.label.CalcSize(new GUIContent("TEST")).y + 4) * 3);
-                            historyRect = GUILayout.Window(595, historyRect, HistoryDropFunction, "", newSkin.box, GUILayout.MaxWidth(defaultSize[2]));
+                            historyRect = GUILayout.Window(WinNum("historyDrop"), historyRect, HistoryDropFunction, "", newSkin.box, GUILayout.MaxWidth(defaultSize[2]));
                             IMGUIUtils.EatInputInRect(historyRect);
-                            Redraw(1595, historyRect, redrawNum, true);
-                            GUI.BringWindowToFront(595);
+                            Redraw(WinNum("historyDrop"), historyRect, redrawNum, true);
+                            GUI.BringWindowToFront(WinNum("historyDrop"));
                         }
                     }
                     if (showWarning) {
                         Rect screenRect = new Rect(0, 0, Screen.width, Screen.height);
                         GUI.Box(screenRect, "");
                         warnRect.position = new Vector2((Screen.width - warnRect.size.x) / 2, (Screen.height - warnRect.size.y) / 2);
-                        warnRect = GUILayout.Window(590, warnRect, WarnFunction, "", newSkin.window);
+                        warnRect = GUILayout.Window(WinNum("warn"), warnRect, WarnFunction, "", newSkin.window);
                         IMGUIUtils.EatInputInRect(screenRect);
-                        Redraw(1590, warnRect, redrawNum);
+                        Redraw(WinNum("warn"), warnRect, redrawNum);
                     }
                 } else {
                     Rect screenRect = new Rect(0, 0, Screen.width, Screen.height);
                     GUI.Box(screenRect, "");
                     warnRect.position = new Vector2((Screen.width - warnRect.size.x) / 2, (Screen.height - warnRect.size.y) / 2);
-                    warnRect = GUILayout.Window(591, warnRect, IntroFunction, "", newSkin.window);
+                    warnRect = GUILayout.Window(WinNum("intro"), warnRect, IntroFunction, "", newSkin.window);
                     IMGUIUtils.EatInputInRect(screenRect);
-                    Redraw(1591, warnRect, redrawNum);
+                    Redraw(WinNum("intro"), warnRect, redrawNum);
                 }
             }
 
