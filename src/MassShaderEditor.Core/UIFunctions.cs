@@ -1144,14 +1144,20 @@ namespace MassShaderEditor.Koikatu {
 
         private void HistoryAppend(string name, float? val, Color? col, ScaledTex tex) {
             if (val != null) {
+                var last = floatHist[floatHist.Count - 1];
+                if ((last.val == val) && (last.name == name)) return;
                 if (floatHist.Count == 10) floatHist.RemoveAt(0);
                 floatHist.Add(new HistoryItem { name = name, val = (float)val });
             }
-            if (col != null) {
+            if (col != null && col is Color colval) {
+                var last = colHist[colHist.Count - 1];
+                if (colval.Matches(last.col.ToColor()) && (last.name == name)) return;
                 if (colHist.Count == 10) colHist.RemoveAt(0);
                 colHist.Add(new HistoryItem { name = name, col = col?.ToArray() });
             }
             if (tex != null) {
+                var last = texHist[texHist.Count - 1];
+                if ((last.texData?.GetHashCode() == tex.data?.GetHashCode()) && (last.name == name)) return;
                 if (texHist.Count == 10) texHist.RemoveAt(0);
                 texHist.Add(new HistoryItem {
                     name = name,
