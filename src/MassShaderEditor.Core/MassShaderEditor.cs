@@ -229,11 +229,6 @@ namespace MassShaderEditor.Koikatu {
                             IMGUIUtils.EatInputInRect(mixRect);
                             Redraw(WinNum("mix"), mixRect, redrawNum-1, true);
                         }
-                        if ((new SettingType[] { SettingType.Float, SettingType.Color }.Contains(tab)) && setRandom) {
-                            randRect = GUILayout.Window(WinNum("random"), randRect, RandFunction, "", newSkin.box);
-                            IMGUIUtils.EatInputInRect(randRect);
-                            Redraw(WinNum("random"), mixRect, redrawNum - 1, true);
-                        }
                         if (tab == SettingType.Texture) {
                             Vector2 oldPos = texRect.position;
                             texRect = GUILayout.Window(WinNum("texture"), texRect, TexFunction, "Selected Texture", newSkin.window);
