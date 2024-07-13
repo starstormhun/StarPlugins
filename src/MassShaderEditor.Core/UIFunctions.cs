@@ -588,7 +588,7 @@ namespace MassShaderEditor.Koikatu {
                             } else {
                                 SetAllProperties(setShader);
                             }
-                        } else ShowMessage(shaderNameWrongMessage, 6);
+                        } else ShowMessage(shaderNameWrongMessage);
                 }
                 if (GUILayout.Button(new GUIContent("Modify Selected", "Right click to reset selected"), newSkin.button, GUILayout.MaxWidth(halfWidth))) {
                     if (new List<SettingType> { SettingType.Float, SettingType.Color, SettingType.Texture }.Contains(tab))
@@ -603,7 +603,7 @@ namespace MassShaderEditor.Koikatu {
                     else if (tab == SettingType.Shader)
                         if (shaders.Contains(setShader) || setReset) {
                             SetSelectedProperties(setShader);
-                        } else ShowMessage(shaderNameWrongMessage, 6);
+                        } else ShowMessage(shaderNameWrongMessage);
                 }
                 GUILayout.EndHorizontal();
             }
@@ -1049,7 +1049,7 @@ namespace MassShaderEditor.Koikatu {
             CalcSizes();
         }
 
-        private void ShowMessage(string _msg, float _dur = 3f) {
+        private void ShowMessage(string _msg, float _dur = 5f) {
             infoRect.size = new Vector2(windowRect.size.x, 1);
             messageTime = Time.time;
             messageDur = _dur;
