@@ -296,8 +296,8 @@ namespace MassShaderEditor.Koikatu {
 
         }
 
-        private void SetAllProperties<T>(T _value) {
-            if (!(_value is float) && !(_value is Color) && !(_value is string) && !(_value is ScaledTex)) return;
+        private bool SetAllProperties<T>(T _value) {
+            if (!(_value is float) && !(_value is Color) && !(_value is string) && !(_value is ScaledTex)) return false;
             if (KKAPI.Studio.StudioAPI.InsideStudio) {
                 if (IsDebug.Value) Log($"{(setReset?"Res":"S")}etting ALL items' {(tab == SettingType.Shader ? "shaders" : "properties")}!");
                 SetStudioProperties(studio.dicObjectCtrl.Values.ToList(), _value);
@@ -330,10 +330,11 @@ namespace MassShaderEditor.Koikatu {
                 } else ShowMessage("Please select a valid item category.");
             }
             HistoryAppend(_value);
+            return false;
         }
 
-        private void SetSelectedProperties<T>(T _value) {
-            if (!(_value is float) && !(_value is Color) && !(_value is string) && !(_value is ScaledTex)) return;
+        private bool SetSelectedProperties<T>(T _value) {
+            if (!(_value is float) && !(_value is Color) && !(_value is string) && !(_value is ScaledTex)) return false;
             if (KKAPI.Studio.StudioAPI.InsideStudio) {
                 if (setReset && _value is ScaledTex) MaterialEditorPluginBase.Logger.LogMessage("Save and reload scene to refresh textures.");
                 if (IsDebug.Value) Log($"{(setReset ? "Res" : "S")}etting selected items' properties!");
@@ -349,7 +350,7 @@ namespace MassShaderEditor.Koikatu {
                             if (IsDebug.Value) Log($"Found diveable item: {oci.treeNodeObject.textName}");
                             oci.AddChildrenRecursive(ociList);
                         }
-                    SetStudioProperties(ociList, _value);
+                    if (SetStudioProperties(ociList, _value) && fetchValue) return true;
                 } else ShowMessage("Please select at least one item!");
             } else if (KKAPI.Maker.MakerAPI.InsideMaker) {
                 if (MakerGetType(out ObjectType type)) {
@@ -374,39 +375,46 @@ namespace MassShaderEditor.Koikatu {
                     if (MaterialEditorUI.MaterialEditorWindow.gameObject.activeSelf) MEMaker.Instance.RefreshUI();
                 } else ShowMessage("Please select a valid item category.");
             }
-            HistoryAppend(_value);
+            if (!fetchValue) {
+                HistoryAppend(_value);
+            }
+            return !fetchValue;
         }
 
-        private void SetStudioProperties<T>(List<ObjectCtrlInfo> _ociList, T _value) {
+        private bool SetStudioProperties<T>(List<ObjectCtrlInfo> _ociList, T _value) {
             if (KKAPI.Studio.StudioAPI.InsideStudio) {
                 foreach (ObjectCtrlInfo oci in _ociList) {
                     if (oci is OCIItem item) {
-                        SetItemProperties(controller, item, _value);
+                        if (SetItemProperties(controller, item, _value) && fetchValue) return true;
                     } else if (oci is OCIChar ociChar && AffectCharacters.Value) {
                         if (IsDebug.Value) Log($"Looking into character: {ociChar.treeNodeObject.textName}");
                         var ctrl = KKAPI.Studio.StudioObjectExtensions.GetChaControl(ociChar);
                         if (AffectChaBody.Value && AffectMiscBodyParts.Value) SetCharaProperties(ctrl.GetController(), ociChar, 0, ObjectType.Character, _value);
-                        else if (AffectChaBody.Value) SetCharaProperties(ctrl.GetController(), ociChar, 0, ObjectType.Character, _value,
-                            (Renderer x) => new List<string> { "cf_o_face", "o_body_a" }.Contains(x.NameFormatted().ToLower()));
-                        else if (AffectMiscBodyParts.Value) SetCharaProperties(ctrl.GetController(), ociChar, 0, ObjectType.Character, _value,
-                            (Renderer x) => !new List<string> { "cf_o_face", "o_body_a" }.Contains(x.NameFormatted().ToLower()));
-                        if (AffectChaHair.Value) for(int i = 0; i<ctrl.objHair.Length; i++) SetCharaProperties(ctrl.GetController(), ociChar, i, ObjectType.Hair, _value);
-                        if (AffectChaClothes.Value) for (int i = 0; i < ctrl.objClothes.Length; i++) SetCharaProperties(ctrl.GetController(), ociChar, i, ObjectType.Clothing, _value);
+                        else if (AffectChaBody.Value) if (SetCharaProperties(ctrl.GetController(), ociChar, 0, ObjectType.Character, _value,
+                            (Renderer x) => new List<string> { "cf_o_face", "o_body_a" }.Contains(x.NameFormatted().ToLower())) && fetchValue) return true;
+                        else if (AffectMiscBodyParts.Value) if (SetCharaProperties(ctrl.GetController(), ociChar, 0, ObjectType.Character, _value,
+                            (Renderer x) => !new List<string> { "cf_o_face", "o_body_a" }.Contains(x.NameFormatted().ToLower())) && fetchValue) return true;
+                        if (AffectChaHair.Value) for(int i = 0; i<ctrl.objHair.Length; i++) if (SetCharaProperties(ctrl.GetController(), ociChar, i, ObjectType.Hair, _value) && fetchValue) return true;
+                        if (AffectChaClothes.Value) for (int i = 0; i < ctrl.objClothes.Length; i++) if (SetCharaProperties(ctrl.GetController(), ociChar, i, ObjectType.Clothing, _value) && fetchValue) return true;
                         for (int i = 0; i < ctrl.objAccessory.Length; i++)
-                            SetCharaProperties(
-                                ctrl.GetController(), ociChar, i, ObjectType.Accessory, _value, (Material x) =>
-                                (x.shader.NameFormatted().ToLower().Contains("hair") && AffectChaHair.Value) ||
-                                (!x.shader.NameFormatted().ToLower().Contains("hair") && AffectChaAccs.Value)
-                                );
+                            if (
+                                SetCharaProperties(
+                                    ctrl.GetController(), ociChar, i, ObjectType.Accessory, _value, (Material x) =>
+                                    (x.shader.NameFormatted().ToLower().Contains("hair") && AffectChaHair.Value) ||
+                                    (!x.shader.NameFormatted().ToLower().Contains("hair") && AffectChaAccs.Value)
+                                ) &&
+                                fetchValue
+                            ) return true;
                     }
                 }
-                if (MaterialEditorAPI.MaterialEditorUI.MaterialEditorWindow.gameObject.activeSelf) MEStudio.Instance.RefreshUI();
+                if (MaterialEditorUI.MaterialEditorWindow.gameObject.activeSelf && !fetchValue) MEStudio.Instance.RefreshUI();
             } else if (KKAPI.Maker.MakerAPI.InsideMaker) {
-                Log("SetStudioProperties should not be called inside Maker!");
+                Log("SetStudioProperties should not be called inside Maker!", 3);
             }
+            return false;
         }
 
-        private void SetItemProperties<T>(SceneController ctrl, OCIItem item, T _value) {
+        private bool SetItemProperties<T>(SceneController ctrl, OCIItem item, T _value) {
             var editedMatList = new List<string>();
 
             if (IsDebug.Value) Log($"Looking into {item.NameFormatted()}...");
@@ -438,17 +446,25 @@ namespace MassShaderEditor.Koikatu {
                                                 }
                                             } else { if (IsDebug.Value) Log($"Tried resetting property with erroneous identifier type: {_value.GetType()}, {_value}"); }
                                         } else {
-                                            if (_value is float floatval)
+                                            if (_value is float floatval) {
                                                 if (mat.TryGetFloat(setName, out float current)) {
+                                                    if (fetchValue) {
+                                                        ModifyFloatTarget(current);
+                                                        return true;
+                                                    }
                                                     ctrl.SetMaterialFloatProperty(item.objectInfo.dicKey, mat, setName, GetModifiedFloat(current, floatval));
                                                     if (IsDebug.Value) Log($"Property {item.NameFormatted()}\\{mat.NameFormatted()}\\{setName} set to {GetModifiedFloat(current, floatval)}!");
                                                 } else { if (IsDebug.Value) Log($"Tried setting non-float property {item.NameFormatted()}\\{mat.NameFormatted()}\\{setName} to ({floatval}) value!"); }
-                                            else if (_value is Color colval)
+                                            } else if (_value is Color colval) {
                                                 if (mat.TryGetColor(setName, out Color current)) {
+                                                    if (fetchValue) {
+                                                        setCol = current;
+                                                        return true;
+                                                    }
                                                     ctrl.SetMaterialColorProperty(item.objectInfo.dicKey, mat, setName, GetModifiedColor(current, colval));
                                                     if (IsDebug.Value) Log($"Property {item.NameFormatted()}\\{mat.NameFormatted()}\\{setName} set to {GetModifiedColor(current, colval)}!");
                                                 } else { if (IsDebug.Value) Log($"Tried setting non-color property {item.NameFormatted()}\\{mat.NameFormatted()}\\{setName} to ({colval}) value!"); }
-                                            else if (_value is ScaledTex texval)
+                                            } else if (_value is ScaledTex texval && !fetchValue) {
                                                 if (mat.TryGetTex(setName, out Texture current)) {
                                                     if (setTexAffectTex) {
                                                         ctrl.SetMaterialTexture(item.objectInfo.dicKey, mat, setName, texval.data);
@@ -460,7 +476,7 @@ namespace MassShaderEditor.Koikatu {
                                                         if (IsDebug.Value) Log($"Texture {item.NameFormatted()}\\{mat.NameFormatted()}\\{setName} scale/offset set to {texval.DimString()}!");
                                                     }
                                                 } else { if (IsDebug.Value) Log($"Tried setting non-texture property {item.NameFormatted()}\\{mat.NameFormatted()}\\{setName} to ({texval}) value!"); }
-                                            else { if (IsDebug.Value) Log($"Tried setting an item property or shader to erroneous type: {_value.GetType()}, {_value}"); }
+                                            } else { if (IsDebug.Value) Log($"Tried setting an item property or shader to erroneous type: {_value.GetType()}, {_value}"); }
                                         }
                                         editedMatList.Add(mat.NameFormatted());
                                     } catch (Exception e) {
@@ -499,21 +515,22 @@ namespace MassShaderEditor.Koikatu {
                         }
                     }
             }
+            return false;
         }
 
-        private void SetCharaProperties<T>(MaterialEditorCharaController ctrl, OCIChar ociChar, int slot, ObjectType type, T _value) {
-            SetCharaProperties<T>(ctrl, ociChar, slot, type, _value, x => true, x => true);
+        private bool SetCharaProperties<T>(MaterialEditorCharaController ctrl, OCIChar ociChar, int slot, ObjectType type, T _value) {
+            return SetCharaProperties<T>(ctrl, ociChar, slot, type, _value, x => true, x => true);
         }
 
-        private void SetCharaProperties<T>(MaterialEditorCharaController ctrl, OCIChar ociChar, int slot, ObjectType type, T _value, Predicate<Material> materialFilter) {
-            SetCharaProperties<T>(ctrl, ociChar, slot, type, _value, materialFilter, x => true);
+        private bool SetCharaProperties<T>(MaterialEditorCharaController ctrl, OCIChar ociChar, int slot, ObjectType type, T _value, Predicate<Material> materialFilter) {
+            return SetCharaProperties<T>(ctrl, ociChar, slot, type, _value, materialFilter, x => true);
         }
 
-        private void SetCharaProperties<T>(MaterialEditorCharaController ctrl, OCIChar ociChar, int slot, ObjectType type, T _value, Predicate<Renderer> rendererFilter) {
-            SetCharaProperties<T>(ctrl, ociChar, slot, type, _value, x => true, rendererFilter);
+        private bool SetCharaProperties<T>(MaterialEditorCharaController ctrl, OCIChar ociChar, int slot, ObjectType type, T _value, Predicate<Renderer> rendererFilter) {
+            return SetCharaProperties<T>(ctrl, ociChar, slot, type, _value, x => true, rendererFilter);
         }
 
-        private void SetCharaProperties<T>(MaterialEditorCharaController ctrl, OCIChar ociChar, int slot, ObjectType type, T _value, Predicate<Material> materialFilter, Predicate<Renderer> rendererFilter) {
+        private bool SetCharaProperties<T>(MaterialEditorCharaController ctrl, OCIChar ociChar, int slot, ObjectType type, T _value, Predicate<Material> materialFilter, Predicate<Renderer> rendererFilter) {
             var chaCtrl = ctrl.ChaControl;
 
             string chaName;
@@ -551,17 +568,25 @@ namespace MassShaderEditor.Koikatu {
                                                 }
                                             } else { if (IsDebug.Value) Log($"Tried resetting property with erroneous identifier type: {_value.GetType()}"); }
                                         } else {
-                                            if (_value is float floatval)
+                                            if (_value is float floatval) {
                                                 if (mat.TryGetFloat(setName, out float current)) {
+                                                    if (fetchValue) {
+                                                        ModifyFloatTarget(current);
+                                                        return true;
+                                                    }
                                                     ctrl.SetMaterialFloatProperty(slot, type, mat, setName, GetModifiedFloat(current, floatval), go);
                                                     if (IsDebug.Value) Log($"Property {chaName}\\{mat.NameFormatted()}\\{setName} set to {GetModifiedFloat(current, floatval)}!");
                                                 } else { if (IsDebug.Value) Log($"Tried setting non-float property {chaName}\\{mat.NameFormatted()}\\{setName} to color ({floatval}) value!"); }
-                                            else if (_value is Color colval)
+                                            } else if (_value is Color colval) {
                                                 if (mat.TryGetColor(setName, out Color current)) {
+                                                    if (fetchValue) {
+                                                        setCol = current;
+                                                        return true;
+                                                    }
                                                     ctrl.SetMaterialColorProperty(slot, type, mat, setName, GetModifiedColor(current, colval), go);
                                                     if (IsDebug.Value) Log($"Property {chaName}\\{mat.NameFormatted()}\\{setName} set to {GetModifiedColor(current, colval)}!");
                                                 } else { if (IsDebug.Value) Log($"Tried setting non-color property {chaName}\\{mat.NameFormatted()}\\{setName} to float ({colval}) value!"); }
-                                            else if (_value is ScaledTex texval)
+                                            } else if (_value is ScaledTex texval) {
                                                 if (mat.TryGetTex(setName, out Texture current)) {
                                                     if (setTexAffectTex) {
                                                         ctrl.SetMaterialTexture(slot, type, mat, setName, texval.data, go);
@@ -573,7 +598,7 @@ namespace MassShaderEditor.Koikatu {
                                                         if (IsDebug.Value) Log($"Texture {chaName}\\{mat.NameFormatted()}\\{setName} scale/offset set to {texval.DimString()}!");
                                                     }
                                                 } else { if (IsDebug.Value) Log($"Tried setting non-texture property {chaName}\\{mat.NameFormatted()}\\{setName} to ({texval}) value!"); }
-                                            else { if (IsDebug.Value) Log($"Tried setting a character property to erroneous type: {_value.GetType()}"); }
+                                            } else { if (IsDebug.Value) Log($"Tried setting a character property to erroneous type: {_value.GetType()}"); }
                                         }
                                         editedMatList.Add(mat.NameFormatted());
                                     } catch (Exception e) {
@@ -604,12 +629,18 @@ namespace MassShaderEditor.Koikatu {
                         }
                     }
             }
+            return false;
         }
 
-        private bool GetTargetTexture(out byte[] data, out Texture tex) {
-            data = null;
-            tex = null;
+        private bool GetTargetValue<T>(T value) {
+            fetchValue = true;
+            setReset = false;
+            bool found = SetSelectedProperties(value);
+            fetchValue = false;
+            return found;
+        }
 
+        private bool GetTargetTexture(ref byte[] data, ref Texture tex, ref float[] offset, ref float[] scale) {
             if (IsDebug.Value) Log("Copying target texture...");
             if (KKAPI.Studio.StudioAPI.InsideStudio) {
                 var ociList = KKAPI.Studio.StudioAPI.GetSelectedObjects().ToList();
@@ -621,21 +652,23 @@ namespace MassShaderEditor.Koikatu {
                                 foreach (var mat in GetMaterials(item.objectItem, rend))
                                     if (mat.NameFormatted().ToLower().Contains(filters[1].Trim().ToLower()) && mat.shader.NameFormatted().ToLower().Contains(filters[2].Trim().ToLower()))
                                         if (mat.HasProperty("_" + setName))
-                                            return GetItemTexture(oci.objectInfo.dicKey, mat, setName, out data, out tex);
+                                            return GetItemTexture(oci.objectInfo.dicKey, mat, setName, ref data, ref tex, ref offset, ref scale);
                     } else if (oci is OCIChar ociChar) {
                         List<byte[]> bytes = new List<byte[]>();
                         List<Texture> textures = new List<Texture>();
+                        List<float[]> offsets = new List<float[]>();
+                        List<float[]> scales = new List<float[]>();
                         var ctrl = KKAPI.Studio.StudioObjectExtensions.GetChaControl(ociChar);
-                        if (AffectChaBody.Value && AffectMiscBodyParts.Value) GetCharaTexture(ctrl.GetController(), 0, ObjectType.Character, setName, (x) => true, (x) => true, ref bytes, ref textures);
+                        if (AffectChaBody.Value && AffectMiscBodyParts.Value) GetCharaTexture(ctrl.GetController(), 0, ObjectType.Character, setName, (x) => true, (x) => true, ref bytes, ref textures, ref offsets, ref scales);
                         else if (AffectChaBody.Value) GetCharaTexture(ctrl.GetController(), 0, ObjectType.Character, setName,
-                            (x) => true, (Renderer x) => new List<string> { "cf_o_face", "o_body_a" }.Contains(x.NameFormatted().ToLower()), ref bytes, ref textures);
+                            (x) => true, (Renderer x) => new List<string> { "cf_o_face", "o_body_a" }.Contains(x.NameFormatted().ToLower()), ref bytes, ref textures, ref offsets, ref scales);
                         else if (AffectMiscBodyParts.Value) GetCharaTexture(ctrl.GetController(), 0, ObjectType.Character, setName,
-                            (x) => true, (Renderer x) => !new List<string> { "cf_o_face", "o_body_a" }.Contains(x.NameFormatted().ToLower()), ref bytes, ref textures);
-                        if (AffectChaHair.Value) for (int i = 0; i < ctrl.objHair.Length; i++) GetCharaTexture(ctrl.GetController(), i, ObjectType.Hair, setName, (x) => true, (x) => true, ref bytes, ref textures);
-                        if (AffectChaClothes.Value) for (int i = 0; i < ctrl.objClothes.Length; i++) GetCharaTexture(ctrl.GetController(), i, ObjectType.Clothing, setName, (x) => true, (x) => true, ref bytes, ref textures);
+                            (x) => true, (Renderer x) => !new List<string> { "cf_o_face", "o_body_a" }.Contains(x.NameFormatted().ToLower()), ref bytes, ref textures, ref offsets, ref scales);
+                        if (AffectChaHair.Value) for (int i = 0; i < ctrl.objHair.Length; i++) GetCharaTexture(ctrl.GetController(), i, ObjectType.Hair, setName, (x) => true, (x) => true, ref bytes, ref textures, ref offsets, ref scales);
+                        if (AffectChaClothes.Value) for (int i = 0; i < ctrl.objClothes.Length; i++) GetCharaTexture(ctrl.GetController(), i, ObjectType.Clothing, setName, (x) => true, (x) => true, ref bytes, ref textures, ref offsets, ref scales);
                         for (int i = 0; i < ctrl.objAccessory.Length; i++)
                             GetCharaTexture(ctrl.GetController(), i, ObjectType.Accessory, setName, (Material x) => (x.shader.NameFormatted().ToLower().Contains("hair") && AffectChaHair.Value) ||
-                                (!x.shader.NameFormatted().ToLower().Contains("hair") && AffectChaAccs.Value), (x) => true, ref bytes, ref textures);
+                                (!x.shader.NameFormatted().ToLower().Contains("hair") && AffectChaAccs.Value), (x) => true, ref bytes, ref textures, ref offsets, ref scales);
                         for (int i = 0; i < textures.Count; i++)
                             if (textures[i] != null) {
                                 data = bytes[i];
@@ -661,18 +694,27 @@ namespace MassShaderEditor.Koikatu {
                             filter = (Renderer x) => x.NameFormatted() == "o_body_a";
                     List<byte[]> bytes = new List<byte[]>();
                     List<Texture> textures = new List<Texture>();
-                    bool result = GetCharaTexture(chaCtrl.GetController(), slot, type, setName, (x) => true, filter, ref bytes, ref textures);
+                    List<float[]> offsets = new List<float[]>();
+                    List<float[]> scales = new List<float[]>();
+                    bool result = GetCharaTexture(chaCtrl.GetController(), slot, type, setName, (x) => true, filter, ref bytes, ref textures, ref offsets, ref scales);
 
-                    data = bytes[0];
-                    tex = textures[0];
-                    return result;
+                    if (!result) return false;
+                    if (setTexAffectTex) {
+                        data = bytes[0];
+                        tex = textures[0];
+                    }
+                    if (setTexAffectDims) {
+                        offset = offsets[0];
+                        scale = scales[0];
+                    }
+                    return true;
                 } else ShowMessage("Please select a valid item category.");
             }
 
             return false;
         }
 
-        private bool GetItemTexture(int id, Material mat, string propName, out byte[] data, out Texture tex) {
+        private bool GetItemTexture(int id, Material mat, string propName, ref byte[] data, ref Texture tex, ref float[] offset, ref float[] scale) {
             try {
                 if (typeof(SceneController).GetPrivateProperty("MaterialTexturePropertyList", controller, out object value1)) {
                     var matPropList = (value1 as List<SceneController.MaterialTextureProperty>);
@@ -683,23 +725,40 @@ namespace MassShaderEditor.Koikatu {
                             var texDict = (value2 as Dictionary<int, TextureContainer>);
 
                             if (IsDebug.Value) Log("ME item texture data found!");
-                            data = texDict[(int)textureProperty.TexID].Data;
-                            tex = new Texture2D(1, 1);
-                            (tex as Texture2D).LoadImage(data);
+                            if (setTexAffectTex) {
+                                data = texDict[(int)textureProperty.TexID].Data;
+                                tex = new Texture2D(1, 1);
+                                (tex as Texture2D).LoadImage(data);
+                            }
+                            if (setTexAffectDims) {
+                                var offsetTemp = controller.GetMaterialTextureOffset(id, mat, propName) ?? new Vector2(0, 0);
+                                offset = new float[] { offsetTemp.x, offsetTemp.y };
+                                var scaleTemp = controller.GetMaterialTextureScale(id, mat, propName) ?? new Vector2(1, 1);
+                                scale = new float[] { scaleTemp.x, scaleTemp.y };
+                            }
                             return true;
                         }
                 }
             } catch (Exception e) {
                 Logger.LogError(e.Message);
+                return false;
             }
 
             if (IsDebug.Value) Log("ME item texture data NOT found, defaulting to material texture.");
-            tex = mat.GetTexture("_" + propName);
-            data = tex?.ToTexture2D().EncodeToPNG();
-            return false;
+            if (setTexAffectTex) {
+                tex = mat.GetTexture("_" + propName);
+                data = tex?.ToTexture2D().EncodeToPNG();
+            }
+            if (setTexAffectDims) {
+                var offsetTemp = controller.GetMaterialTextureOffset(id, mat, propName) ?? new Vector2(0, 0);
+                offset = new float[] { offsetTemp.x, offsetTemp.y };
+                var scaleTemp = controller.GetMaterialTextureScale(id, mat, propName) ?? new Vector2(1, 1);
+                scale = new float[] { scaleTemp.x, scaleTemp.y };
+            }
+            return true;
         }
 
-        private bool GetCharaTexture(MaterialEditorCharaController ctrl, int slot, ObjectType type, string propName, Predicate<Material> materialFilter, Predicate<Renderer> rendererFilter, ref List<byte[]> bytes, ref List<Texture> textures) {
+        private bool GetCharaTexture(MaterialEditorCharaController ctrl, int slot, ObjectType type, string propName, Predicate<Material> materialFilter, Predicate<Renderer> rendererFilter, ref List<byte[]> bytes, ref List<Texture> textures, ref List<float[]> offsets, ref List<float[]> scales) {
             GameObject go = GetChaGO(ctrl, type, slot);
 
             foreach (var rend in GetRendererList(go).Where(x => rendererFilter(x)))
@@ -719,9 +778,14 @@ namespace MassShaderEditor.Koikatu {
                                                 var newTex = new Texture2D(1, 1);
                                                 newTex.LoadImage(texBytes);
 
+                                                var offsetTemp = ctrl.GetMaterialTextureOffset(slot, type, mat, propName, go) ?? new Vector2(0, 0);
+                                                var scaleTemp = ctrl.GetMaterialTextureScale(slot, type, mat, propName, go) ?? new Vector2(1, 1);
+
                                                 if (IsDebug.Value) Log("ME Character texture data found!");
                                                 bytes.Add(texBytes);
                                                 textures.Add(newTex);
+                                                offsets.Add(new float[] { offsetTemp.x, offsetTemp.y });
+                                                scales.Add(new float[] { scaleTemp.x, scaleTemp.y });
                                                 return true;
                                             }
                                     }
@@ -734,6 +798,8 @@ namespace MassShaderEditor.Koikatu {
 
                                 bytes.Add(data);
                                 textures.Add(tex);
+                                offsets.Add(new float[] { 0, 0 });
+                                scales.Add(new float[] { 1, 1 });
                                 return false;
                             }
             return false;
