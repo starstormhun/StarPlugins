@@ -444,13 +444,9 @@ namespace MassShaderEditor.Koikatu {
 
             if (IsDebug.Value) Log($"Looking into {item.NameFormatted()}...");
             foreach (var rend in GetRendererList(item.objectItem)) {
-                if (rend.NameFormatted().ToLower().Contains(filters[0].ToLower().Trim()))
+                if (ApplyFilter(rend.NameFormatted(), filters[0]))
                     foreach (var mat in GetMaterials(item.objectItem, rend)) {
-                        if (
-                            !editedMatList.Contains(mat.NameFormatted()) &&
-                            mat.NameFormatted().ToLower().Contains(filters[1].ToLower().Trim()) &&
-                            mat.shader.NameFormatted().ToLower().Contains(filters[2].ToLower().Trim())
-                        ) {
+                        if (!editedMatList.Contains(mat.NameFormatted()) && ApplyFilter(mat.NameFormatted(), filters[1]) && ApplyFilter(mat.shader.NameFormatted(), filters[2])) {
                             if (tab == SettingType.Float || tab == SettingType.Color || tab == SettingType.Texture)
                                 if (mat.HasProperty("_" + setName)) {
                                     try {
@@ -566,13 +562,9 @@ namespace MassShaderEditor.Koikatu {
             var editedMatList = new List<string>();
 
             foreach (var rend in GetRendererList(go).Where(x => rendererFilter(x))) {
-                if (rend.NameFormatted().ToLower().Contains(filters[0].ToLower().Trim()))
+                if (ApplyFilter(rend.NameFormatted(), filters[0]))
                     foreach (var mat in GetMaterials(go, rend).Where(x => materialFilter(x))) {
-                        if (
-                            !editedMatList.Contains(mat.NameFormatted()) &&
-                            mat.NameFormatted().ToLower().Contains(filters[1].ToLower().Trim()) &&
-                            mat.shader.NameFormatted().ToLower().Contains(filters[2].ToLower().Trim())
-                        ) {
+                        if (ApplyFilter(mat.NameFormatted(), filters[1]) && ApplyFilter(mat.shader.NameFormatted(), filters[2])) {
                             if (tab == SettingType.Float || tab == SettingType.Color || tab == SettingType.Texture)
                                 if (mat.HasProperty("_" + setName)) {
                                     try {
@@ -673,9 +665,9 @@ namespace MassShaderEditor.Koikatu {
                     var oci = ociList[0];
                     if (oci is OCIItem item) {
                         foreach (var rend in GetRendererList(item.objectItem))
-                            if (rend.NameFormatted().ToLower().Contains(filters[0].Trim().ToLower()))
+                            if (ApplyFilter(rend.NameFormatted(), filters[0]))
                                 foreach (var mat in GetMaterials(item.objectItem, rend))
-                                    if (mat.NameFormatted().ToLower().Contains(filters[1].Trim().ToLower()) && mat.shader.NameFormatted().ToLower().Contains(filters[2].Trim().ToLower()))
+                                    if (ApplyFilter(mat.NameFormatted(), filters[1]) && ApplyFilter(mat.shader.NameFormatted(), filters[2]))
                                         if (mat.HasProperty("_" + setName))
                                             return GetItemTexture(oci.objectInfo.dicKey, mat, setName, ref data, ref tex, ref offset, ref scale);
                     } else if (oci is OCIChar ociChar) {
@@ -786,10 +778,10 @@ namespace MassShaderEditor.Koikatu {
         private bool GetCharaTexture(MaterialEditorCharaController ctrl, int slot, ObjectType type, string propName, Predicate<Material> materialFilter, Predicate<Renderer> rendererFilter, ref List<byte[]> bytes, ref List<Texture> textures, ref List<float[]> offsets, ref List<float[]> scales) {
             GameObject go = GetChaGO(ctrl, type, slot);
 
-            foreach (var rend in GetRendererList(go).Where(x => rendererFilter(x)))
-                if (rend.NameFormatted().ToLower().Contains(filters[0].ToLower().Trim()))
-                    foreach (var mat in GetMaterials(go, rend).Where(x => materialFilter(x)))
-                        if (mat.NameFormatted().ToLower().Contains(filters[1].ToLower().Trim()) && mat.shader.NameFormatted().ToLower().Contains(filters[2].ToLower().Trim()))
+            foreach (var rend in GetRendererList(go).Where(x => rendererFilter(x))) {
+                if (ApplyFilter(rend.NameFormatted(), filters[0]))
+                    foreach (var mat in GetMaterials(go, rend).Where(x => materialFilter(x))) {
+                        if (ApplyFilter(mat.NameFormatted(), filters[1]) && ApplyFilter(mat.shader.NameFormatted(), filters[2])) {
                             if (mat.HasProperty("_" + propName)) {
                                 try {
                                     if (typeof(MaterialEditorCharaController).GetPrivateProperty("MaterialTexturePropertyList", ctrl, out object value1)) {
@@ -827,6 +819,9 @@ namespace MassShaderEditor.Koikatu {
                                 scales.Add(new float[] { 1, 1 });
                                 return false;
                             }
+                        }
+                    }
+            }
             return false;
 
             int GetCoordinateIndex() {
@@ -851,6 +846,40 @@ namespace MassShaderEditor.Koikatu {
                 default:
                     return null;
             }
+        }
+
+        private bool ApplyFilter(string _name, string _rawFilter) {
+            _name = _name.Trim().ToLower();
+            _rawFilter = _rawFilter.Trim().ToLower();
+
+            List<string> filterListBlocks = _rawFilter.Split(new char[] { ';', '|' }).ToList();
+            foreach (string filterBlock in filterListBlocks) {
+                List<string> filterList = filterBlock.Split(new char[] { ',', '&' }).ToList();
+                bool output = true;
+                for (int i = 0; i < filterList.Count; i++) {
+                    string filter = filterList[i].Trim();
+                    if (filter.Length == 0) continue;
+
+                    if (filter[0] == '-') {
+                        if (_name.Contains(filter.Substring(1))) {
+                            output = false;
+                            break;
+                        }
+                    } else if (filter[0] == '+') {
+                        if (!_name.Contains(filter.Substring(1))) {
+                            output = false;
+                            break;
+                        }
+                    } else {
+                        if (!_name.Contains(filter)) {
+                            output = false;
+                            break;
+                        }
+                    }
+                }
+                if (output) return true;
+            }
+            return false;
         }
 
         private float GetModifiedFloat(float current, float floatVal) {
