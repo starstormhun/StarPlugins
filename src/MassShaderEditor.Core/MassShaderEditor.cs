@@ -481,6 +481,7 @@ namespace MassShaderEditor.Koikatu {
                             if (DecodeBitMap(rendererAffectMap, 2)) {
                                 ctrl.RemoveRendererProperty(item.objectInfo.dicKey, rend, RendererProperties.ReceiveShadows);
                             }
+                            if (IsDebug.Value) Log($"Reset properties of renderer ({rend.NameFormatted()})!");
                         } else {
                             if (DecodeBitMap(rendererAffectMap, 0)) {
                                 ctrl.SetRendererProperty(item.objectInfo.dicKey, rend, RendererProperties.Enabled, rendererSetEnabled ? "1" : "0");
@@ -491,6 +492,7 @@ namespace MassShaderEditor.Koikatu {
                             if (DecodeBitMap(rendererAffectMap, 2)) {
                                 ctrl.SetRendererProperty(item.objectInfo.dicKey, rend, RendererProperties.ReceiveShadows, rendererReceiveShadows ? "1" : "0");
                             }
+                            if (IsDebug.Value) Log($"Set properties of renderer ({rend.NameFormatted()})!");
                         }
                     } else {
                         foreach (var mat in GetMaterials(item.objectItem, rend)) {
