@@ -28,6 +28,7 @@ namespace MassShaderEditor.Koikatu {
         private Rect setRect = new Rect();
         private Rect infoRect = new Rect();
         private Rect texRect = new Rect();
+        private Rect randRect = new Rect();
         private Rect warnRect = new Rect(0, 0, 360, 200);
         private Rect shaderRect = new Rect(defaultSize[0], defaultSize[1], defaultSize[2] * 0.9f, defaultSize[3] * 1.2f);
         private Rect historyRect = new Rect(defaultSize[0], defaultSize[1], defaultSize[2] * 0.9f, defaultSize[3] * 1.2f);
@@ -54,6 +55,13 @@ namespace MassShaderEditor.Koikatu {
         private int setQueue = 0;
         private float setMix = 0.5f;
         private bool fetchValue = false;
+        private bool setRandom = false;
+
+        private int randDistType = 0;
+        private string randStdDevInputString = "0.2";
+        private float randStdDev = 0.2f;
+        private int randColSpace = 0;
+        private int randColComps = 15;
 
         private float leftLim = -1;
         private float rightLim = 1;
@@ -161,6 +169,12 @@ namespace MassShaderEditor.Koikatu {
         private const string setTexAffectTexExplainText = "Check this to affect the texture data of texture properties!";
         private const string setTexAffectDimsExplainText = "Check this to affect the scale and offset of texture properties!";
 
+        private const string randButtonExplainText = "Toggle the value randomisation panel.";
+        private const string randDistExplainText = "The distribution type of the random noise.";
+        private const string randStdDevExplainText = "The standard deviation of the random noise.";
+        private const string randColSpaceExplainText = "What color representation to use when determining random variations.";
+        private const string randColCompExplainText = "Which components of the color space to affect with the noise.";
+
         private static string AffectChaPartsText(string part) => $"Whether the 'Set ...' buttons will affect characters' {part}.";
         private readonly string affectChaBodyText = AffectChaPartsText("faces and bodies");
         private readonly string affectChaHairText = AffectChaPartsText("hair, including hair accs");
@@ -174,15 +188,15 @@ namespace MassShaderEditor.Koikatu {
             GUILayout.BeginVertical();
 
             // Label setup
-            string filterText = "Filter"; float filterWidth = newSkin.label.CalcSize(new GUIContent(filterText)).x;
-            string propertyText = "Property"; float propertyWidth = newSkin.label.CalcSize(new GUIContent(propertyText)).x;
-            string shaderText = "Shader"; float shaderWidth = newSkin.label.CalcSize(new GUIContent(shaderText)).x;
-            string valueText = "Value"; float valueWidth = newSkin.label.CalcSize(new GUIContent(valueText)).x;
-            string queueText = "Queue"; float queueWidth = newSkin.label.CalcSize(new GUIContent(queueText)).x;
-            string colorText = "Color   #"; float colorWidth = newSkin.label.CalcSize(new GUIContent(colorText)).x;
-            string textureText = "Texture"; float textureWidth = newSkin.label.CalcSize(new GUIContent(textureText)).x;
-            commonWidth = Mathf.Max(new float[] { filterWidth, propertyWidth, valueWidth, shaderWidth, queueWidth, colorWidth, textureWidth });
-            commonHeight = newSkin.textField.CalcSize(new GUIContent("")).y;
+            string filterText = "Filter";
+            string propertyText = "Property";
+            string shaderText = "Shader";
+            string valueText = "Value";
+            string queueText = "Queue";
+            string colorText = "Color   #";
+            string textureText = "Texture";
+            commonWidth = CalculateCommonWidth(new object[] { filterText, propertyText, shaderText, valueText, queueText, colorText, textureText });
+            commonHeight = newSkin.textField.CalcSize(new GUIContent("TEST")).y;
             float halfWidth = (windowRect.width - newSkin.window.border.left - newSkin.window.border.right) / 2;
             var filterButtons = new GUIContent[] {
                 new GUIContent(filters[0].Trim() == "" ? "R" : "R*", "Filter by renderer name." + (filters[0].Trim() == "" ? "" : " (Filter is set)")),
@@ -324,6 +338,9 @@ namespace MassShaderEditor.Koikatu {
                                 ShowMessage(valueNotFoundMessage);
                         }
                     }
+                    if (GUILayout.Button(new GUIContent("ℝ", randButtonExplainText), newSkin.button, GUILayout.ExpandWidth(false))) {
+                        setRandom = !setRandom;
+                    }
                     GUILayout.EndHorizontal();
                     GUILayout.Space(-4);
                     GUILayout.BeginHorizontal();
@@ -422,6 +439,9 @@ namespace MassShaderEditor.Koikatu {
                             if (!GetTargetValue(setCol))
                                 ShowMessage(valueNotFoundMessage);
                         }
+                    }
+                    if (GUILayout.Button(new GUIContent("ℝ", randButtonExplainText), newSkin.button, GUILayout.ExpandWidth(false))) {
+                        setRandom = !setRandom;
                     }
 
                     GUILayout.EndHorizontal();
@@ -786,8 +806,8 @@ namespace MassShaderEditor.Koikatu {
             } // End maker settings
 
             GUILayout.EndVertical();
-            GUI.DragWindow();
 
+            GUI.DragWindow();
             PushTooltip(GUI.tooltip);
         }
 
@@ -904,6 +924,8 @@ namespace MassShaderEditor.Koikatu {
             setMix = GUILayout.VerticalSlider(setMix, 1, 0, newSkin.verticalSlider, newSkin.verticalSliderThumb);
             GUILayout.Label("0", numStyle);
             GUILayout.EndVertical();
+
+            GUI.DragWindow();
         }
 
         private void TexFunction(int windowID) {
@@ -919,6 +941,74 @@ namespace MassShaderEditor.Koikatu {
             }
 
             GUI.DragWindow();
+        }
+
+        private void RandFunction(int windowID) {
+            string distText = "Dist. Type";
+            string stdDevText = "Std. dev";
+            string colSpaceText = "Color space";
+            string colCompText = "Components";
+
+            float commonWidth = (tab == SettingType.Color)
+                ? CalculateCommonWidth(new string[] { distText, stdDevText, colSpaceText, colCompText })
+                : CalculateCommonWidth(new string[] { distText, stdDevText });
+
+            GUILayout.BeginVertical();
+
+            // Distribution type
+            GUILayout.BeginHorizontal();
+            GUILayout.Label(new GUIContent(distText, randDistExplainText), newSkin.label, GUILayout.Width(commonWidth));
+            var distributions = new GUIContent[] { new GUIContent("Gauss"), new GUIContent("Uniform") };
+            randDistType = GUILayout.SelectionGrid(randDistType, distributions, distributions.Length, newSkin.button);
+            GUILayout.EndHorizontal();
+
+            // Standard deviation
+            GUILayout.BeginHorizontal();
+            GUILayout.Label(new GUIContent(stdDevText, randStdDevExplainText), newSkin.label, GUILayout.Width(commonWidth));
+            randStdDevInputString = GUILayout.TextField(randStdDevInputString, newSkin.textField);
+            randStdDev = Mathf.Max(Studio.Utility.StringToFloat(randStdDevInputString), 0);
+            string indicatorText = "→ " + randStdDev.ToString("0.000");
+            GUILayout.Label(new GUIContent(indicatorText, randStdDevExplainText), newSkin.label, GUILayout.ExpandWidth(false));
+            GUILayout.EndHorizontal();
+
+            // Color controls
+            if (tab == SettingType.Color) {
+                // Color space
+                GUILayout.BeginHorizontal();
+                GUILayout.Label(new GUIContent(colSpaceText, randColSpaceExplainText), newSkin.label, GUILayout.Width(commonWidth));
+                var colorSpaces = new GUIContent[] { new GUIContent("RGB"), new GUIContent("HSV") };
+                randColSpace = GUILayout.SelectionGrid(randColSpace, colorSpaces, colorSpaces.Length, newSkin.button);
+                GUILayout.EndHorizontal();
+
+                // Color components
+                GUILayout.BeginHorizontal();
+                GUILayout.Label(new GUIContent(colCompText, randColCompExplainText), newSkin.label, GUILayout.Width(commonWidth));
+                var components = randColSpace == 0
+                    ? new GUIContent[] {
+                        new GUIContent(((randColComps & (1 << 0)) > 0 ? "☑" : "☐") + " R"),
+                        new GUIContent(((randColComps & (1 << 1)) > 0 ? "☑" : "☐") + " G"),
+                        new GUIContent(((randColComps & (1 << 2)) > 0 ? "☑" : "☐") + " B"),
+                        new GUIContent(((randColComps & (1 << 3)) > 0 ? "☑" : "☐") + " A")
+                    } : new GUIContent[] {
+                        new GUIContent(((randColComps & (1 << 0)) > 0 ? "☑" : "☐") + " H"),
+                        new GUIContent(((randColComps & (1 << 1)) > 0 ? "☑" : "☐") + " S"),
+                        new GUIContent(((randColComps & (1 << 2)) > 0 ? "☑" : "☐") + " V"),
+                        new GUIContent(((randColComps & (1 << 3)) > 0 ? "☑" : "☐") + " A")
+                    };
+                int clickedBtn = GUILayout.SelectionGrid(-1, components, components.Length, newSkin.button);
+                if (clickedBtn > -1) {
+                    if ((randColComps & 1 << clickedBtn) > 0) {
+                        randColComps &= ~(1 << clickedBtn);
+                    } else {
+                        randColComps |= 1 << clickedBtn;
+                    }
+                }
+                GUILayout.EndHorizontal();
+            }
+            GUILayout.EndVertical();
+
+            GUI.DragWindow();
+            PushTooltip(GUI.tooltip);
         }
 
         private void TrySetTexture(Func<ScaledTex, bool> setFunction) {
@@ -1093,6 +1183,20 @@ namespace MassShaderEditor.Koikatu {
 
         private int WinNum(string name) {
             return name.GetHashCode();
+        }
+
+        private float CalculateCommonWidth(object[] contents) {
+            var widths = new List<float>();
+            foreach(object item in contents) {
+                if (item is string str) {
+                    widths.Add(newSkin.label.CalcSize(new GUIContent(str)).x);
+                } else if (item is GUIContent content) {
+                    widths.Add(newSkin.label.CalcSize(content).x);
+                } else {
+                    throw new Exception("Unknown content type provided!");
+                }
+            }
+            return widths.Count > 0 ? Mathf.Max(widths.ToArray()) : 0;
         }
 
         private void Redraw(int id, Rect rect, int num, bool box = false) {

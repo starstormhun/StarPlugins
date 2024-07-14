@@ -12,6 +12,7 @@ using UnityEngine;
 using MaterialEditorAPI;
 using KKAPI.Utilities;
 using KK_Plugins;
+using Illusion.Extensions;
 
 [assembly: System.Reflection.AssemblyFileVersion(MassShaderEditor.Koikatu.MassShaderEditor.Version)]
 
@@ -69,6 +70,7 @@ namespace MassShaderEditor.Koikatu {
         private bool inited = false;
         private bool scaled = false;
         private SceneController controller;
+        private System.Random rand = new System.Random();
 
         private List<string> shaders;
 
@@ -119,8 +121,8 @@ namespace MassShaderEditor.Koikatu {
             };
 
             ReadHistory();
-
             HookPatch.Init();
+
             if (IsDebug.Value) Log("Awoken!");
         }
 
@@ -212,6 +214,10 @@ namespace MassShaderEditor.Koikatu {
                         IMGUIUtils.EatInputInRect(windowRect);
                         Redraw(WinNum("main"), windowRect, redrawNum);
 
+                        // Additional window rendering conditional calculations
+                        bool isMixWindow = tab == SettingType.Color && setModeColor == 1;
+                        bool isRandWindow = (new SettingType[] { SettingType.Float, SettingType.Color }).Contains(tab) && setRandom;
+
                         // Below main window
                         infoRect.position = windowRect.position + new Vector2(0, windowRect.size.y + 3);
 
@@ -223,11 +229,26 @@ namespace MassShaderEditor.Koikatu {
                         texRect.position = windowRect.position - new Vector2(texRect.size.x + 3, 0);
                         mixRect.position = windowRect.position - new Vector2(mixRect.size.x + 3, 0);
                         mixRect.size = new Vector2(mixRect.size.x, windowRect.size.y);
+                        randRect.position = windowRect.position - new Vector2(randRect.size.x + 3 + (isMixWindow ? mixRect.size.x + 3 : 0), 0);
 
-                        if (tab == SettingType.Color && setModeColor == 1) {
+                        if (isMixWindow) {
+                            Vector2 oldPos = mixRect.position;
                             mixRect = GUILayout.Window(WinNum("mix"), mixRect, MixFunction, "", newSkin.box);
                             IMGUIUtils.EatInputInRect(mixRect);
                             Redraw(WinNum("mix"), mixRect, redrawNum-1, true);
+                            if ((mixRect.position - oldPos) != Vector2.zero) {
+                                windowRect.position += mixRect.position - oldPos;
+                            }
+                        }
+                        if (isRandWindow) {
+                            Vector2 oldPos = randRect.position;
+                            randRect = GUILayout.Window(WinNum("random"), randRect, RandFunction, "Noise Generation", newSkin.window);
+                            DrawTooltip(tooltip[0]);
+                            IMGUIUtils.EatInputInRect(randRect);
+                            Redraw(WinNum("random"), randRect, redrawNum - 1, true);
+                            if ((randRect.position - oldPos) != Vector2.zero) {
+                                windowRect.position += randRect.position - oldPos;
+                            }
                         }
                         if (tab == SettingType.Texture) {
                             Vector2 oldPos = texRect.position;
@@ -846,6 +867,11 @@ namespace MassShaderEditor.Koikatu {
                 case 4:
                     newVal = Math.Min(current, floatVal); break;
             }
+
+            if (setRandom) {
+                newVal = GetRandomisedFloat(newVal);
+            }
+
             return newVal;
         }
 
@@ -863,7 +889,46 @@ namespace MassShaderEditor.Koikatu {
                 case 4:
                     newCol = current - colval; break;
             }
+
+            if (setRandom) {
+                Color toRandomise;
+                if (randColSpace == 0) {
+                    toRandomise = newCol;
+                } else {
+                    toRandomise = newCol.RGBToHSV();
+                    toRandomise.r *= 4;
+                }
+
+                float r = (randColComps & (1 << 0)) > 0 ? GetRandomisedFloat(toRandomise.r) : toRandomise.r;
+                float g = (randColComps & (1 << 1)) > 0 ? GetRandomisedFloat(toRandomise.g) : toRandomise.g;
+                float b = (randColComps & (1 << 2)) > 0 ? GetRandomisedFloat(toRandomise.b) : toRandomise.b;
+                float a = (randColComps & (1 << 3)) > 0 ? GetRandomisedFloat(toRandomise.a) : toRandomise.a;
+
+                a = Mathf.Clamp(a, 0, 1);
+
+                if (randColSpace == 0) {
+                    newCol = new Color(r, g, b, a);
+                } else {
+                    r = (r / 4f) % 1;
+                    if (r < 0) r++;
+                    g = Mathf.Clamp(g, 0.005f, 1);
+                    b = Mathf.Clamp(b, 0, 1);
+                    newCol = new Color(r, g, b, a).HSVToRGB();
+                }
+            }
+
             return newCol;
+        }
+
+        private float GetRandomisedFloat(float original) {
+            if (randDistType == 0) {
+                double u1 = 1.0 - rand.NextDouble();
+                double u2 = 1.0 - rand.NextDouble();
+                double randStdNormal = Math.Sqrt(-2.0 * Math.Log(u1)) * Math.Sin(2.0 * Math.PI * u2);
+                return original + randStdDev * (float)randStdNormal;
+            } else {
+                return original + randStdDev * 2 * (float)(0.5 - rand.NextDouble());
+            }
         }
 
         private bool MakerGetType(out ObjectType type) {
