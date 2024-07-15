@@ -66,6 +66,8 @@ namespace MassShaderEditor.Koikatu {
         private ConfigEntry<string> FloatHistory { get; set; }
         private ConfigEntry<string> ColorHistory { get; set; }
         private ConfigEntry<string> FavShaders { get; set; }
+        private ConfigEntry<string> FavRendererFilters { get; set; }
+        private ConfigEntry<string> FavMaterialFilters { get; set; }
 
         private Studio.Studio studio;
         private bool inited = false;
@@ -108,6 +110,8 @@ namespace MassShaderEditor.Koikatu {
             FloatHistory = Config.Bind("Data", "Float History", "", new ConfigDescription("The 10 previously set property name/value pairings", null, new ConfigurationManagerAttributes { Browsable = false }));
             ColorHistory = Config.Bind("Data", "Color History", "", new ConfigDescription("The 10 previously set property name/color pairings", null, new ConfigurationManagerAttributes { Browsable = false }));
             FavShaders = Config.Bind("Data", "Favorite Shaders", "", new ConfigDescription("Favorited shaders that will show up at the top of the shaders dropdown", null, new ConfigurationManagerAttributes { Browsable = false }));
+            FavRendererFilters = Config.Bind("Data", "Favorite Renderer Filters", "", new ConfigDescription("Favorited renderer filters that will show up at the top of the filters dropdown", null, new ConfigurationManagerAttributes { Browsable = false }));
+            FavMaterialFilters = Config.Bind("Data", "Favorite Material Filters", "", new ConfigDescription("Favorited material filters that will show up at the top of the filters dropdown", null, new ConfigurationManagerAttributes { Browsable = false }));
 
             KKAPI.Studio.StudioAPI.StudioLoadedChanged += (x, y) => {
                 studio = Singleton<Studio.Studio>.Instance;
@@ -224,6 +228,9 @@ namespace MassShaderEditor.Koikatu {
             if (shadowModeDrop && (Input.GetMouseButton(1) || Input.GetMouseButton(0)) && !shadowModeRect.Contains(Input.mousePosition.InvertScreenY())) {
                 shadowModeDrop = false;
             }
+            if (filterDrop && (Input.GetMouseButton(1) || Input.GetMouseButton(0)) && !filterRect.Contains(Input.mousePosition.InvertScreenY())) {
+                filterDrop = false;
+            }
 
             if (IsShown) {
                 if (IntroShown.Value) {
@@ -326,6 +333,13 @@ namespace MassShaderEditor.Koikatu {
                             Redraw(WinNum("shadowModeDrop"), shadowModeRect, redrawNum, true);
                             GUI.BringWindowToFront(WinNum("shadowModeDrop"));
                         }
+                        if (filterDrop) {
+                            filterRect.position = windowRect.position + new Vector2(commonWidth + newSkin.window.border.left + 4, GUI.skin.label.CalcSize(new GUIContent("TEST")).y + (newSkin.label.CalcSize(new GUIContent("TEST")).y + 4) * 2);
+                            filterRect = GUILayout.Window(WinNum("filterDrop"), filterRect, FilterDropFunction, "", newSkin.box, GUILayout.MaxWidth(defaultSize[2]));
+                            IMGUIUtils.EatInputInRect(filterRect);
+                            Redraw(WinNum("filterDrop"), filterRect, redrawNum, true);
+                            GUI.BringWindowToFront(WinNum("filterDrop"));
+                        }
                     }
                     if (showWarning) {
                         Rect screenRect = new Rect(0, 0, Screen.width, Screen.height);
@@ -381,6 +395,7 @@ namespace MassShaderEditor.Koikatu {
                 } else ShowMessage("Please select a valid item category.");
             }
             HistoryAppend(_value);
+            FilterAppend();
             return false;
         }
 
@@ -429,6 +444,7 @@ namespace MassShaderEditor.Koikatu {
             if (!fetchValue) {
                 HistoryAppend(_value);
             }
+            FilterAppend();
             return !fetchValue;
         }
 

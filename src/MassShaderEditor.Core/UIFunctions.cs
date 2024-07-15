@@ -34,6 +34,7 @@ namespace MassShaderEditor.Koikatu {
         private Rect shaderRect = new Rect(defaultSize[0], defaultSize[1], defaultSize[2] * 0.9f, defaultSize[3] * 1.2f);
         private Rect historyRect = new Rect(defaultSize[0], defaultSize[1], defaultSize[2] * 0.9f, defaultSize[3] * 1.2f);
         private Rect shadowModeRect = new Rect(defaultSize[0], defaultSize[1], defaultSize[2] * 0.9f, defaultSize[3] * 1.2f);
+        private Rect filterRect = new Rect(defaultSize[0], defaultSize[1], defaultSize[2] * 0.9f, defaultSize[3] * 1.2f);
 
         internal SettingType tab = SettingType.Float;
         private float prevScale = 1;
@@ -87,6 +88,10 @@ namespace MassShaderEditor.Koikatu {
         private string setQueueInput = "";
 
         public readonly List<string> favShaders = new List<string>();
+        public readonly List<string> favRendererFilters = new List<string>();
+        public readonly List<string> favMaterialFilters = new List<string>();
+        public readonly List<string> rendererFilterHist = new List<string>();
+        public readonly List<string> materialFilterHist = new List<string>();
         public readonly List<HistoryItem> floatHist = new List<HistoryItem>();
         public readonly List<HistoryItem> colHist = new List<HistoryItem>();
         public readonly List<HistoryItem> texHist = new List<HistoryItem>();
@@ -118,18 +123,23 @@ namespace MassShaderEditor.Koikatu {
         private Vector2 shaderScrollPos;
         private Vector2 historyScrollPos;
         private Vector2 shadowModeScrollPos;
+        private Vector2 filterScrollPos;
         private MassShaderEditor.OnShaderSelectFunc onShaderSelect;
         private MassShaderEditor.OnHistorySelectFunc onHistorySelect;
         private MassShaderEditor.OnShadowCastingModeSelect onShadowModeSelect;
+        private MassShaderEditor.OnFilterSelect onFilterSelect;
         private delegate void OnShaderSelectFunc(string s);
         private delegate void OnHistorySelectFunc(int i);
         private delegate void OnShadowCastingModeSelect(string s);
+        private delegate void OnFilterSelect(string s);
         private int shaderDrop = 0;
         private bool historyDrop = false;
         private bool shadowModeDrop = false;
+        private bool filterDrop = false;
         private float shaderDropWidth = 0;
         private float historyDropWidth = 0;
         private float shadowModeDropWidth = 0;
+        private float filterDropWidth = 0;
 
         private readonly List<string> helpSections = new List<string> { "General", "Filtering", "Values", "Settings", "Info" };
         private readonly List<List<string>> helpText = new List<List<string>>{
@@ -275,6 +285,20 @@ namespace MassShaderEditor.Koikatu {
                 filterInputStyle.fontSize = (int)(filterInputStyle.fontSize * 0.8);
                 filterInputStyle.alignment = TextAnchor.MiddleLeft;
                 filterInput = GUILayout.TextField(filterInput, filterInputStyle, GUILayout.Height(commonHeight));
+                if (currentFilter == 0 || currentFilter == 1) {
+                    if (
+                        GUILayout.Button("▼", newSkin.button, GUILayout.ExpandWidth(false)) &&
+                        (
+                            (currentFilter == 0 && (favRendererFilters.Count + rendererFilterHist.Count > 0)) ||
+                            (currentFilter == 1 && (favMaterialFilters.Count + materialFilterHist.Count > 0))
+                        )
+                    ) {
+                        onFilterSelect = (s) => { filters[currentFilter] = s; filterInput = s; };
+                        CalcFilterDropSize();
+                        filterScrollPos = Vector2.zero;
+                        filterDrop = true;
+                    }
+                }
                 if (currentFilter == 2) {
                     if (GUILayout.Button("▼", newSkin.button, GUILayout.ExpandWidth(false))) {
                         onShaderSelect = (s) => { filters[2] = s; filterInput = s; };
@@ -1055,6 +1079,36 @@ namespace MassShaderEditor.Koikatu {
             GUILayout.EndScrollView();
         }
 
+        private void FilterDropFunction(int windowID) {
+            filterScrollPos = GUILayout.BeginScrollView(filterScrollPos, false, true, GUIStyle.none, newSkin.verticalScrollbar, GUILayout.Height(windowRect.height * 1.2f), GUILayout.Width(filterDropWidth));
+            var scrollBtnStyle = new GUIStyle(newSkin.button) {
+                alignment = TextAnchor.MiddleLeft
+            };
+            List<string> filters = new List<string>();
+            List<string> favList = null;
+            if (currentFilter == 0) {
+                favList = favRendererFilters;
+                filters.AddRange(favRendererFilters);
+                filters.AddRange(rendererFilterHist);
+            } else if (currentFilter == 1) {
+                favList = favMaterialFilters;
+                filters.AddRange(favMaterialFilters);
+                filters.AddRange(materialFilterHist);
+            }
+            foreach (string filter in filters) {
+                GUILayout.BeginHorizontal();
+                if (GUILayout.Button(filter, scrollBtnStyle)) {
+                    onFilterSelect.Invoke(filter);
+                    filterDrop = false;
+                }
+                if (GUILayout.Button(new GUIContent(favList.Contains(filter) ? "★" : "☆"), newSkin.button, GUILayout.ExpandWidth(false))) {
+                    FavFilter(filter);
+                }
+                GUILayout.EndHorizontal();
+            }
+            GUILayout.EndScrollView();
+        }
+
         private void MixFunction(int windowID) {
             var numStyle = new GUIStyle(newSkin.label) {
                 alignment = TextAnchor.MiddleCenter,
@@ -1236,6 +1290,23 @@ namespace MassShaderEditor.Koikatu {
             shadowModeDropWidth = widths.Max() + newSkin.button.CalcSize(new GUIContent("TEST")).y * 2;
         }
 
+        private void CalcFilterDropSize() {
+            filterRect.width = 1;
+            List<float> widths = new List<float>();
+            List<string> filters = new List<string>();
+            if (currentFilter == 0) {
+                filters.AddRange(favRendererFilters);
+                filters.AddRange(rendererFilterHist);
+            } else if (currentFilter == 1) {
+                filters.AddRange(favMaterialFilters);
+                filters.AddRange(materialFilterHist);
+            }
+            foreach (string filter in filters) {
+                widths.Add(newSkin.button.CalcSize(new GUIContent(filter)).x);
+            }
+            filterDropWidth = Math.Max(widths.Max() + newSkin.button.CalcSize(new GUIContent("TEST")).y * 2, commonHeight * 7);
+        }
+
         private void InitUI() {
             newSkin = ScriptableObject.CreateInstance<GUISkin>();
             newSkin.box = new GUIStyle(GUI.skin.box);
@@ -1382,6 +1453,8 @@ namespace MassShaderEditor.Koikatu {
 
             // Other favorites
             FavShaders.Value = favShaders.Join(x => x, ";");
+            FavRendererFilters.Value = favRendererFilters.Join(x => x, "÷");
+            FavMaterialFilters.Value = favMaterialFilters.Join(x => x, "÷");
         }
 
         private void ReadData() {
@@ -1443,7 +1516,9 @@ namespace MassShaderEditor.Koikatu {
             }
 
             // Other favorites
-            favShaders.AddRange(FavShaders.Value.Split(';'));
+            if (FavShaders.Value.Length > 0) favShaders.AddRange(FavShaders.Value.Split(';'));
+            if (FavRendererFilters.Value.Length > 0) favRendererFilters.AddRange(FavRendererFilters.Value.Split('÷'));
+            if (FavMaterialFilters.Value.Length > 0) favMaterialFilters.AddRange(FavMaterialFilters.Value.Split('÷'));
         }
 
         private void FavShader(string shader) {
@@ -1534,6 +1609,42 @@ namespace MassShaderEditor.Koikatu {
             }
             SaveData();
             dicHistContent.Clear();
+        }
+
+        private void FavFilter(string filter) {
+            if (currentFilter == 0) {
+                if (favRendererFilters.Contains(filter)) {
+                    favRendererFilters.Remove(filter);
+                    rendererFilterHist.Insert(0, filter);
+                } else if (rendererFilterHist.Contains(filter)) {
+                    rendererFilterHist.Remove(filter);
+                    favRendererFilters.Add(filter);
+                }
+            } else if (currentFilter == 1) {
+                if (favMaterialFilters.Contains(filter)) {
+                    favMaterialFilters.Remove(filter);
+                    materialFilterHist.Insert(0, filter);
+                } else if (materialFilterHist.Contains(filter)) {
+                    materialFilterHist.Remove(filter);
+                    favMaterialFilters.Add(filter);
+                }
+            }
+            SaveData();
+        }
+
+        private void FilterAppend() {
+            if (!favRendererFilters.Contains(filters[0]) && !rendererFilterHist.Contains(filters[0]) && filters[0] != "" && favRendererFilters.Count < histLength) {
+                if (favRendererFilters.Count + rendererFilterHist.Count >= histLength) {
+                    rendererFilterHist.Insert(0, filters[0]);
+                    rendererFilterHist.RemoveAt(rendererFilterHist.Count - 1);
+                } else rendererFilterHist.Insert(0, filters[0]);
+            }
+            if (!favMaterialFilters.Contains(filters[1]) && !materialFilterHist.Contains(filters[1]) && filters[1] != "" && favMaterialFilters.Count < histLength) {
+                if (favMaterialFilters.Count + materialFilterHist.Count >= histLength) {
+                    materialFilterHist.Insert(0, filters[1]);
+                    materialFilterHist.RemoveAt(materialFilterHist.Count - 1);
+                } else materialFilterHist.Insert(0, filters[1]);
+            }
         }
 
         private void FavoriteHistoryItem(List<HistoryItem> _history, int _idx, bool _val) {
