@@ -65,6 +65,7 @@ namespace MassShaderEditor.Koikatu {
         // Data
         private ConfigEntry<string> FloatHistory { get; set; }
         private ConfigEntry<string> ColorHistory { get; set; }
+        private ConfigEntry<string> FavShaders { get; set; }
 
         private Studio.Studio studio;
         private bool inited = false;
@@ -106,21 +107,21 @@ namespace MassShaderEditor.Koikatu {
 
             FloatHistory = Config.Bind("Data", "Float History", "", new ConfigDescription("The 10 previously set property name/value pairings", null, new ConfigurationManagerAttributes { Browsable = false }));
             ColorHistory = Config.Bind("Data", "Color History", "", new ConfigDescription("The 10 previously set property name/color pairings", null, new ConfigurationManagerAttributes { Browsable = false }));
+            FavShaders = Config.Bind("Data", "Favorite Shaders", "", new ConfigDescription("Favorited shaders that will show up at the top of the shaders dropdown", null, new ConfigurationManagerAttributes { Browsable = false }));
 
             KKAPI.Studio.StudioAPI.StudioLoadedChanged += (x, y) => {
                 studio = Singleton<Studio.Studio>.Instance;
                 controller = MEStudio.GetSceneController();
-                shaders = MaterialEditorPluginBase.XMLShaderProperties.Keys.Where(z => z != "default").Select(z => z.Trim()).ToList();
-
+                GetShaders();
             };
             KKAPI.Maker.MakerAPI.MakerFinishedLoading += (x, y) => {
                 makerMenu = (FindObjectOfType(typeof(CustomChangeMainMenu)) as CustomChangeMainMenu);
                 controller = MEStudio.GetSceneController();
-                shaders = MaterialEditorPluginBase.XMLShaderProperties.Keys.Where(z => z != "default").Select(z => z.Trim()).ToList();
+                GetShaders();
                 makerTabID = 0;
             };
 
-            ReadHistory();
+            ReadData();
             HookPatch.Init();
 
             if (IsDebug.Value) Log("Awoken!");

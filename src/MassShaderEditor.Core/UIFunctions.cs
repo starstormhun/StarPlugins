@@ -8,6 +8,7 @@ using ChaCustom;
 using UnityEngine;
 using HarmonyLib;
 using KKAPI.Utilities;
+using MaterialEditorAPI;
 
 namespace MassShaderEditor.Koikatu {
     public partial class MassShaderEditor : BaseUnityPlugin {
@@ -84,6 +85,8 @@ namespace MassShaderEditor.Koikatu {
         private float commonHeight = 0;
         private float checkWidth = 0;
         private string setQueueInput = "";
+
+        public readonly List<string> favShaders = new List<string>();
         public readonly List<HistoryItem> floatHist = new List<HistoryItem>();
         public readonly List<HistoryItem> colHist = new List<HistoryItem>();
         public readonly List<HistoryItem> texHist = new List<HistoryItem>();
@@ -276,7 +279,7 @@ namespace MassShaderEditor.Koikatu {
                     if (GUILayout.Button("▼", newSkin.button, GUILayout.ExpandWidth(false))) {
                         onShaderSelect = (s) => { filters[2] = s; filterInput = s; };
                         CalcShaderDropSize();
-                        shaderScrollPos = shaderRect.position;
+                        shaderScrollPos = Vector2.zero;
                         shaderDrop = 1;
                     }
                 }
@@ -588,7 +591,7 @@ namespace MassShaderEditor.Koikatu {
                     if (GUILayout.Button("▼", newSkin.button, GUILayout.ExpandWidth(false))) {
                         onShaderSelect = (s) => { setShader = s; setShaderInput = s; };
                         CalcShaderDropSize();
-                        shaderScrollPos = shaderRect.position;
+                        shaderScrollPos = Vector2.zero;
                         shaderDrop = 2;
                     }
                     GUILayout.EndHorizontal();
@@ -990,11 +993,20 @@ namespace MassShaderEditor.Koikatu {
             var scrollBtnStyle = new GUIStyle(newSkin.button) {
                 alignment = TextAnchor.MiddleLeft
             };
-            foreach (string shader in shaders)
+            List<string> shaderList = new List<string>();
+            shaderList.AddRange(favShaders);
+            shaderList.AddRange(shaders);
+            foreach (string shader in shaderList) {
+                GUILayout.BeginHorizontal();
                 if (GUILayout.Button(shader, scrollBtnStyle)) {
                     onShaderSelect.Invoke(shader);
                     shaderDrop = 0;
                 }
+                if (GUILayout.Button(new GUIContent(favShaders.Contains(shader) ? "★" : "☆"), newSkin.button, GUILayout.ExpandWidth(false))) {
+                    FavShader(shader);
+                }
+                GUILayout.EndHorizontal();
+            }
             GUILayout.EndScrollView();
         }
 
@@ -1021,7 +1033,6 @@ namespace MassShaderEditor.Koikatu {
                 if (GUILayout.Button(new GUIContent(item.favorite ? "★" : "☆"), starStyle, GUILayout.ExpandWidth(false), GUILayout.ExpandHeight(true))) {
                     items.Reverse();
                     FavoriteHistoryItem(items, histLength - 1 - i, !item.favorite);
-                    SaveHistory();
                     items.Reverse();
                 }
                 GUILayout.EndHorizontal();
@@ -1200,7 +1211,7 @@ namespace MassShaderEditor.Koikatu {
             shaderRect.width = 1;
             List<float> widths = new List<float>();
             foreach (var shader in shaders) widths.Add(newSkin.button.CalcSize(new GUIContent(shader)).x);
-            shaderDropWidth = widths.Max() + newSkin.button.CalcSize(new GUIContent("TEST")).y;
+            shaderDropWidth = widths.Max() + 3 * newSkin.button.CalcSize(new GUIContent("TEST")).y;
         }
 
         private void CalcHistoryDropSize() {
@@ -1213,7 +1224,7 @@ namespace MassShaderEditor.Koikatu {
             foreach (var item in items) {
                 widths.Add(newSkin.button.CalcSize(GetHistoryContent(item)).x);
             }
-            historyDropWidth = widths.Max() + newSkin.button.CalcSize(new GUIContent("TEST")).y * 2;
+            historyDropWidth = widths.Max() + newSkin.button.CalcSize(new GUIContent("TEST")).y * 3;
         }
 
         private void CalcShadowModeDropSize() {
@@ -1348,7 +1359,8 @@ namespace MassShaderEditor.Koikatu {
             for (int i = 0; i < num; i++) GUILayout.Label("", GUILayout.Height(commonHeight));
         }
 
-        private void SaveHistory() {
+        private void SaveData() {
+            // History
             string floatString = "";
             for (int i = 0; i < floatHist.Count; i++) {
                 floatString += floatHist[i].name + "," + floatHist[i].val.ToString("0.000") + "," + (floatHist[i].favorite ? 1 : 0) + ";";
@@ -1367,9 +1379,13 @@ namespace MassShaderEditor.Koikatu {
             if (SaveTextures.Value) {
                 WriteToBinaryFile(GetDataPath(), texHist, false);
             }
+
+            // Other favorites
+            FavShaders.Value = favShaders.Join(x => x, ";");
         }
 
-        private void ReadHistory() {
+        private void ReadData() {
+            // History
             floatHist.Clear();
             var floatParts = FloatHistory.Value.Split(';');
             for (int i = 0; i < Math.Min(floatParts.Length, histLength); i++) {
@@ -1424,6 +1440,34 @@ namespace MassShaderEditor.Koikatu {
                 for (int i = 0; i < Math.Min(textures.Count, histLength); i++) {
                     texHist.Add(textures[i]);
                 }
+            }
+
+            // Other favorites
+            favShaders.AddRange(FavShaders.Value.Split(';'));
+        }
+
+        private void FavShader(string shader) {
+            if (favShaders.Contains(shader)) {
+                favShaders.Remove(shader);
+                shaders.Add(shader);
+                shaders.Sort();
+            } else {
+                shaders.Remove(shader);
+                favShaders.Add(shader);
+                favShaders.Sort();
+            }
+            SaveData();
+        }
+
+        private void GetShaders() {
+            shaders = MaterialEditorPluginBase.XMLShaderProperties.Keys.Where(z => z != "default").Select(z => z.Trim()).ToList();
+            List<string> toRemove = new List<string>();
+            foreach (string shader in favShaders) {
+                if (shaders.Contains(shader)) shaders.Remove(shader);
+                else toRemove.Add(shader);
+            }
+            foreach (string shader in toRemove) {
+                favShaders.Remove(shader);
             }
         }
 
@@ -1488,7 +1532,7 @@ namespace MassShaderEditor.Koikatu {
                     texOffset = setTexAffectDims ? tex.offset : null
                 });
             }
-            SaveHistory();
+            SaveData();
             dicHistContent.Clear();
         }
 
@@ -1496,6 +1540,7 @@ namespace MassShaderEditor.Koikatu {
             GetFirstNonFav(out int firstNonFav, _history);
             if (firstNonFav == _idx || (firstNonFav == _idx - 1)) {
                 _history[_idx].favorite = _val;
+                SaveData();
                 return;
             }
             var item = _history[_idx];
@@ -1503,6 +1548,7 @@ namespace MassShaderEditor.Koikatu {
             _history.RemoveAt(_idx);
             GetFirstNonFav(out firstNonFav, _history);
             _history.Insert(firstNonFav + 1, item);
+            SaveData();
         }
 
         private bool GetFirstNonFav(out int _firstNonFav, List<HistoryItem> _history) {
