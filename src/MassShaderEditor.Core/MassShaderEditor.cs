@@ -368,9 +368,19 @@ namespace MassShaderEditor.Koikatu {
                 SetStudioProperties(studio.dicObjectCtrl.Values.ToList(), _value);
             }
             else if (KKAPI.Maker.MakerAPI.InsideMaker) {
-                if (MakerGetType(out ObjectType type)) {
-                    var chaCtrl = KKAPI.Maker.MakerAPI.GetCharacterControl();
-                    int limit = 1;
+                var chaCtrl = KKAPI.Maker.MakerAPI.GetCharacterControl();
+                int limit = 1;
+
+                if (Event.current.shift) {
+                    foreach (ObjectType type in Enum.GetValues(typeof(ObjectType))) {
+                        limit = 1;
+                        if (type == ObjectType.Hair) limit = chaCtrl.objHair.Length;
+                        if (type == ObjectType.Clothing) limit = chaCtrl.objClothes.Length;
+                        if (type == ObjectType.Accessory) limit = chaCtrl.objAccessory.Length;
+
+                        for (int i = 0; i < limit; i++) SetCharaProperties(chaCtrl.GetController(), null, i, type, _value);
+                    }
+                } else if (MakerGetType(out ObjectType type)) {
                     if (type == ObjectType.Hair) limit = chaCtrl.objHair.Length;
                     if (type == ObjectType.Clothing) limit = chaCtrl.objClothes.Length;
                     if (type == ObjectType.Accessory) limit = chaCtrl.objAccessory.Length;
@@ -955,7 +965,7 @@ namespace MassShaderEditor.Koikatu {
                     string filter = filterList[i].Trim();
                     if (filter.Length == 0) continue;
 
-                    if (filter[0] == '-') {
+                    if (filter[0] == '-' || filter[0] == '~') {
                         if (_name.Contains(filter.Substring(1))) {
                             output = false;
                             break;
