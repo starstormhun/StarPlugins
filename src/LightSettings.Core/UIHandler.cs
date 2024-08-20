@@ -20,6 +20,7 @@ namespace LightSettings.Koikatu {
         internal static bool syncing = false;
         internal static Sprite noCookie = null;
         internal static Image imageToSync = null;
+        internal static Transform chaLightToggle = null;
 
         private static Transform itemPanelToggle;
 
@@ -154,7 +155,7 @@ namespace LightSettings.Koikatu {
                     if (lockButton != null) lockButton.transform.localPosition = new Vector2(157.5f, -70);
 
                     // Create toggle
-                    var onOff = MakeToggle(chaLightPanel, " Light On/Off", new Vector2(0, -51), new Vector2(110, 0), (state) => LightSettings.ChaLightToggle(state));
+                    chaLightToggle = MakeToggle(chaLightPanel, " Light On/Off", new Vector2(0, -51), new Vector2(110, 0), (state) => LightSettings.ChaLightToggle(state));
                 } else if (LightSettings.Instance.CharaLightToggleType.Value == "Below Vanilla") {
                     // Vanilla reference
                     Transform lightCtrl = Studio.Studio.Instance.manipulatePanelCtrl.lightPanelInfo.mpLightCtrl.transform;
@@ -176,7 +177,7 @@ namespace LightSettings.Koikatu {
                     containerChara.localPosition += new Vector3(0, -30, 0);
 
                     // Create toggle
-                    var toggle = MakeToggle(container, " Light On/Off", new Vector2(0, -4), new Vector2(110, 0), (state) => LightSettings.ChaLightToggle(state));
+                    chaLightToggle = MakeToggle(container, " Light On/Off", new Vector2(0, -4), new Vector2(110, 0), (state) => LightSettings.ChaLightToggle(state));
                 }
             }
         }

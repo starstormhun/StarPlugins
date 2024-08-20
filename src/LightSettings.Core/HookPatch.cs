@@ -72,7 +72,7 @@ namespace LightSettings.Koikatu {
                 MapLightChecker();
             }
             private static void MapLightChecker() {
-                var map = GameObject.Find("/Map");
+                var map = Singleton<Map>.Instance.mapRoot;
                 if (map) {
                     var lights = map.GetComponentsInChildren<Light>(true).ToList();
                     if (lights.Count > 0) {

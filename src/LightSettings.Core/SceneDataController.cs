@@ -6,7 +6,6 @@ using Studio;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
-using UnityEngine.Rendering;
 
 namespace LightSettings.Koikatu {
     internal class SceneDataController : SceneCustomFunctionController {
@@ -25,6 +24,8 @@ namespace LightSettings.Koikatu {
             UIHandler.SyncGUI(UIHandler.containerChara, charaLight);
 
             var data = GetExtendedData();
+            PluginData lightSwitchData = ExtendedSave.GetSceneExtendedDataById("lightSwitch");
+
             if (data != null) {
                 if (LightSettings.Instance.IsDebug.Value) LightSettings.logger.LogInfo("Loading saved data...");
                 if (data.data.TryGetValue(SaveID + "_cookies", out var savedCookieDict)) {
@@ -45,9 +46,10 @@ namespace LightSettings.Koikatu {
                             }
                         } else if (lightData.ObjectId == chaLightID) {
                             charaLightData = lightData;
+                            UIHandler.chaLightToggle.GetComponentInChildren<UnityEngine.UI.Toggle>(true).isOn = charaLightData.state;
                             LightSettings.charaLightSetCountDown = 5;
                         } else if (lightData.ObjectId == mapLightID) {
-                            var map = GameObject.Find("/Map");
+                            var map = Singleton<Map>.Instance.mapRoot;
                             if (map) {
                                 var lights = map.GetComponentsInChildren<Light>(true).ToList();
                                 if (lights.Count > 0) SetLoadedData(lightData, lights, true, true);
@@ -56,6 +58,7 @@ namespace LightSettings.Koikatu {
                     }
                 }
             }
+
             if (LightSettings.charaLightSetCountDown <= 0) {
                 if (LightSettings.Instance.IsDebug.Value) LightSettings.logger.LogInfo("Chara light data not found, copying existing settings!");
                 charaLightData = new LightSaveData {
@@ -75,6 +78,19 @@ namespace LightSettings.Koikatu {
                     cookieHash = "",
                     cookieSize = charaLight.cookieSize,
                 };
+
+                if (lightSwitchData != null) {
+                    charaLightData.state = (bool)lightSwitchData.data["lightEnabled"];
+                    UIHandler.chaLightToggle.GetComponentInChildren<UnityEngine.UI.Toggle>(true).isOn = charaLightData.state;
+                    var map = Singleton<Map>.Instance.mapRoot;
+                    if (map != null) {
+                        Light[] mapLights = map.GetComponentsInChildren<Light>();
+                        foreach (Light light in mapLights) {
+                            light.enabled = charaLightData.state;
+                        }
+                    }
+                }
+
                 LightSettings.charaLightSetCountDown = 5;
             }
         }
@@ -86,7 +102,7 @@ namespace LightSettings.Koikatu {
             saveData.Add(charaLightData);
 
             // Add map light
-            var map = GameObject.Find("/Map");
+            var map = Singleton<Map>.Instance.mapRoot;
             if (map) {
                 var light = map.GetComponentsInChildren<Light>(true)[0];
                 if (light) AddSaveData(saveData, mapLightID, light);

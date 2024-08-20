@@ -25,7 +25,7 @@ namespace LightSettings.Koikatu {
         public static LightSettings Instance { get; private set; }
 
         public const string GUID = "starstorm.lightsettings";
-        public const string Version = "1.0.3." + BuildNumber.Version;
+        public const string Version = "1.0.4." + BuildNumber.Version;
 
         internal static Dictionary<string, byte[]> cookieDict = new Dictionary<string, byte[]>();
         internal static Dictionary<string, Texture> cookieDirectionalDict = new Dictionary<string, Texture>();
@@ -264,7 +264,7 @@ namespace LightSettings.Koikatu {
                     }
                 }
             } else if (Studio.Studio.Instance.transform.Find("Canvas Main Menu/01_Add").gameObject.activeSelf) {
-                var map = GameObject.Find("/Map");
+                var map = Singleton<Map>.Instance.mapRoot;
                 if (map == null) return null;
                 lights = map.GetComponentsInChildren<Light>(true).ToList();
             } else {
