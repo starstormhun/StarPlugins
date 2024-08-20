@@ -234,7 +234,7 @@ namespace LightSettings.Koikatu {
             Transform sliderStrength = MakeSlider(container, "Shadow Strength", new Vector2(0, -320f), 0, 1, 1, strengthCallback);
 
             UnityAction<float> biasCallback = (x) => LightSettings.SetLightSetting(LightSettings.SettingType.Bias, x);
-            Transform sliderBias = MakeSlider(container, "Shadow Bias", new Vector2(0, -365f), 0, 0.1f, 0.05f, biasCallback);
+            Transform sliderBias = MakeSlider(container, "Shadow Bias", new Vector2(0, -365f), -0.1f, 0.1f, 0.05f, biasCallback);
 
             UnityAction<float> normalBiasCallback = (x) => LightSettings.SetLightSetting(LightSettings.SettingType.NormalBias, x);
             Transform sliderNormalBias = MakeSlider(container, "Shadow Normal Bias", new Vector2(0, -410f), 0, 1, 0.4f, normalBiasCallback);
