@@ -16,7 +16,7 @@ namespace LightToggler.Koikatu {
 
     public class LightToggler : BaseUnityPlugin {
         public const string GUID = "starstorm.lighttoggler";
-        public const string Version = "0.2.2." + BuildNumber.Version;
+        public const string Version = "1.0.0." + BuildNumber.Version;
 
         public static ConfigEntry<bool> IsEnabled { get; set; }
 
