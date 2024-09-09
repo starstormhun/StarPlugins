@@ -6,10 +6,10 @@
     <SharedGUID>42328b54-c615-4ee3-a50f-dbb7ff37227b</SharedGUID>
   </PropertyGroup>
   <PropertyGroup Label="Configuration">
-    <Import_RootNamespace>KKUSSSunshineFix.Sunshine</Import_RootNamespace>
+    <Import_RootNamespace>ShaderFixer</Import_RootNamespace>
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="$(MSBuildThisFileDirectory)HookPatch.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)KKUSSSunshineFix.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)ShaderFixer.cs" />
   </ItemGroup>
 </Project>

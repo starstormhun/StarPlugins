@@ -26,5 +26,8 @@
     </Reference>
   </ItemGroup>
   <Import Project="..\Common.Core\Common.Core.projitems" Label="Shared" />
-  <Import Project="..\KKUSSSunshineFix.Core\KKUSSSunshineFix.Core.projitems" Label="Shared" />
+  <Import Project="..\ShaderFixer.Core\ShaderFixer.Core.projitems" Label="Shared" />
+  <Target Name="PostBuild" AfterTargets="PostBuildEvent">
+    <Exec Command="xcopy $(OutputPath)$(AssemblyName).dll F:\Koikatu\BepInEx\plugins\MyPlugins\ /y" />
+  </Target>
 </Project>

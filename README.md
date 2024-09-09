@@ -17,9 +17,9 @@ Optionally converts the sliders to logarithmic base.
 #### Expression Control [KK/KKS]
 This is an old plugin which I decompiled and modified to also be able to be used on males.
 
-#### KKUSS Fix [KKS]
-Fixes the KKUSS shaders when used in Koikatsu Sunshine by making sure they always have at least a flat normal map.
-Can be extended for other shaders having the same problem, hit me up if you find any.
+#### Shader Fixer [KK/KKS]
+By default it fixes the KKUSS shaders when used in Koikatsu Sunshine by making sure they always have at least a flat normal map.
+The shader filter is configurable so it can be extended to work on other shaders.
 
 #### Light Settings [KK/KKS]
 Allows changing more properties of lights than available by default.
