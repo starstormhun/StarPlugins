@@ -21,10 +21,16 @@ namespace ShaderFixer {
             private static Harmony _harmony;
             private static bool isCoroutine = false;
             private static int fixCount = 0;
+            private static Texture2D newTex = null;
 
             // Setup Harmony and patch methods
             public static void SetupHooks() {
                 _harmony = Harmony.CreateAndPatchAll(typeof(HookPatch.Hooks), null);
+
+                // Setup flat normal texture once
+                newTex = new Texture2D(1, 1, TextureFormat.RGBAFloat, false);
+                newTex.SetPixel(0, 0, new Color(1f, 0.5f, 0.5f, 0.5f));
+                newTex.Apply();
             }
 
             // Disable Harmony patches of this plugin
@@ -37,14 +43,13 @@ namespace ShaderFixer {
             [HarmonyPostfix]
             [HarmonyPatch(typeof(MaterialEditorAPI.MaterialAPI), "SetShader")]
             private static void MaterialAPIAfterSetShader(GameObject gameObject, string materialName, string shaderName) {
+                // No-op on empty shader name
                 if (shaderName == null) return;
 
-				Texture2D newTex = new Texture2D(1, 1, TextureFormat.RGBAFloat, false);
-				newTex.SetPixel(0, 0, new Color(1f, 0.5f, 0.5f, 0.5f));
-				newTex.Apply();
-
+                // Construct list of normalised filters from current filter settings
                 List<string> filters = ShaderFixer.Filter.Value.Split(',').Select(f => f.ToLower().Trim()).ToList();
 
+                // Check the shader name against the list of filters
                 bool found = false;
                 foreach (string filter in filters) {
                     if (filter.Length == 0) continue;
@@ -59,10 +64,12 @@ namespace ShaderFixer {
                 }
                 if (!found) return;
 
+                // Construct list of property names to check for
                 List<string> props = ShaderFixer.Properties.Value.Split(',').Select(p => p.Trim().TrimStart('_')).ToList();
 
-                foreach (var rend in GetRendererList(gameObject)) { 
-                    foreach (var mat in GetMaterials(gameObject, rend).Where((m) => (m.NameFormatted() == materialName) )) {
+                // Set texture on matching properties
+                foreach (var rend in GetRendererList(gameObject)) {
+                    foreach (var mat in GetMaterials(gameObject, rend).Where((m) => m.NameFormatted() == materialName)) {
                         foreach (var prop in props) {
                             if (mat.HasProperty("_" + prop)) {
                                 if (!isCoroutine && ShaderFixer.Instance != null) ShaderFixer.Instance.StartCoroutine(LogCoroutine());
@@ -72,6 +79,7 @@ namespace ShaderFixer {
                         }
                     }
                 }
+
                 IEnumerator LogCoroutine() {
                     isCoroutine = true;
                     Log.Info("Found matching shader and property, fixing...");

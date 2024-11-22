@@ -28,6 +28,6 @@
   <Import Project="..\Common.Core\Common.Core.projitems" Label="Shared" />
   <Import Project="..\ShaderFixer.Core\ShaderFixer.Core.projitems" Label="Shared" />
   <Target Name="PostBuild" AfterTargets="PostBuildEvent">
-    <Exec Command="xcopy $(OutputPath)$(AssemblyName).dll F:\Koikatu\BepInEx\plugins\MyPlugins\ /y" />
+    <Exec Command="xcopy $(OutputPath)$(AssemblyName).dll F:\KoikatuSunshine\BepInEx\plugins\MyPlugins\ /y" />
   </Target>
 </Project>

@@ -1,7 +1,6 @@
 using BepInEx;
 using BepInEx.Configuration;
 using KK_Plugins.MaterialEditor;
-using KKAPI.Utilities;
 
 [assembly: System.Reflection.AssemblyFileVersion(ShaderFixer.ShaderFixer.Version)]
 
@@ -16,7 +15,7 @@ namespace ShaderFixer {
     /// </info>
     public class ShaderFixer : BaseUnityPlugin {
         public const string GUID = "starstorm.shaderfixer";
-        public const string Version = "1.1.0." + BuildNumber.Version;
+        public const string Version = "1.2.0." + BuildNumber.Version;
 
         public static ShaderFixer Instance {get; private set; }
 
@@ -26,14 +25,17 @@ namespace ShaderFixer {
 
         private void Awake() {
             Instance = this;
-      
-            Filter = Config.Bind("General", "Shader filter", "KKUSS", new ConfigDescription(
-                "Specify filters for which shaders (partial name) should be affected. Separate tokens with commas, " +
-                "spaces and case don't matter. A '-' sign in the front denotes a negative filter. Changes " +
-                "take effect on scene reload and on newly added / changed items (shaders).", null));
 
-            Properties = Config.Bind("General", "Properties", "NormalMap, BumpMap", new ConfigDescription(
-                "The texture properties (full name) to be affected. Separate tokens with commas, spaces don't matter, but case does.", null));
+            const string shaderFilterDescription =
+                "Specify filters for which shaders (partial name) should be affected. Separate tokens with commas. Spaces and case" +
+                "don't matter. A '-' sign in the front denotes a negative filter. Changes take effect on scene reload and on newly" +
+                "added or changed items (shaders).";
+            const string propertyNameDescription =
+                "The texture properties to be affected. Must be the full name of the property as it appears in Material Editor." +
+                "Separate tokens with commas. Spaces don't matter, but case does.";
+
+            Filter = Config.Bind("General", "Shader filter", "KKUSS, KKUTS", new ConfigDescription(shaderFilterDescription, null));
+            Properties = Config.Bind("General", "Properties", "NormalMap, BumpMap", new ConfigDescription(propertyNameDescription, null));
 
             HookPatch.Init();
             Log.SetLogSource(Logger);
