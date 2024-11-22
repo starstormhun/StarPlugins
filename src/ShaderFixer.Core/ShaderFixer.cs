@@ -22,13 +22,18 @@ namespace ShaderFixer {
 
         public static ConfigEntry<string> Filter { get; set; }
 
+        public static ConfigEntry<string> Properties { get; set; }
+
         private void Awake() {
             Instance = this;
+      
+            Filter = Config.Bind("General", "Shader filter", "KKUSS", new ConfigDescription(
+                "Specify filters for which shaders (partial name) should be affected. Separate tokens with commas, " +
+                "spaces and case don't matter. A '-' sign in the front denotes a negative filter. Changes " +
+                "take effect on scene reload and on newly added / changed items (shaders).", null));
 
-            string description = "Specify filters for which shaders should be affected. Separate tokens with commas, " +
-                "spaces and capitalisation don't matter. A '-' sign in the front denotes a negative filter. Changes " +
-                "take effect on scene reload and on newly added / changed items (shaders).";
-            Filter = Config.Bind("General", "Shader filter", "KKUSS", new ConfigDescription(description, null));
+            Properties = Config.Bind("General", "Properties", "NormalMap, BumpMap", new ConfigDescription(
+                "The texture properties (full name) to be affected. Separate tokens with commas, spaces don't matter, but case does.", null));
 
             HookPatch.Init();
             Log.SetLogSource(Logger);

@@ -32,6 +32,7 @@ namespace ShaderFixer {
                 _harmony.UnpatchSelf();
             }
 
+  
             // Detect shader and texture, apply flat normal if missing
             [HarmonyPostfix]
             [HarmonyPatch(typeof(MaterialEditorAPI.MaterialAPI), "SetShader")]
@@ -42,15 +43,15 @@ namespace ShaderFixer {
 				newTex.SetPixel(0, 0, new Color(1f, 0.5f, 0.5f, 0.5f));
 				newTex.Apply();
 
-                List<string> filters = ShaderFixer.Filter.Value.Split(',').ToList();
+                List<string> filters = ShaderFixer.Filter.Value.Split(',').Select(f => f.ToLower().Trim()).ToList();
 
                 bool found = false;
                 foreach (string filter in filters) {
                     if (filter.Length == 0) continue;
-                    if (filter.ToLower().Trim()[0] == '-') {
-                        if (shaderName.ToLower().Contains(filter.ToLower().Replace("-", "").Trim())) return;
+                    if (filter[0] == '-') {
+                        if (shaderName.ToLower().Contains(filter.Replace("-", "").Trim())) return;
                     } else {
-                        if (shaderName.ToLower().Contains(filter.ToLower().Trim())) {
+                        if (shaderName.ToLower().Contains(filter)) {
                             found = true;
                             break;
                         }
@@ -58,18 +59,24 @@ namespace ShaderFixer {
                 }
                 if (!found) return;
 
-                foreach (var rend in GetRendererList(gameObject))
-                    foreach (var mat in GetMaterials(gameObject, rend).Where((m) => (m.NameFormatted() == materialName) && m.HasProperty("_NormalMap"))) {
-                        if (!isCoroutine && ShaderFixer.Instance != null) ShaderFixer.Instance.StartCoroutine(LogCoroutine());
-                        fixCount++;
-                        mat.SetTexture("_NormalMap", newTex);
-                    }
+                List<string> props = ShaderFixer.Properties.Value.Split(',').Select(p => p.Trim().TrimStart('_')).ToList();
 
+                foreach (var rend in GetRendererList(gameObject)) { 
+                    foreach (var mat in GetMaterials(gameObject, rend).Where((m) => (m.NameFormatted() == materialName) )) {
+                        foreach (var prop in props) {
+                            if (mat.HasProperty("_" + prop)) {
+                                if (!isCoroutine && ShaderFixer.Instance != null) ShaderFixer.Instance.StartCoroutine(LogCoroutine());
+                                fixCount++;
+                                mat.SetTexture("_" + prop, newTex);
+                            }
+                        }
+                    }
+                }
                 IEnumerator LogCoroutine() {
                     isCoroutine = true;
-                    Log.Debug("Found matching shaders, setting NormalMaps...");
+                    Log.Info("Found matching shader and property, fixing...");
                     yield return KKAPI.Utilities.CoroutineUtils.WaitForEndOfFrame;
-                    Log.Debug($"KKUSS default normal maps placed: {fixCount}");
+                    Log.Info($"Default normal maps fixed: {fixCount}");
                     fixCount = 0;
                     isCoroutine = false;
                 }
