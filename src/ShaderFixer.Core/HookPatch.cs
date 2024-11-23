@@ -38,8 +38,7 @@ namespace ShaderFixer {
                 _harmony.UnpatchSelf();
             }
 
-  
-            // Detect shader and texture, apply flat normal if missing
+            // Trigger for Studio AND Maker, all ME Shader swaps coalesce into this function
             [HarmonyPostfix]
             [HarmonyPatch(typeof(MaterialEditorAPI.MaterialAPI), "SetShader")]
             private static void MaterialAPIAfterSetShader(GameObject gameObject, string materialName, string shaderName) {
@@ -72,9 +71,12 @@ namespace ShaderFixer {
                     foreach (var mat in GetMaterials(gameObject, rend).Where((m) => m.NameFormatted() == materialName)) {
                         foreach (var prop in props) {
                             if (mat.HasProperty("_" + prop)) {
-                                if (!isCoroutine && ShaderFixer.Instance != null) ShaderFixer.Instance.StartCoroutine(LogCoroutine());
-                                fixCount++;
-                                mat.SetTexture("_" + prop, newTex);
+                                Texture currentTex = mat.GetTexture("_" + prop);
+                                if (currentTex == null) {
+                                    if (!isCoroutine && ShaderFixer.Instance != null) ShaderFixer.Instance.StartCoroutine(LogCoroutine());
+                                    fixCount++;
+                                    mat.SetTexture("_" + prop, newTex);
+                                }
                             }
                         }
                     }
@@ -83,7 +85,11 @@ namespace ShaderFixer {
                 IEnumerator LogCoroutine() {
                     isCoroutine = true;
                     Log.Info("Found matching shader and property, fixing...");
-                    yield return KKAPI.Utilities.CoroutineUtils.WaitForEndOfFrame;
+                    int frames = 0;
+                    while (frames < 30) {
+                        yield return KKAPI.Utilities.CoroutineUtils.WaitForEndOfFrame;
+                        frames++;
+                    }
                     Log.Info($"Default normal maps fixed: {fixCount}");
                     fixCount = 0;
                     isCoroutine = false;
