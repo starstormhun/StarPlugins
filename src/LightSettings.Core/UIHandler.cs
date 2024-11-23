@@ -515,6 +515,7 @@ namespace LightSettings.Koikatu {
                     if (!Mathf.Approximately(slider, f)) newSlider.GetComponentInChildren<Slider>(true).value = Mathf.Clamp(f, _sliderMin, _sliderMax);
                 }
             };
+            newSlider.GetChild(2).GetComponent<InputField>().characterLimit = 6;
             newSlider.GetChild(2).GetComponent<InputField>().onValueChanged.AddListener(fieldCallback);
             newSlider.GetChild(2).GetComponent<InputField>().m_Text = _default.ToString("0.000");
 

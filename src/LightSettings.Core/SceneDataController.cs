@@ -134,6 +134,17 @@ namespace LightSettings.Koikatu {
                 if (setState) {
                     light.enabled = lightData.state;
                 }
+
+                // Cookie
+                // Unity's bug here, cookies must be handled first, or negative bias will be clamped to 0. 
+                if (LightSettings.cookieDict.TryGetValue(lightData.cookieHash, out byte[] data)) {
+                    light.cookie = LightSettings.LightCookieFromBytes(data, light);
+                    light.cookieSize = lightData.cookieSize;
+                } else {
+                    light.cookie = null;
+                    light.cookieSize = 0;
+                }
+
                 light.shadows = lightData.shadows;
                 light.shadowResolution = lightData.shadowResolution;
                 light.shadowCustomResolution = lightData.shadowCustomResolution;
@@ -143,15 +154,6 @@ namespace LightSettings.Koikatu {
                 light.shadowNearPlane = lightData.shadowNearPlane;
                 light.renderMode = lightData.renderMode;
                 light.cullingMask = lightData.cullingMask;
-
-                // Cookie
-                if (LightSettings.cookieDict.TryGetValue(lightData.cookieHash, out byte[] data)) {
-                    light.cookie = LightSettings.LightCookieFromBytes(data, light);
-                    light.cookieSize = lightData.cookieSize;
-                } else {
-                    light.cookie = null;
-                    light.cookieSize = 0;
-                }
 
                 // Exclusive to lights attached to items
                 if (setExtra) {
