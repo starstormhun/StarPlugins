@@ -52,10 +52,12 @@ namespace KKShadowFixer {
             Log.SetLogSource(BepInEx.Logging.Logger.CreateLogSource(PluginName));
             Log.Info("Patching shadow resolutions...");
             // Patch!
-            Apply();
+            foreach (var patch in patchStrings) {
+                Apply(patch[0], patch[1]);
+            }
         }
 
-        private static unsafe void Apply() {
+        private static unsafe void Apply(string patternStr, string patchStr) {
             var sw = Stopwatch.StartNew();
 
             ProcessModule module = null;
