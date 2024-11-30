@@ -14,14 +14,14 @@ namespace KKShadowFixer {
         public const string GUID = "starstorm.kk.shadow.fixer";
         public const string Version = "1.0.0." + BuildNumber.Version;
 
-        public static IEnumerable<string> TargetDLLs { get; } = new[] {
-            "CharaStudio.exe"
-        };
+        // This method and property need to exist for BepInEx to recognise the patcher
+        public static IEnumerable<string> TargetDLLs { get; } = new string[] { /* Noone here but us Charles Dickens */ };
+        public static void Patch(AssemblyDefinition assembly) {}
 
         // All three single-byte changes with enough surrounding bytes to identify them uniquely in the bytecode
         // 40 bytes each, tested for uniqueness in Ghidra
         // These sections are also non-overlapping, so they can be easily tested for at the same time
-        static readonly string[][] patches = new string[][] {
+        static readonly string[][] patchStrings = new string[][] {
             // Directional lights
             new string[] {
                        // ↓  Here
@@ -40,35 +40,29 @@ namespace KKShadowFixer {
             },
         };
 
-        public static void Patch(AssemblyDefinition assembly) {
-            // Method needs to exist for BepInEx to recognise patcher
-        }
+        // Files wherein the byte patterns to be patched exist
+        public static readonly string[] moduleNames = new[] {
+            "CharaStudio.exe",
+            "Koikatu.exe",
+            "KoikatuVR.exe"
+        };
 
         public static void Initialize() {
             Log.SetLogSource(new BepInEx.Logging.ManualLogSource(PluginName));
             Log.SetLogSource(BepInEx.Logging.Logger.CreateLogSource(PluginName));
             Log.Info("Patching shadow resolutions...");
             // Patch!
-            foreach (string[] patch in patches) {
-                Apply(patch[0], patch[1]);
-            }
+            Apply();
         }
 
-        private static unsafe void Apply(string patternStr, string patchStr) {
+        private static unsafe void Apply() {
             var sw = Stopwatch.StartNew();
 
-            string moduleName = TargetDLLs.ToArray()[0];
-
             ProcessModule module = null;
-            try {
-                foreach (ProcessModule item in Process.GetCurrentProcess().Modules) {
-                    if (item.ModuleName == moduleName) {
-                        module = item;
-                        break;
-                    }
-                }
-            } catch (Exception e) {
-                Log.Error($"Failed to find module {moduleName} - {e}");
+            if (moduleNames.Contains(Process.GetCurrentProcess().MainModule.ModuleName)) {
+                module = Process.GetCurrentProcess().MainModule;
+            } else {
+                Log.Error($"Failed to find module to patch!");
                 return;
             }
 
