@@ -81,6 +81,12 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "LightSettings.KoikatsuSunsh
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ShaderFixer.Koikatu", "src\ShaderFixer.Koikatu\ShaderFixer.Koikatu.csproj", "{47904CA0-14FA-4295-B8F9-32FC3E5E6483}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "KKShadowFixer", "KKShadowFixer", "{034859C7-A813-427C-9EC3-E4E9F2A32F4E}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "KKShadowFixer.Koikatu", "src\KKShadowFixer.Koikatu\KKShadowFixer.Koikatu.csproj", "{83254823-8019-41B0-8371-A62881E5DFD6}"
+EndProject
+Project("{D954291E-2A0B-460D-934E-DC6B0785DB48}") = "KKShadowFixer.Core", "src\KKShadowFixer.Core\KKShadowFixer.Core.shproj", "{6235EA3F-9921-4B3C-93EF-A0C39A397FAC}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -143,6 +149,10 @@ Global
 		{47904CA0-14FA-4295-B8F9-32FC3E5E6483}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{47904CA0-14FA-4295-B8F9-32FC3E5E6483}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{47904CA0-14FA-4295-B8F9-32FC3E5E6483}.Release|Any CPU.Build.0 = Release|Any CPU
+		{83254823-8019-41B0-8371-A62881E5DFD6}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{83254823-8019-41B0-8371-A62881E5DFD6}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{83254823-8019-41B0-8371-A62881E5DFD6}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{83254823-8019-41B0-8371-A62881E5DFD6}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -178,6 +188,9 @@ Global
 		{3363E86D-5FBF-4088-881E-AC96753AE018} = {136E1275-DD8F-4607-B62E-CCAB3F14CE8F}
 		{52F2849B-2C10-4172-AE60-4887C45E3D4C} = {136E1275-DD8F-4607-B62E-CCAB3F14CE8F}
 		{47904CA0-14FA-4295-B8F9-32FC3E5E6483} = {DA3CCD70-A89E-4B36-987A-8468764E35B2}
+		{034859C7-A813-427C-9EC3-E4E9F2A32F4E} = {BA55B5E5-B0FD-465F-93F2-D73BD193AC86}
+		{83254823-8019-41B0-8371-A62881E5DFD6} = {034859C7-A813-427C-9EC3-E4E9F2A32F4E}
+		{6235EA3F-9921-4B3C-93EF-A0C39A397FAC} = {034859C7-A813-427C-9EC3-E4E9F2A32F4E}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {CECC9C6B-8041-49A1-B7FD-DC89264B7393}
@@ -200,11 +213,14 @@ Global
 		src\Common.Core\Common.Core.projitems*{5e472017-3d7d-4872-8a55-81c4d45e385d}*SharedItemsImports = 5
 		src\Common.Core\Common.Core.projitems*{6126db87-fa2a-4a34-9caf-4fbc866ba92c}*SharedItemsImports = 5
 		src\ShaderFixer.Core\ShaderFixer.Core.projitems*{6126db87-fa2a-4a34-9caf-4fbc866ba92c}*SharedItemsImports = 5
+		src\KKShadowFixer.Core\KKShadowFixer.Core.projitems*{6235ea3f-9921-4b3c-93ef-a0c39a397fac}*SharedItemsImports = 13
 		src\Common.Core\Common.Core.projitems*{6c7097ed-8929-4f45-af0f-e8253d981724}*SharedItemsImports = 5
 		src\LightToggler.Core\LightToggler.Core.projitems*{6c7097ed-8929-4f45-af0f-e8253d981724}*SharedItemsImports = 5
 		src\BetterScaling.Core\BetterScaling.Core.projitems*{6c9e0956-133b-47c3-9f24-4d17f134ccdf}*SharedItemsImports = 13
 		src\UIUtility\UIUtility.projitems*{7f30866a-1b8b-40f1-8960-0e203eede225}*SharedItemsImports = 13
 		src\LightSettings.Core\LightSettings.Core.projitems*{7fecd315-6e2b-4dea-9e3b-2eaebda1393e}*SharedItemsImports = 13
+		src\Common.Core\Common.Core.projitems*{83254823-8019-41b0-8371-a62881e5dfd6}*SharedItemsImports = 5
+		src\KKShadowFixer.Core\KKShadowFixer.Core.projitems*{83254823-8019-41b0-8371-a62881e5dfd6}*SharedItemsImports = 5
 		src\BetterScaling.Core\BetterScaling.Core.projitems*{af8bc6d8-91af-41eb-8247-975d7632b851}*SharedItemsImports = 5
 		src\Common.Core\Common.Core.projitems*{af8bc6d8-91af-41eb-8247-975d7632b851}*SharedItemsImports = 5
 		src\MassShaderEditor.Core\MassShaderEditor.Core.projitems*{bb145cbe-97f1-463d-9432-1a8532f002d6}*SharedItemsImports = 13
