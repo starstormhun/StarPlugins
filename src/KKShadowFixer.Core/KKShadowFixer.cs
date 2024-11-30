@@ -6,9 +6,11 @@ using System.Collections.Generic;
 using System.Runtime.InteropServices;
 using Mono.Cecil;
 
+[assembly: System.Reflection.AssemblyFileVersion(KKShadowFixer.Patcher.Version)]
+
 namespace KKShadowFixer {
     public static class Patcher {
-        public const string PluginName = "KKShadowFixer";
+        public const string PluginName = "ShadowFixer";
         public const string GUID = "starstorm.kk.shadow.fixer";
         public const string Version = "1.0.0." + BuildNumber.Version;
 
@@ -18,22 +20,23 @@ namespace KKShadowFixer {
 
         // All three single-byte changes with enough surrounding bytes to identify them uniquely in the bytecode
         // 40 bytes each, tested for uniqueness in Ghidra
-        // These sections are also non-overlapping
+        // These sections are also non-overlapping, so they can be easily tested for at the same time
         static readonly string[][] patches = new string[][] {
             // Directional lights
-            new string[] {                                                                  // ↓  Here
-                "c1 c1 e8 02 0b c8 8b d9 d1 eb 0b d9 41 8b cc ff c3 d3 fb e8 ad f5 43 00 b9 00 10 00 00 8b 90 fc 00 00 00 48 8d 44 24 20",
-                "c1 c1 e8 02 0b c8 8b d9 d1 eb 0b d9 41 8b cc ff c3 d3 fb e8 ad f5 43 00 b9 00 40 00 00 8b 90 fc 00 00 00 48 8d 44 24 20"
+            new string[] {
+                       // ↓  Here
+                "00 b9 00 10 00 00 8b 90 fc 00 00 00 48 8d 44 24 20 89 54 24 58 40 84 ed 74 11 4c 8d 44 24 58 3b d1 89 4c 24 20 49 0f 4e",
+                "00 b9 00 40 00 00 8b 90 fc 00 00 00 48 8d 44 24 20 89 54 24 58 40 84 ed 74 11 4c 8d 44 24 58 3b d1 89 4c 24 20 49 0f 4e"
             },
             // Spotlights
-            new string[] {                                          // ↓↓ Here
-                "0b c8 8b f9 d1 ef 0b f9 41 8b cc ff c7 d3 ff 41 b8 00 08 00 00 be 00 04 00 00 40 84 ed 41 0f 45 f0 89 74 24 58 e8 8b f4",
-                "0b c8 8b f9 d1 ef 0b f9 41 8b cc ff c7 d3 ff 41 b8 00 40 00 00 be 00 04 00 00 40 84 ed 41 0f 45 f0 89 74 24 58 e8 8b f4"
+            new string[] {                                                         // ↓↓ Here
+                "8b c1 c1 e8 02 0b c8 8b f9 d1 ef 0b f9 41 8b cc ff c7 d3 ff 41 b8 00 08 00 00 be 00 04 00 00 40 84 ed 41 0f 45 f0 89 74",
+                "8b c1 c1 e8 02 0b c8 8b f9 d1 ef 0b f9 41 8b cc ff c7 d3 ff 41 b8 00 40 00 00 be 00 04 00 00 40 84 ed 41 0f 45 f0 89 74"
             },
             // Point lights
-            new string[] {                                                // ↓↓ Here
-                "8b f9 d1 ef 0b f9 41 8b cc ff c7 d3 ff bb 00 02 00 00 be 00 04 00 00 40 84 ed 0f 45 de 89 5c 24 58 e8 70 f6 43 00 48 8d",
-                "8b f9 d1 ef 0b f9 41 8b cc ff c7 d3 ff bb 00 02 00 00 be 00 20 00 00 40 84 ed 0f 45 de 89 5c 24 58 e8 70 f6 43 00 48 8d"
+            new string[] {                                                                  // ↓↓ Here
+                "c1 c1 e8 02 0b c8 8b f9 d1 ef 0b f9 41 8b cc ff c7 d3 ff bb 00 02 00 00 be 00 04 00 00 40 84 ed 0f 45 de 89 5c 24 58 e8",
+                "c1 c1 e8 02 0b c8 8b f9 d1 ef 0b f9 41 8b cc ff c7 d3 ff bb 00 02 00 00 be 00 20 00 00 40 84 ed 0f 45 de 89 5c 24 58 e8"
             },
         };
 
