@@ -38,7 +38,13 @@ namespace KKShadowFixer {
         };
 
         public static void Patch(AssemblyDefinition assembly) {
-            Log.Info($"[{PluginName}] Patching shadow resolutions...");
+            // Method needs to exist for BepInEx to recognise patcher
+        }
+
+        public static void Initialize() {
+            Log.SetLogSource(new BepInEx.Logging.ManualLogSource(PluginName));
+            Log.SetLogSource(BepInEx.Logging.Logger.CreateLogSource(PluginName));
+            Log.Info("Patching shadow resolutions...");
             // Patch!
             foreach (string[] patch in patches) {
                 Apply(patch[0], patch[1]);
@@ -59,7 +65,7 @@ namespace KKShadowFixer {
                     }
                 }
             } catch (Exception e) {
-                Log.Error($"[{PluginName}] Failed to find module {moduleName} - {e}");
+                Log.Error($"Failed to find module {moduleName} - {e}");
                 return;
             }
 
@@ -70,12 +76,12 @@ namespace KKShadowFixer {
                 pattern = patternStr.Split(' ').Select(x => Convert.ToByte(x, 16)).ToArray();
                 patch = patchStr.Split(' ').Select(x => Convert.ToByte(x, 16)).ToArray();
             } catch (Exception e) {
-                Log.Error($"[{PluginName}] Failed to parse settings: " + e);
+                Log.Error("Failed to parse settings: " + e);
                 return;
             }
 
             if (pattern.Length == 0 || patch.Length == 0) {
-                Log.Error($"[{PluginName}] Empty pattern or patch, doing nothing.");
+                Log.Error("Empty pattern or patch, doing nothing.");
                 return;
             }
 
@@ -87,17 +93,17 @@ namespace KKShadowFixer {
                     var position = FindPosition(stream, pattern);
 
                     if (position < 0) {
-                        Log.Warning($"[{PluginName}] Could not find the byte pattern, check the settings!");
+                        Log.Warning("Could not find the byte pattern, check the settings!");
                         return;
                     }
 
-                    Log.Info($"[{PluginName}] Found byte pattern at 0x{baseAddress.ToInt64() + position:X}, replacing...");
+                    Log.Info($"Found byte pattern at 0x{baseAddress.ToInt64() + position:X}, replacing...");
 
                     stream.Seek(position, SeekOrigin.Begin);
 
                     var matchPtr = (IntPtr)stream.PositionPointer;
                     if (!NativeMethods.VirtualProtect(matchPtr, (UIntPtr)patch.Length, NativeMethods.PAGE_EXECUTE_READWRITE, out var oldProtect)) {
-                        Log.Error($"[{PluginName}] Failed to change memory protection, aborting. Error code: {Marshal.GetLastWin32Error()}");
+                        Log.Error($"Failed to change memory protection, aborting. Error code: {Marshal.GetLastWin32Error()}");
                         return;
                     }
 
@@ -105,7 +111,7 @@ namespace KKShadowFixer {
 
                     NativeMethods.VirtualProtect(matchPtr, (UIntPtr)patch.Length, oldProtect, out _);
 
-                    Log.Info($"[{PluginName}] Bytes overwritten successfully in {sw.ElapsedMilliseconds}ms!");
+                    Log.Info($"Bytes overwritten successfully in {sw.ElapsedMilliseconds}ms!");
                 };
             }
         }
