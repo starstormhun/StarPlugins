@@ -88,7 +88,7 @@ namespace LightSettings.Koikatu {
             [HarmonyPatch(typeof(Studio.Studio), "SaveScene")]
             internal static bool BeforeStudioSaveScene() {
                 if (LightSettings.Instance.IsDebug.Value) LightSettings.logger.LogInfo("Saving data before save...");
-                SceneDataController.itemLightDatas = new System.Collections.Generic.List<LightSaveData>();
+                SceneDataController.itemLightDatas = new List<LightSaveData>();
                 foreach (OCIItem ociItem in Studio.Studio.Instance.dicObjectCtrl.Values.OfType<OCIItem>()) {
                     var lights = LightSettings.GetOwnLights(ociItem);
                     if (lights.Count > 0) {
