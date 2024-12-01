@@ -21,7 +21,7 @@
     <PackageReference Include="IllusionModdingAPI.KKAPI" Version="1.36.0" />
   </ItemGroup>
   <Import Project="..\Common.Core\Common.Core.projitems" Label="Shared" />
-  <Import Project="..\KKShadowFixer.Core\KKShadowFixer.Core.projitems" Label="Shared" />
+  <Import Project="..\KKShadowPatcher.Core\KKShadowPatcher.Core.projitems" Label="Shared" />
   <Target Name="PostBuild" AfterTargets="PostBuildEvent">
     <Exec Command="xcopy $(OutputPath)$(AssemblyName).dll F:\Koikatu\BepInEx\patchers\ /y" />
   </Target>

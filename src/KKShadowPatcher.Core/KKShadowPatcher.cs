@@ -6,12 +6,12 @@ using System.Collections.Generic;
 using System.Runtime.InteropServices;
 using Mono.Cecil;
 
-[assembly: System.Reflection.AssemblyFileVersion(KKShadowFixer.Patcher.Version)]
+[assembly: System.Reflection.AssemblyFileVersion(KKShadowPatcher.ShadowPatcher.Version)]
 
-namespace KKShadowFixer {
-    public static class Patcher {
-        public const string PluginName = "ShadowFixer";
-        public const string GUID = "starstorm.kk.shadow.fixer";
+namespace KKShadowPatcher {
+    public static class ShadowPatcher {
+        public const string PluginName = "ShadowPatcher";
+        public const string GUID = "starstorm.kk.shadow.patcher";
         public const string Version = "1.0.0." + BuildNumber.Version;
 
         // This method and property need to exist for BepInEx to recognise the patcher

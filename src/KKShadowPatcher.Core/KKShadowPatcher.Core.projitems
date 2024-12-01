@@ -6,9 +6,9 @@
     <SharedGUID>6235ea3f-9921-4b3c-93ef-a0c39a397fac</SharedGUID>
   </PropertyGroup>
   <PropertyGroup Label="Configuration">
-    <Import_RootNamespace>KKShadowFixer</Import_RootNamespace>
+    <Import_RootNamespace>KKShadowPatcher</Import_RootNamespace>
   </PropertyGroup>
   <ItemGroup>
-    <Compile Include="$(MSBuildThisFileDirectory)KKShadowFixer.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)KKShadowPatcher.cs" />
   </ItemGroup>
 </Project>
