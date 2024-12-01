@@ -1,4 +1,5 @@
 ﻿using ExtensibleSaveFormat;
+using Illusion.Extensions;
 using KKAPI.Studio.SaveLoad;
 using KKAPI.Utilities;
 using MessagePack;
@@ -42,7 +43,7 @@ namespace LightSettings.Koikatu {
                             if (oci is OCILight ociLight) {
                                 SetLoadedData(lightData, new List<Light> { ociLight.light });
                             } else if (oci is OCIItem ociItem) {
-                                SetLoadedData(lightData, ociItem.objectItem.GetComponentsInChildren<Light>(true).ToList(), true, true);
+                                SetLoadedData(lightData, LightSettings.GetOwnLights(ociItem), true, true);
                             }
                         } else if (lightData.ObjectId == chaLightID) {
                             if (operation == SceneOperationKind.Load) {

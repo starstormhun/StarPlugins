@@ -51,7 +51,7 @@ namespace LightSettings.Koikatu {
                         }
                         UIHandler.SyncGUI(UIHandler.containerLight, _ociLight.light);
                     } else if (_info is OCIItem _ociItem) {
-                        var lights = _ociItem.objectItem.GetComponentsInChildren<Light>(true).ToList();
+                        var lights = LightSettings.GetOwnLights(_ociItem);
                         UIHandler.TogglePanelToggler(lights.Count > 0);
                         if (lights.Count > 0) {
                             UIHandler.SyncGUI(UIHandler.containerItem, lights[0], true);
@@ -90,7 +90,7 @@ namespace LightSettings.Koikatu {
                 if (LightSettings.Instance.IsDebug.Value) LightSettings.logger.LogInfo("Saving data before save...");
                 SceneDataController.itemLightDatas = new System.Collections.Generic.List<LightSaveData>();
                 foreach (OCIItem ociItem in Studio.Studio.Instance.dicObjectCtrl.Values.OfType<OCIItem>()) {
-                    var lights = ociItem.objectItem.GetComponentsInChildren<Light>(true).ToList();
+                    var lights = LightSettings.GetOwnLights(ociItem);
                     if (lights.Count > 0) {
                         if (LightSettings.Instance.IsDebug.Value) LightSettings.logger.LogInfo($"Saving data for {ociItem.treeNodeObject.textName}!");
                         SceneDataController.AddSaveData(SceneDataController.itemLightDatas, KKAPI.Studio.StudioObjectExtensions.GetSceneId(ociItem), lights[0]);
@@ -108,7 +108,7 @@ namespace LightSettings.Koikatu {
                     if (Studio.Studio.Instance.dicObjectCtrl.TryGetValue(data.ObjectId, out ObjectCtrlInfo oci)) {
                         if (oci is OCIItem ociItem) {
                             if (LightSettings.Instance.IsDebug.Value) LightSettings.logger.LogInfo($"Restoring data for {ociItem.treeNodeObject.textName}!");
-                            var lights = ociItem.objectItem.GetComponentsInChildren<Light>(true).ToList();
+                            var lights = LightSettings.GetOwnLights(ociItem);
                             lights[0].enabled = false;
                             SceneDataController.SetLoadedData(data, lights, true, true);
                         }

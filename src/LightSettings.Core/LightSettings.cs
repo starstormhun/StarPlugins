@@ -5,6 +5,7 @@ using BepInEx;
 using BepInEx.Configuration;
 using BepInEx.Logging;
 using HarmonyLib;
+using Illusion.Extensions;
 using KK_Plugins;
 using KKAPI.Studio.SaveLoad;
 using KKAPI.Utilities;
@@ -391,6 +392,28 @@ namespace LightSettings.Koikatu {
                     SetLightSetting(SettingType.CustomResolution, $"{defShadowRes}", light);
                 }
             }
+        }
+
+        internal static List<Light> GetOwnLights(OCIItem ociItem) {
+            var allLights = ociItem.objectItem.GetComponentsInChildren<Light>(true).ToList();
+            Log.Warning($"Item '{ociItem.treeNodeObject.textName}' Light count: " + allLights.Count);
+            if (allLights.Count == 0) return allLights;
+            var children = new List<TreeNodeObject>(ociItem.treeNodeObject.child);
+            TreeNodeObject child;
+            while (children.Count > 0) {
+                child = children.Pop();
+                if (Studio.Studio.Instance.dicInfo.TryGetValue(child, out var ociChild)) {
+                    if (ociChild is OCILight childLight) {
+                        var childLights = childLight.objectLight.GetComponentsInChildren<Light>(true).ToList();
+                        Log.Warning($"Child lights '{childLight.treeNodeObject.textName}' count: " + childLights.Count);
+                        foreach (var light in childLights) {
+                            allLights.Remove(light);
+                        }
+                    }
+                }
+                children.AddRange(child.child);
+            }
+            return allLights;
         }
 
         internal enum SettingType {
