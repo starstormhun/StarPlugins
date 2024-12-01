@@ -176,12 +176,10 @@ namespace LightSettings.Koikatu {
                         break;
                     case SettingType.CullingMask:
                         if (_value is int maskVal) {
+                            if (Instance.IsDebug.Value) logger.LogInfo($"Light culling mask set to {light.cullingMask}");
                             if ((light.cullingMask & maskVal) == 0) light.cullingMask |= maskVal;
                             else light.cullingMask &= ~maskVal;
-                            // Make sure character light illuminates the gizmos
-                            if (isChaLight) light.cullingMask |= 1 << 28;
                             if (isChaLight) SceneDataController.charaLightData.cullingMask = light.cullingMask;
-                            if (Instance.IsDebug.Value) logger.LogInfo($"Light culling mask set to {light.cullingMask}");
                         }
                         break;
                     case SettingType.CookieSize:

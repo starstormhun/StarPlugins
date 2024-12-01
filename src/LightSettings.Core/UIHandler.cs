@@ -201,7 +201,7 @@ namespace LightSettings.Koikatu {
             var spr = Sprite.Create(bg, new Rect(0, 0, bg.width, bg.height), old.pivot, old.pixelsPerUnit, 0, SpriteMeshType.FullRect, new Vector4(4,4,4,4));
             newBg.GetComponent<Image>().sprite = spr;
             newBg.GetComponent<Image>().type = Image.Type.Sliced;
-            newBg.GetComponent<RectTransform>().sizeDelta = new Vector2(190, 433);
+            newBg.GetComponent<RectTransform>().sizeDelta = new Vector2(190, 438);
             newBg.name = "Background";
 
             // Create type / resolution dropdown controls
@@ -253,12 +253,14 @@ namespace LightSettings.Koikatu {
             cullMask.localScale = Vector3.one;
             cullMask.localPosition = new Vector2(0, -545);
             MakeLabel(cullMask, "Culling Mask", Vector2.zero);
-            UnityAction<bool> charaToggleCallback = (x) => LightSettings.SetLightSetting(LightSettings.SettingType.CullingMask, 1<<10);
+            UnityAction<bool> charaToggleCallback = (x) => LightSettings.SetLightSetting(LightSettings.SettingType.CullingMask, 1 << 10);
             MakeToggle(cullMask, "Chara", new Vector2(10f, -20f), new Vector2(60f, 0), charaToggleCallback);
-            UnityAction<bool> mapToggleCallback = (x) => LightSettings.SetLightSetting(LightSettings.SettingType.CullingMask, 1<<11);
+            UnityAction<bool> mapToggleCallback = (x) => LightSettings.SetLightSetting(LightSettings.SettingType.CullingMask, 1 << 11);
             MakeToggle(cullMask, "Map", new Vector2(100f, -20f), new Vector2(60f, 0), mapToggleCallback);
             UnityAction<bool> waterToggleCallback = (x) => LightSettings.SetLightSetting(LightSettings.SettingType.CullingMask, 1 << 4);
-            MakeToggle(cullMask, "Water", new Vector2(10f, -40f), new Vector2(60f, 0), waterToggleCallback);
+            MakeToggle(cullMask, "Water", new Vector2(10f, -45f), new Vector2(60f, 0), waterToggleCallback);
+            UnityAction<bool> gizmoToggleCallback = (x) => LightSettings.SetLightSetting(LightSettings.SettingType.CullingMask, 1 << 28);
+            MakeToggle(cullMask, "Gizmos", new Vector2(100f, -45f), new Vector2(60f, 0), gizmoToggleCallback);
 
             // Create cookie interface
             CreateCookie(container, new Vector2(190, -180));
@@ -372,10 +374,11 @@ namespace LightSettings.Koikatu {
 
             // Culling Mask
             if (LightSettings.Instance.IsDebug.Value) LightSettings.logger.LogInfo("Syncing culling mask...");
-            if (_light.cullingMask == -1) _light.cullingMask = (1 << 4) | (1 << 10) | (1 << 11) + 23;
+            if (_light.cullingMask == -1) _light.cullingMask = (1 << 4) | (1 << 10) | (1 << 11) | (1 << 28) + 23;
             container.Find("Culling Mask").GetChild(1).GetComponentInChildren<Toggle>(true).isOn = (_light.cullingMask & (1 << 10)) != 0;
             container.Find("Culling Mask").GetChild(2).GetComponentInChildren<Toggle>(true).isOn = (_light.cullingMask & (1 << 11)) != 0;
             container.Find("Culling Mask").GetChild(3).GetComponentInChildren<Toggle>(true).isOn = (_light.cullingMask & (1 << 4)) != 0;
+            container.Find("Culling Mask").GetChild(4).GetComponentInChildren<Toggle>(true).isOn = (_light.cullingMask & (1 << 28)) != 0;
 
             // State / Color / Intensity / Range / Angle
             if (syncExtra) {

@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
   <Import Project="..\BuildSettings.Common.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
 	<OutputPath>..\..\bin\Debug\StarPluginsKKS\</OutputPath>
@@ -24,4 +24,7 @@
   </ItemGroup>
   <Import Project="..\Common.Core\Common.Core.projitems" Label="Shared" />
   <Import Project="..\ExpressionControl.Core\ExpressionControl.Core.projitems" Label="Shared" />
+  <Target Name="PostBuild" AfterTargets="PostBuildEvent">
+    <Exec Command="xcopy $(OutputPath)$(AssemblyName).dll F:\KoikatuSunshine\BepInEx\plugins\MyPlugins\ /y" />
+  </Target>
 </Project>
