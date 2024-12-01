@@ -61,13 +61,21 @@ namespace LightSettings.Koikatu {
 
             if (LightSettings.charaLightSetCountDown <= 0) {
                 if (LightSettings.Instance.IsDebug.Value) LightSettings.logger.LogInfo("Chara light data not found, copying existing settings!");
+
+                // Apply max shadow resolution
+                int shadowCustomResolution = charaLight.shadowCustomResolution;
+                if (shadowCustomResolution == -1 && LightSettings.Instance.MaxShadowResDirectional.Value > -1) {
+                    shadowCustomResolution = LightSettings.Instance.MaxShadowResDirectional.Value;
+                    charaLight.shadowCustomResolution = shadowCustomResolution;
+                }
+
                 charaLightData = new LightSaveData {
                     ObjectId = chaLightID,
 
                     state = charaLight.enabled,
                     shadows = charaLight.shadows,
                     shadowResolution = charaLight.shadowResolution,
-                    shadowCustomResolution = charaLight.shadowCustomResolution,
+                    shadowCustomResolution = shadowCustomResolution,
                     shadowStrength = charaLight.shadowStrength,
                     shadowBias = charaLight.shadowBias,
                     shadowNormalBias = charaLight.shadowNormalBias,

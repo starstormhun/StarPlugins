@@ -25,7 +25,7 @@ namespace LightSettings.Koikatu {
         public static LightSettings Instance { get; private set; }
 
         public const string GUID = "starstorm.lightsettings";
-        public const string Version = "1.0.4." + BuildNumber.Version;
+        public const string Version = "1.1.0." + BuildNumber.Version;
 
         internal static Dictionary<string, byte[]> cookieDict = new Dictionary<string, byte[]>();
         internal static Dictionary<string, Texture> cookieDirectionalDict = new Dictionary<string, Texture>();
@@ -41,13 +41,20 @@ namespace LightSettings.Koikatu {
         public ConfigEntry<bool> IsDebug { get; private set; }
         public ConfigEntry<bool> Enabled { get; private set; }
         public ConfigEntry<string> CharaLightToggleType { get; private set; }
+        public ConfigEntry<int> MaxShadowResDirectional { get; private set; }
+        public ConfigEntry<int> MaxShadowResSpot { get; private set; }
+        public ConfigEntry<int> MaxShadowResPoint { get; private set; }
 
         private void Awake() {
             Instance = this;
 
-            IsDebug = Config.Bind("Advanced", "Logging", false, new ConfigDescription("Enable verbose logging for debugging purposes", null, new KKAPI.Utilities.ConfigurationManagerAttributes { IsAdvanced = true }));
-            Enabled = Config.Bind("General", "Enable plugin", true, new ConfigDescription("Enable/disable the plugin entirely. You need to save/reload the scene after changing this. Changes take effect on Studio restart.", null, new ConfigurationManagerAttributes { Order = 10 }));
-            CharaLightToggleType = Config.Bind("General", "Character light toggle", "Cramped", new ConfigDescription("How the character light on/off toggle will be handled. Changes take effect on Studio restart.", new AcceptableValueList<string>(new string[] { "None", "Cramped", "Below Vanilla" }), new ConfigurationManagerAttributes { Order = 0 }));
+            IsDebug = Config.Bind("0. Advanced", "Logging", false, new ConfigDescription("Enable verbose logging for debugging purposes", null, new KKAPI.Utilities.ConfigurationManagerAttributes { IsAdvanced = true }));
+            Enabled = Config.Bind("1. General", "Enable plugin", true, new ConfigDescription("Enable/disable the plugin entirely. You need to save/reload the scene after changing this. Changes take effect on Studio restart.", null, new ConfigurationManagerAttributes { Order = 10 }));
+            CharaLightToggleType = Config.Bind("1. General", "Character light toggle", "Cramped", new ConfigDescription("How the character light on/off toggle will be handled. Changes take effect on Studio restart.", new AcceptableValueList<string>(new string[] { "None", "Cramped", "Below Vanilla" }), new ConfigurationManagerAttributes { Order = 5 }));
+            
+            MaxShadowResDirectional = Config.Bind("2. Default Shadow Resolutions", "Directional", 4096, new ConfigDescription("Set the shadow resolution of directional lights to this value if they spawn with automatic resolution. Set to -1 to disable.", new AcceptableValueList<int>(new int[] { -1, 512, 1024, 2048, 4096, 8192, 16384 }), new ConfigurationManagerAttributes { Order = 2 }));
+            MaxShadowResSpot = Config.Bind("2. Default Shadow Resolutions", "Spot", 2048, new ConfigDescription("Set the shadow resolution of spot lights to this value if they spawn with automatic resolution. Set to -1 to disable.", new AcceptableValueList<int>(new int[] { -1, 512, 1024, 2048, 4096, 8192, 16384 }), new ConfigurationManagerAttributes { Order = 1 }));
+            MaxShadowResPoint = Config.Bind("2. Default Shadow Resolutions", "Point", 1024, new ConfigDescription("Set the shadow resolution of point lights to this value if they spawn with automatic resolution. Set to -1 to disable.", new AcceptableValueList<int>(new int[] { -1, 512, 1024, 2048, 4096, 8192, 16384 }), new ConfigurationManagerAttributes { Order = 0 }));
 
             Log.SetLogSource(Logger);
             logger = Logger;
@@ -69,6 +76,7 @@ namespace LightSettings.Koikatu {
                         renderMode = charaLight.renderMode,
                         cullingMask = charaLight.cullingMask | (1 << 28),
                     };
+                    SetMaxShadowRes(charaLight);
                 };
                 StudioSaveLoadApi.RegisterExtraBehaviour<SceneDataController>(SceneDataController.SaveID);
                 StudioSaveLoadApi.SceneSave += (x, y) => charaLightSetCountDown = 5;
@@ -127,10 +135,18 @@ namespace LightSettings.Koikatu {
             SceneDataController.charaLightData.state = state;
         }
 
-        internal static void SetLightSetting<T>(SettingType _type, T _value) {
+        internal static void SetLightSetting<T>(SettingType _type, T _value, Light lightToModify = null) {
             if (UIHandler.syncing) return;
 
-            var lights = GetCurrentLights(_type, _value, out bool isChaLight);
+            bool isChaLight;
+            var lights = new List<Light>();
+
+            if (lightToModify == null) {
+                GetCurrentLights(_type, _value, out isChaLight);
+            } else {
+                lights.Add(lightToModify);
+                isChaLight = lightToModify == Singleton<Studio.Studio>.Instance.gameObject.GetComponentInChildren<Light>(true);
+            }
 
             foreach (Light light in lights) {
                 switch (_type) {
@@ -356,6 +372,23 @@ namespace LightSettings.Koikatu {
                     if (cookieDict.ContainsKey(key)) cookieDict.Remove(key);
                     if (cookieDirectionalDict.ContainsKey(key)) cookieDirectionalDict.Remove(key);
                     if (cookiePointDict.ContainsKey(key)) cookiePointDict.Remove(key);
+                }
+            }
+        }
+
+        internal static void SetMaxShadowRes(Light light) {
+            if (light.shadowCustomResolution == -1) {
+                int defShadowRes = -1;
+                switch (light.type) {
+                    case LightType.Directional:
+                        defShadowRes = Instance.MaxShadowResDirectional.Value; break;
+                    case LightType.Spot:
+                        defShadowRes = Instance.MaxShadowResSpot.Value; break;
+                    case LightType.Point:
+                        defShadowRes = Instance.MaxShadowResPoint.Value; break;
+                }
+                if (defShadowRes > -1) {
+                    SetLightSetting(SettingType.CustomResolution, $"{defShadowRes}", light);
                 }
             }
         }

@@ -1,6 +1,7 @@
 ﻿using HarmonyLib;
 using UnityEngine;
 using Studio;
+using System;
 using System.Linq;
 using System.Collections.Generic;
 using System.Reflection.Emit;
@@ -160,6 +161,23 @@ namespace LightSettings.Koikatu {
                 if (editedIntensity > 2 && _value == 2) return false;
                 editedIntensity = _value;
                 return true;
+            }
+
+            [HarmonyPostfix]
+            [HarmonyWrapSafe]
+            [HarmonyPatch(typeof(AddObjectLight), "Load", new Type[] { typeof(OILightInfo), typeof(ObjectCtrlInfo), typeof(TreeNodeObject), typeof(bool), typeof(int) })]
+            private static void AfterAddObjectLightLoad(OCILight __result) {
+                Light light = __result?.objectLight.GetComponentInChildren<Light>(true);
+                if (light == null) return;
+                LightSettings.SetMaxShadowRes(light);
+            }
+            [HarmonyPostfix]
+            [HarmonyWrapSafe]
+            [HarmonyPatch(typeof(AddObjectItem), "Load", new Type[] { typeof(OIItemInfo), typeof(ObjectCtrlInfo), typeof(TreeNodeObject), typeof(bool), typeof(int) })]
+            private static void AfterAddObjectItemLoad(OCIItem __result) {
+                Light light = __result.objectItem.GetComponentInChildren<Light>(true);
+                if (light == null) return;
+                LightSettings.SetMaxShadowRes(light);
             }
         }
 
