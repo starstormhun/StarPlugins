@@ -143,7 +143,7 @@ namespace LightSettings.Koikatu {
             var lights = new List<Light>();
 
             if (lightToModify == null) {
-                GetCurrentLights(_type, _value, out isChaLight);
+                lights = GetCurrentLights(_type, _value, out isChaLight);
             } else {
                 lights.Add(lightToModify);
                 isChaLight = lightToModify == Singleton<Studio.Studio>.Instance.gameObject.GetComponentInChildren<Light>(true);
@@ -396,7 +396,7 @@ namespace LightSettings.Koikatu {
 
         internal static List<Light> GetOwnLights(OCIItem ociItem) {
             var allLights = ociItem.objectItem.GetComponentsInChildren<Light>(true).ToList();
-            Log.Warning($"Item '{ociItem.treeNodeObject.textName}' Light count: " + allLights.Count);
+            if (Instance.IsDebug.Value) Log.Info($"Item '{ociItem.treeNodeObject.textName}' Light count: " + allLights.Count);
             if (allLights.Count == 0) return allLights;
             var children = new List<TreeNodeObject>(ociItem.treeNodeObject.child);
             TreeNodeObject child;
@@ -405,7 +405,7 @@ namespace LightSettings.Koikatu {
                 if (Studio.Studio.Instance.dicInfo.TryGetValue(child, out var ociChild)) {
                     if (ociChild is OCILight childLight) {
                         var childLights = childLight.objectLight.GetComponentsInChildren<Light>(true).ToList();
-                        Log.Warning($"Child lights '{childLight.treeNodeObject.textName}' count: " + childLights.Count);
+                        if (Instance.IsDebug.Value) Log.Info($"Child lights '{childLight.treeNodeObject.textName}' count: " + childLights.Count);
                         foreach (var light in childLights) {
                             allLights.Remove(light);
                         }
