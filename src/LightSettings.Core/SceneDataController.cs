@@ -45,9 +45,11 @@ namespace LightSettings.Koikatu {
                                 SetLoadedData(lightData, ociItem.objectItem.GetComponentsInChildren<Light>(true).ToList(), true, true);
                             }
                         } else if (lightData.ObjectId == chaLightID) {
-                            charaLightData = lightData;
-                            UIHandler.chaLightToggle.GetComponentInChildren<UnityEngine.UI.Toggle>(true).isOn = charaLightData.state;
-                            LightSettings.charaLightSetCountDown = 5;
+                            if (operation == SceneOperationKind.Load) {
+                                charaLightData = lightData;
+                                UIHandler.chaLightToggle.GetComponentInChildren<UnityEngine.UI.Toggle>(true).isOn = charaLightData.state;
+                                LightSettings.charaLightSetCountDown = 5;
+                            }
                         } else if (lightData.ObjectId == mapLightID) {
                             var map = Singleton<Map>.Instance.mapRoot;
                             if (map) {
