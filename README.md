@@ -33,9 +33,9 @@ For both Maker and Studio. Also lets you swap shaders for others.
 Contains a built-in tutorial and help section due to its many options.
 
 #### Shader Fixer [KK/KKS]
-By default it fixes the KKUSS shaders when used in Koikatsu Sunshine by making sure they always have at least a flat normal map.
-The shader filter is configurable so it can be extended to work on other shaders.
+By default it fixes the KKUSS / KKUTS shaders by making sure they always have at least a flat normal map.
+The shader and property name filters are configurable, thus it can be extended to work on other shaders.
 
 #### Shadow Patcher [KK]
 Increases the maximum shadow resolution for KK lights by modifying the Unity bytecode at startup.
-Beware: Increased shadow resolution heavily impact GPU VRAM usage.
+Beware: Increased shadow resolution heavily impacts GPU VRAM usage.
