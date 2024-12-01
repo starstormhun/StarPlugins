@@ -17,10 +17,6 @@ Optionally converts the sliders to logarithmic base.
 #### Expression Control [KK/KKS]
 This is an old plugin which I decompiled and modified to also be able to be used on males.
 
-#### Shader Fixer [KK/KKS]
-By default it fixes the KKUSS shaders when used in Koikatsu Sunshine by making sure they always have at least a flat normal map.
-The shader filter is configurable so it can be extended to work on other shaders.
-
 #### Light Settings [KK/KKS]
 Allows changing more properties of lights than available by default.
 Also allows the usage of light cookies, editing of map lights, and toggling of the chara light.
@@ -34,3 +30,11 @@ The changes persist through saves/loads without adding extended data to the scen
 A plugin that lets you edit the properties of multiple shaders at once, based on item selection.
 For both Maker and Studio. Also lets you swap shaders for others.
 Contains a built-in tutorial and help section due to its many options.
+
+#### Shader Fixer [KK/KKS]
+By default it fixes the KKUSS shaders when used in Koikatsu Sunshine by making sure they always have at least a flat normal map.
+The shader filter is configurable so it can be extended to work on other shaders.
+
+#### Shadow Patcher [KK]
+Increases the maximum shadow resolution for KK lights by modifying the Unity bytecode at startup.
+Beware: Increased shadow resolution heavily impact GPU VRAM usage.
