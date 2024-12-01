@@ -15,7 +15,7 @@ namespace LightSettings.Koikatu {
         public float shadowNormalBias;
         public float shadowNearPlane;
         public LightRenderMode renderMode;
-        public int cullingMask; // 1024 = chara, 2048 = map
+        public int cullingMask; // 1 << 4 = Water, 1 << 10 = Chara, 1 << 11 = Map, 1 << 28 = Gizmo
 
         // Cookie
         public string cookieHash = "";

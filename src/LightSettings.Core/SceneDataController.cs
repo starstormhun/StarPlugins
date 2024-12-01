@@ -1,4 +1,5 @@
 ﻿using ExtensibleSaveFormat;
+using Illusion.Extensions;
 using KKAPI.Studio.SaveLoad;
 using KKAPI.Utilities;
 using MessagePack;
@@ -42,12 +43,14 @@ namespace LightSettings.Koikatu {
                             if (oci is OCILight ociLight) {
                                 SetLoadedData(lightData, new List<Light> { ociLight.light });
                             } else if (oci is OCIItem ociItem) {
-                                SetLoadedData(lightData, ociItem.objectItem.GetComponentsInChildren<Light>(true).ToList(), true, true);
+                                SetLoadedData(lightData, LightSettings.GetOwnLights(ociItem), true, true);
                             }
                         } else if (lightData.ObjectId == chaLightID) {
-                            charaLightData = lightData;
-                            UIHandler.chaLightToggle.GetComponentInChildren<UnityEngine.UI.Toggle>(true).isOn = charaLightData.state;
-                            LightSettings.charaLightSetCountDown = 5;
+                            if (operation == SceneOperationKind.Load) {
+                                charaLightData = lightData;
+                                UIHandler.chaLightToggle.GetComponentInChildren<UnityEngine.UI.Toggle>(true).isOn = charaLightData.state;
+                                LightSettings.charaLightSetCountDown = 5;
+                            }
                         } else if (lightData.ObjectId == mapLightID) {
                             var map = Singleton<Map>.Instance.mapRoot;
                             if (map) {
@@ -61,13 +64,21 @@ namespace LightSettings.Koikatu {
 
             if (LightSettings.charaLightSetCountDown <= 0) {
                 if (LightSettings.Instance.IsDebug.Value) LightSettings.logger.LogInfo("Chara light data not found, copying existing settings!");
+
+                // Apply max shadow resolution
+                int shadowCustomResolution = charaLight.shadowCustomResolution;
+                if (shadowCustomResolution == -1 && LightSettings.Instance.MaxShadowResDirectional.Value > -1) {
+                    shadowCustomResolution = LightSettings.Instance.MaxShadowResDirectional.Value;
+                    charaLight.shadowCustomResolution = shadowCustomResolution;
+                }
+
                 charaLightData = new LightSaveData {
                     ObjectId = chaLightID,
 
                     state = charaLight.enabled,
                     shadows = charaLight.shadows,
                     shadowResolution = charaLight.shadowResolution,
-                    shadowCustomResolution = charaLight.shadowCustomResolution,
+                    shadowCustomResolution = shadowCustomResolution,
                     shadowStrength = charaLight.shadowStrength,
                     shadowBias = charaLight.shadowBias,
                     shadowNormalBias = charaLight.shadowNormalBias,
@@ -134,6 +145,18 @@ namespace LightSettings.Koikatu {
                 if (setState) {
                     light.enabled = lightData.state;
                 }
+
+                // Cookie
+                // Unity bug: Cookie must be set first, otherwise negative values in other settings will be clamped to 0
+                if (LightSettings.cookieDict.TryGetValue(lightData.cookieHash, out byte[] data)) {
+                    light.cookie = LightSettings.LightCookieFromBytes(data, light);
+                    light.cookieSize = lightData.cookieSize;
+                } else {
+                    light.cookie = null;
+                    light.cookieSize = 0;
+                }
+
+                // Other settings
                 light.shadows = lightData.shadows;
                 light.shadowResolution = lightData.shadowResolution;
                 light.shadowCustomResolution = lightData.shadowCustomResolution;
@@ -143,15 +166,6 @@ namespace LightSettings.Koikatu {
                 light.shadowNearPlane = lightData.shadowNearPlane;
                 light.renderMode = lightData.renderMode;
                 light.cullingMask = lightData.cullingMask;
-
-                // Cookie
-                if (LightSettings.cookieDict.TryGetValue(lightData.cookieHash, out byte[] data)) {
-                    light.cookie = LightSettings.LightCookieFromBytes(data, light);
-                    light.cookieSize = lightData.cookieSize;
-                } else {
-                    light.cookie = null;
-                    light.cookieSize = 0;
-                }
 
                 // Exclusive to lights attached to items
                 if (setExtra) {
