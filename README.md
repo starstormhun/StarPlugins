@@ -7,6 +7,7 @@ Configuration Manager is recommended to make changing the settings from these pl
 1. Install the latest build of [BepInEx](https://github.com/BepInEx/BepInEx/releases)
 2. Download the latest release for your game from [the releases page](../../releases)
 3. Plugin dlls go to `BepInEx/plugins` (or a subfolder thereof)
+4. Patchers (currently only Shadow Patcher) go to `BepInEx/patchers`
 
 ## Plugins
 
