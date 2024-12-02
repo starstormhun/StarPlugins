@@ -15,6 +15,9 @@ Configuration Manager is recommended to make changing the settings from these pl
 Makes the manipulation axis speed and size sliders' minimum and maximum values configurable.
 Optionally converts the sliders to logarithmic base.
 
+#### Better Scaling [KK/KKS]
+Allows scaling of folders, and logarithmic scaling of all objects using the guide objects.
+
 #### Expression Control [KK/KKS]
 This is an old plugin which I decompiled and modified to also be able to be used on males.
 
