@@ -30,7 +30,7 @@ namespace MassShaderEditor.Koikatu {
 	/// </info>
     public partial class MassShaderEditor : BaseUnityPlugin {
         public const string GUID = "starstorm.massshadereditor";
-        public const string Version = "1.2.0." + BuildNumber.Version;
+        public const string Version = "1.3.0." + BuildNumber.Version;
 
         // General
         public ConfigEntry<float> UIScale { get; private set; }
@@ -592,7 +592,7 @@ namespace MassShaderEditor.Koikatu {
                                         if (IsDebug.Value) Log($"Material {item.NameFormatted()}\\{mat.NameFormatted()}\\{mat.shader.NameFormatted()} did not have the {setName} property...");
                                     }
                                 else if (tab == SettingType.Shader)
-                                    if (shaders.Contains(setShader) || setReset) {
+                                    if (shaders.Contains(_value as string) || favShaders.Contains(_value as string) || setReset) {
                                         try {
                                             if (setReset) {
                                                 if (_value is string) {

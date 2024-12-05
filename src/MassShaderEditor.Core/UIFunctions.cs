@@ -715,7 +715,7 @@ namespace MassShaderEditor.Koikatu {
                             }
                         } else ShowMessage(missingPropertyMessage);
                     else if (tab == SettingType.Shader)
-                        if (shaders.Contains(setShader) || setReset) {
+                        if (shaders.Contains(setShader) || favShaders.Contains(setShader) || setReset) {
                             if (!DisableWarning.Value) {
                                 showWarning = true;
                             } else {
@@ -742,7 +742,7 @@ namespace MassShaderEditor.Koikatu {
                                 TrySetTexture(SetSelectedProperties);
                         } else ShowMessage(missingPropertyMessage);
                     else if (tab == SettingType.Shader)
-                        if (shaders.Contains(setShader) || setReset) {
+                        if (shaders.Contains(setShader) || favShaders.Contains(setShader) || setReset) {
                             SetSelectedProperties(setShader);
                         } else ShowMessage(shaderNameWrongMessage);
                     else if (tab == SettingType.Renderer)
