@@ -391,7 +391,7 @@ namespace MassShaderEditor.Koikatu {
                     Predicate<Renderer> rendFilter = (x) => true;
 
                     if (type == ObjectType.Character && !AffectMiscBodyParts.Value) {
-                        rendFilter = (Renderer x) => new List<string> { "cf_o_face", "o_body_a" }.Contains(x.NameFormatted());
+                        rendFilter = (Renderer x) => new List<string> { "cf_O_face", "o_body_a" }.Contains(x.NameFormatted());
                     }
                     if (type == ObjectType.Accessory && HairAccIsHair.Value) {
                         matFilter = (Material x) => !x.shader.NameFormatted().ToLower().Contains("hair");
@@ -458,14 +458,16 @@ namespace MassShaderEditor.Koikatu {
                     Predicate<Renderer> rendFilter = (x) => true;
 
                     if (makerTabID == 0) {
-                        rendFilter = (Renderer x) => x.NameFormatted() == "cf_o_face";
+                        rendFilter = (Renderer x) => x.NameFormatted() == "cf_O_face";
                     } else if (makerTabID == 1) {
-                        matFilter = (Material x) => x.NameFormatted() == "cf_m_body" || x.NameFormatted() == "cm_m_body";
+                        rendFilter = (Renderer x) => x.NameFormatted() == "o_body_a";
                     }
                     
-                    SetCharaProperties(chaCtrl.GetController(), null, slot, type, _value, matFilter, rendFilter);
+                    bool result = SetCharaProperties(chaCtrl.GetController(), null, slot, type, _value, matFilter, rendFilter);
 
                     if (MaterialEditorUI.MaterialEditorWindow.gameObject.activeSelf) MEMaker.Instance.RefreshUI();
+
+                    if (fetchValue) return result;
                 } else ShowMessage("Please select a valid item category.");
             }
             if (!fetchValue) {
@@ -485,9 +487,9 @@ namespace MassShaderEditor.Koikatu {
                         var ctrl = KKAPI.Studio.StudioObjectExtensions.GetChaControl(ociChar);
                         if (AffectChaBody.Value && AffectMiscBodyParts.Value) SetCharaProperties(ctrl.GetController(), ociChar, 0, ObjectType.Character, _value);
                         else if (AffectChaBody.Value) if (SetCharaProperties(ctrl.GetController(), ociChar, 0, ObjectType.Character, _value,
-                            (Renderer x) => new List<string> { "cf_o_face", "o_body_a" }.Contains(x.NameFormatted().ToLower())) && fetchValue) return true;
+                            (Renderer x) => new List<string> { "cf_O_face", "o_body_a" }.Contains(x.NameFormatted().ToLower())) && fetchValue) return true;
                         else if (AffectMiscBodyParts.Value) if (SetCharaProperties(ctrl.GetController(), ociChar, 0, ObjectType.Character, _value,
-                            (Renderer x) => !new List<string> { "cf_o_face", "o_body_a" }.Contains(x.NameFormatted().ToLower())) && fetchValue) return true;
+                            (Renderer x) => !new List<string> { "cf_O_face", "o_body_a" }.Contains(x.NameFormatted().ToLower())) && fetchValue) return true;
                         if (AffectChaHair.Value) for(int i = 0; i<ctrl.objHair.Length; i++) if (SetCharaProperties(ctrl.GetController(), ociChar, i, ObjectType.Hair, _value) && fetchValue) return true;
                         if (AffectChaClothes.Value) for (int i = 0; i < ctrl.objClothes.Length; i++) if (SetCharaProperties(ctrl.GetController(), ociChar, i, ObjectType.Clothing, _value) && fetchValue) return true;
                         for (int i = 0; i < ctrl.objAccessory.Length; i++)
@@ -800,9 +802,9 @@ namespace MassShaderEditor.Koikatu {
                         var ctrl = KKAPI.Studio.StudioObjectExtensions.GetChaControl(ociChar);
                         if (AffectChaBody.Value && AffectMiscBodyParts.Value) GetCharaTexture(ctrl.GetController(), 0, ObjectType.Character, setName, (x) => true, (x) => true, ref bytes, ref textures, ref offsets, ref scales);
                         else if (AffectChaBody.Value) GetCharaTexture(ctrl.GetController(), 0, ObjectType.Character, setName,
-                            (x) => true, (Renderer x) => new List<string> { "cf_o_face", "o_body_a" }.Contains(x.NameFormatted().ToLower()), ref bytes, ref textures, ref offsets, ref scales);
+                            (x) => true, (Renderer x) => new List<string> { "cf_O_face", "o_body_a" }.Contains(x.NameFormatted().ToLower()), ref bytes, ref textures, ref offsets, ref scales);
                         else if (AffectMiscBodyParts.Value) GetCharaTexture(ctrl.GetController(), 0, ObjectType.Character, setName,
-                            (x) => true, (Renderer x) => !new List<string> { "cf_o_face", "o_body_a" }.Contains(x.NameFormatted().ToLower()), ref bytes, ref textures, ref offsets, ref scales);
+                            (x) => true, (Renderer x) => !new List<string> { "cf_O_face", "o_body_a" }.Contains(x.NameFormatted().ToLower()), ref bytes, ref textures, ref offsets, ref scales);
                         if (AffectChaHair.Value) for (int i = 0; i < ctrl.objHair.Length; i++) GetCharaTexture(ctrl.GetController(), i, ObjectType.Hair, setName, (x) => true, (x) => true, ref bytes, ref textures, ref offsets, ref scales);
                         if (AffectChaClothes.Value) for (int i = 0; i < ctrl.objClothes.Length; i++) GetCharaTexture(ctrl.GetController(), i, ObjectType.Clothing, setName, (x) => true, (x) => true, ref bytes, ref textures, ref offsets, ref scales);
                         for (int i = 0; i < ctrl.objAccessory.Length; i++)
@@ -826,11 +828,10 @@ namespace MassShaderEditor.Koikatu {
                     if (type == ObjectType.Accessory) slot = makerMenu.ccAcsMenu.GetSelectIndex();
 
                     Predicate<Renderer> filter = (Renderer x) => true;
-                    if (type == ObjectType.Character)
-                        if (makerTabID == 0)
-                            filter = (Renderer x) => x.NameFormatted() == "cf_o_face";
-                        else if (makerTabID == 1)
-                            filter = (Renderer x) => x.NameFormatted() == "o_body_a";
+                    if (type == ObjectType.Character) {
+                        if (makerTabID == 0) filter = (Renderer x) => x.NameFormatted() == "cf_O_face";
+                        else if (makerTabID == 1) filter = (Renderer x) => x.NameFormatted() == "o_body_a";
+                    }
                     List<byte[]> bytes = new List<byte[]>();
                     List<Texture> textures = new List<Texture>();
                     List<float[]> offsets = new List<float[]>();
@@ -939,7 +940,7 @@ namespace MassShaderEditor.Koikatu {
                                 textures.Add(tex);
                                 offsets.Add(new float[] { 0, 0 });
                                 scales.Add(new float[] { 1, 1 });
-                                return false;
+                                return tex != null;
                             }
                         }
                     }
@@ -1038,7 +1039,7 @@ namespace MassShaderEditor.Koikatu {
                 case 3:
                     newCol = current + colval; break;
                 case 4:
-                    newCol = current - colval; break;
+                    newCol = current.SubClamp(colval, 0f, float.MaxValue); break;
             }
 
             if (setRandom) {

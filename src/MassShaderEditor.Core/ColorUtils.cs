@@ -27,7 +27,13 @@ namespace MassShaderEditor.Koikatu {
 			return Enumerable.Range(0, a1.Length).Select(i => Mathf.Clamp(a1[i] + a2[i], min, max)).ToArray().ToColor();
 		}
 
-		public static string ToHex(this Color _color) {
+        public static Color SubClamp(this Color c1, Color c2, float min, float max) {
+            var a1 = c1.ToArray();
+            var a2 = c2.ToArray();
+            return Enumerable.Range(0, a1.Length).Select(i => Mathf.Clamp(a1[i] - a2[i], min, max)).ToArray().ToColor();
+        }
+
+        public static string ToHex(this Color _color) {
 			string r = ParseNum((int)(_color.r * 255) / 16) + ParseNum(((int)(_color.r * 255) % 16));
 			string g = ParseNum((int)(_color.g * 255) / 16) + ParseNum(((int)(_color.g * 255) % 16));
 			string b = ParseNum((int)(_color.b * 255) / 16) + ParseNum(((int)(_color.b * 255) % 16));
