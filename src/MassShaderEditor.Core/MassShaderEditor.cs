@@ -45,6 +45,7 @@ namespace MassShaderEditor.Koikatu {
         public ConfigEntry<bool> AffectChaHair { get; private set; }
         public ConfigEntry<bool> AffectChaClothes { get; private set; }
         public ConfigEntry<bool> AffectChaAccs { get; private set; }
+        public ConfigEntry<bool> AffectChaItems { get; private set; }
 
         // Maker options
         public ConfigEntry<bool> AffectMiscBodyParts { get; private set; }
@@ -94,6 +95,7 @@ namespace MassShaderEditor.Koikatu {
             AffectChaHair = Config.Bind("Studio", "Affect character hair", false, new ConfigDescription(affectChaHairText, null, null));
             AffectChaClothes = Config.Bind("Studio", "Affect character clothes", false, new ConfigDescription(affectChaClothesText, null, null));
             AffectChaAccs = Config.Bind("Studio", "Affect character accessories", false, new ConfigDescription(affectChaAccsText, null, null));
+            AffectChaItems = Config.Bind("Studio", "Affect character items", false, new ConfigDescription(affectChaItemsText, null, null));
 
             HairAccIsHair = Config.Bind("Maker", "Hair accs are hair", false, new ConfigDescription(hairAccIsHairText, null, null));
 
@@ -421,10 +423,25 @@ namespace MassShaderEditor.Koikatu {
                     var diveList = new List<Type>();
                     if (DiveFolders.Value) diveList.Add(typeof(OCIFolder));
                     if (DiveItems.Value) diveList.Add(typeof(OCIItem));
+                    if (AffectChaItems.Value) {
+                        diveList.Add(typeof(OCICharFemale));
+                        diveList.Add(typeof(OCICharMale));
+                    }
                     foreach (var oci in iterateList)
                         if (diveList.Contains(oci.GetType())) {
                             if (IsDebug.Value) Log($"Found diveable item: {oci.treeNodeObject.textName}");
-                            oci.AddChildrenRecursive(ociList);
+                            if (oci.GetType().IsSubclassOf(typeof(OCIChar))) {
+                                foreach (TreeNodeObject childOne in oci.treeNodeObject.child) {
+                                    foreach (TreeNodeObject childTwo in childOne.child) {
+                                        foreach (TreeNodeObject childItem in childTwo.child) {
+                                            var childOCI = Singleton<Studio.Studio>.Instance.dicInfo[childItem];
+                                            childOCI.AddChildrenRecursive(ociList);
+                                        }
+                                    }
+                                }
+                            } else {
+                                oci.AddChildrenRecursive(ociList);
+                            }
                         }
                     if (SetStudioProperties(ociList, _value) && fetchValue) return true;
                 } else ShowMessage("Please select at least one item!");
