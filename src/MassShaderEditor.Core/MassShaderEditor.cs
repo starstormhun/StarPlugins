@@ -911,7 +911,7 @@ namespace MassShaderEditor.Koikatu {
 
                                         var textureProperty = matPropList.FirstOrDefault(x => x.ObjectType == type && x.CoordinateIndex == GetCoordinateIndex() && x.Slot == slot && x.Property == setName && x.MaterialName == mat.NameFormatted());
                                         if (textureProperty?.TexID != null)
-                                            if (typeof(MaterialEditorCharaController).GetPrivateProperty("TextureDictionary", null, out object value2)) {
+                                            if (typeof(MaterialEditorCharaController).GetPrivateProperty("TextureDictionary", ctrl, out object value2)) {
                                                 var texDict = (value2 as Dictionary<int, TextureContainer>);
                                                 var texBytes = texDict[(int)textureProperty.TexID].Data;
                                                 var newTex = new Texture2D(1, 1);

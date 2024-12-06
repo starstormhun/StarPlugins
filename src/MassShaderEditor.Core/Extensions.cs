@@ -104,7 +104,7 @@ namespace MassShaderEditor.Koikatu {
                 } else value = (info as FieldInfo).GetValue(instance);
                 return true;
             } catch {
-                if (MSE.IsDebug.Value) MSE.Log($"Property ({name}) not found on ({instance})!");
+                if (MSE.IsDebug.Value) MSE.Log($"Property ({name}) of ({type.Name}) not found" + (instance == null ? "" : $" on ({instance})") + "!", 1);
                 value = null;
                 return false;
             }
