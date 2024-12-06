@@ -609,7 +609,7 @@ namespace MassShaderEditor.Koikatu {
                                         if (IsDebug.Value) Log($"Material {item.NameFormatted()}\\{mat.NameFormatted()}\\{mat.shader.NameFormatted()} did not have the {setName} property...");
                                     }
                                 else if (tab == SettingType.Shader)
-                                    if (shaders.Contains(_value as string) || favShaders.Contains(_value as string) || setReset) {
+                                    if (shaders.Contains(setShader.Trim()) || favShaders.Contains(setShader.Trim()) || setReset) {
                                         try {
                                             if (setReset) {
                                                 if (_value is string) {
@@ -618,7 +618,7 @@ namespace MassShaderEditor.Koikatu {
                                                     if (IsDebug.Value) Log($"Shader of {item.NameFormatted()}\\{mat.NameFormatted()} reset!");
                                                 } else { if (IsDebug.Value) Log($"Tried resetting shader of {item.NameFormatted()}\\{mat.NameFormatted()} with erroneous identifier type: {_value.GetType()}"); }
                                             } else if (_value is string stringval) {
-                                                ctrl.SetMaterialShader(item.objectInfo.dicKey, mat, stringval);
+                                                ctrl.SetMaterialShader(item.objectInfo.dicKey, mat, stringval.Trim());
                                                 if (setQueue != 0) ctrl.SetMaterialShaderRenderQueue(item.objectInfo.dicKey, mat, setQueue);
                                                 if (IsDebug.Value) Log($"Shader of {item.NameFormatted()}\\{mat.NameFormatted()} set to {_value}!");
                                             } else { if (IsDebug.Value) Log($"Tried setting shader of {item.NameFormatted()}\\{mat.NameFormatted()} with erroneous identifier: {_value.GetType()}"); }
@@ -745,7 +745,7 @@ namespace MassShaderEditor.Koikatu {
                                         if (IsDebug.Value) Log($"{chaName}\\{mat.NameFormatted()}\\{mat.shader.NameFormatted()} did not have the {setName} property...");
                                     }
                                 else if (tab == SettingType.Shader)
-                                    if (shaders.Contains(setShader.Trim()) || setReset) {
+                                    if (shaders.Contains(setShader.Trim()) || favShaders.Contains(setShader.Trim()) || setReset) {
                                         try {
                                             if (setReset) {
                                                 if (_value is string) {
@@ -754,7 +754,7 @@ namespace MassShaderEditor.Koikatu {
                                                     if (IsDebug.Value) Log($"Shader of {chaName}\\{mat.NameFormatted()} reset!");
                                                 } else { if (IsDebug.Value) Log($"Tried resetting shader of {chaName}\\{mat.NameFormatted()} with erroneous identifier type: {_value.GetType()}"); }
                                             } else if (_value is string stringval) {
-                                                ctrl.SetMaterialShader(slot, type, mat, stringval, go);
+                                                ctrl.SetMaterialShader(slot, type, mat, stringval.Trim(), go);
                                                 if (setQueue != 0) ctrl.SetMaterialShaderRenderQueue(slot, type, mat, setQueue, go);
                                                 if (IsDebug.Value) Log($"Shader of {chaName}\\{mat.NameFormatted()} set to {_value}!");
                                             } else { if (IsDebug.Value) Log($"Tried setting shader of {chaName}\\{mat.NameFormatted()} with erroneous identifier: {_value.GetType()}"); }
