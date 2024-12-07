@@ -550,6 +550,7 @@ namespace MassShaderEditor.Koikatu {
                                                 if (_value is float || _value is Color) {
                                                     ctrl.RemoveMaterialFloatProperty(item.objectInfo.dicKey, mat, setName);
                                                     ctrl.RemoveMaterialColorProperty(item.objectInfo.dicKey, mat, setName);
+                                                    ctrl.RemoveMaterialKeywordProperty(item.objectInfo.dicKey, mat, setName);
                                                     if (IsDebug.Value) Log($"Property {item.NameFormatted()}\\{mat.NameFormatted()}\\{setName} reset!");
                                                 } else if (_value is ScaledTex) {
                                                     if (setTexAffectTex) {
@@ -570,6 +571,7 @@ namespace MassShaderEditor.Koikatu {
                                                             return true;
                                                         }
                                                         ctrl.SetMaterialFloatProperty(item.objectInfo.dicKey, mat, setName, GetModifiedFloat(current, floatval));
+                                                        ctrl.SetMaterialKeywordProperty(item.objectInfo.dicKey, mat, setName, !Mathf.Approximately(0f, floatval));
                                                         if (IsDebug.Value) Log($"Property {item.NameFormatted()}\\{mat.NameFormatted()}\\{setName} set to {GetModifiedFloat(current, floatval)}!");
                                                     } else { if (IsDebug.Value) Log($"Tried setting non-float property {item.NameFormatted()}\\{mat.NameFormatted()}\\{setName} to ({floatval}) value!"); }
                                                 } else if (_value is Color colval) {
@@ -694,6 +696,7 @@ namespace MassShaderEditor.Koikatu {
                                                 if (_value is float || _value is Color) {
                                                     ctrl.RemoveMaterialFloatProperty(slot, type, mat, setName, go);
                                                     ctrl.RemoveMaterialColorProperty(slot, type, mat, setName, go);
+                                                    ctrl.RemoveMaterialKeywordProperty(slot, type, mat, setName, go);
                                                     if (IsDebug.Value) Log($"Property {chaName}\\{mat.NameFormatted()}\\{setName} reset!");
                                                 } else if (_value is ScaledTex) {
                                                     if (setTexAffectTex) {
@@ -714,8 +717,9 @@ namespace MassShaderEditor.Koikatu {
                                                             return true;
                                                         }
                                                         ctrl.SetMaterialFloatProperty(slot, type, mat, setName, GetModifiedFloat(current, floatval), go);
+                                                        ctrl.SetMaterialKeywordProperty(slot, type, mat, setName, !Mathf.Approximately(0f, floatval), go);
                                                         if (IsDebug.Value) Log($"Property {chaName}\\{mat.NameFormatted()}\\{setName} set to {GetModifiedFloat(current, floatval)}!");
-                                                    } else { if (IsDebug.Value) Log($"Tried setting non-float property {chaName}\\{mat.NameFormatted()}\\{setName} to color ({floatval}) value!"); }
+                                                    } else { if (IsDebug.Value) Log($"Tried setting non-float property {chaName}\\{mat.NameFormatted()}\\{setName} to ({_value})!"); }
                                                 } else if (_value is Color colval) {
                                                     if (mat.TryGetColor(setName, out Color current)) {
                                                         if (fetchValue) {
@@ -724,7 +728,7 @@ namespace MassShaderEditor.Koikatu {
                                                         }
                                                         ctrl.SetMaterialColorProperty(slot, type, mat, setName, GetModifiedColor(current, colval), go);
                                                         if (IsDebug.Value) Log($"Property {chaName}\\{mat.NameFormatted()}\\{setName} set to {GetModifiedColor(current, colval)}!");
-                                                    } else { if (IsDebug.Value) Log($"Tried setting non-color property {chaName}\\{mat.NameFormatted()}\\{setName} to float ({colval}) value!"); }
+                                                    } else { if (IsDebug.Value) Log($"Tried setting non-color property {chaName}\\{mat.NameFormatted()}\\{setName} to ({colval})!"); }
                                                 } else if (_value is ScaledTex texval) {
                                                     if (mat.TryGetTex(setName, out Texture current)) {
                                                         if (setTexAffectTex) {

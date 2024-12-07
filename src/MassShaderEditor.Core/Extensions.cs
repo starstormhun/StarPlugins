@@ -14,6 +14,12 @@ namespace MassShaderEditor.Koikatu {
         public static bool TryGetFloat(this Material mat, string name, out float property) {
             // Currently impossible to detect wrong type in KK
 #if KKS
+            // If the property is not found, return with keyword value
+            // AFAIK there is no way to check if the shader actually uses the keyword
+            if (mat.shader.FindPropertyIndex("_" + name) == -1) {
+                property = mat.IsKeywordEnabled(name) ? 1f : 0f;
+                return true;
+            }
             var accepted = new List<UnityEngine.Rendering.ShaderPropertyType>{ UnityEngine.Rendering.ShaderPropertyType.Float, UnityEngine.Rendering.ShaderPropertyType.Range };
             if (accepted.Contains(mat.shader.GetPropertyType(mat.shader.FindPropertyIndex("_" + name)))) {
                 property = mat.GetFloat("_" + name);

@@ -69,7 +69,8 @@ namespace MassShaderEditor.Koikatu {
 
                     var accepted = new List<string> {
                         "FloatLabel", "ColorLabel", "TextureLabel", "RendererText", "MaterialText",
-                        "ShaderLabel", "ShaderRenderQueueLabel", "OffsetScaleLabel", "OffsetXText"
+                        "ShaderLabel", "ShaderRenderQueueLabel", "OffsetScaleLabel", "OffsetXText",
+                        "KeywordLabel"
                     };
                     txtList = txtList.FindAll(x => accepted.Contains(x.gameObject.name));
                     if (MSE.IsDebug.Value) MSE.Log($"Found {txtList.Count} labels!");
@@ -121,6 +122,9 @@ namespace MassShaderEditor.Koikatu {
                                     MSE.setTex.offset = new float[] { values[0], values[1] };
                                     MSE.setTex.scale = new float[] { values[2], values[3] };
                                 });
+                                break;
+                            case "KeywordLabel":
+                                btn.onClick.AddListener(() => SetName(MSE, MassShaderEditor.SettingType.Float, txt.text));
                                 break;
                         }
                     }
