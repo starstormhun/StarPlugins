@@ -224,6 +224,7 @@ namespace MassShaderEditor.Koikatu {
         private readonly string affectChaHairText = AffectChaPartsText("hair, including hair accs");
         private readonly string affectChaClothesText = AffectChaPartsText("clothes");
         private readonly string affectChaAccsText = AffectChaPartsText("accessories, excluding any hair");
+        private readonly string affectChaItemsText = AffectChaPartsText("held items (items parented to characters)");
 
         private const string hairAccIsHairText = "Whether 'Modify ALL' will affect hair accessories while editing hair and skip them while editing accessories.";
         private const string affectMiscBodyPartsText = "Whether the miscellaneous body parts like eyes/tongue/noseline/penis/etc should be affected. In Maker and if enabled, only 'Modify ALL' will affect them.";
@@ -715,7 +716,7 @@ namespace MassShaderEditor.Koikatu {
                             }
                         } else ShowMessage(missingPropertyMessage);
                     else if (tab == SettingType.Shader)
-                        if (shaders.Contains(setShader) || setReset) {
+                        if (shaders.Contains(setShader) || favShaders.Contains(setShader) || setReset) {
                             if (!DisableWarning.Value) {
                                 showWarning = true;
                             } else {
@@ -742,7 +743,7 @@ namespace MassShaderEditor.Koikatu {
                                 TrySetTexture(SetSelectedProperties);
                         } else ShowMessage(missingPropertyMessage);
                     else if (tab == SettingType.Shader)
-                        if (shaders.Contains(setShader) || setReset) {
+                        if (shaders.Contains(setShader) || favShaders.Contains(setShader) || setReset) {
                             SetSelectedProperties(setShader);
                         } else ShowMessage(shaderNameWrongMessage);
                     else if (tab == SettingType.Renderer)
@@ -923,7 +924,8 @@ namespace MassShaderEditor.Koikatu {
                     GUILayout.BeginHorizontal();
                     if (GUILayout.Button(new GUIContent($"Misc parts: {(AffectMiscBodyParts.Value ? "Yes" : "No")}", affectMiscBodyPartsText), newSkin.button, GUILayout.MaxWidth(halfWidth)))
                         AffectMiscBodyParts.Value = !AffectMiscBodyParts.Value;
-                    GUILayout.FlexibleSpace();
+                    if (GUILayout.Button(new GUIContent($"Items: {(AffectChaItems.Value ? "Yes" : "No")}", affectChaItemsText), newSkin.button, GUILayout.MaxWidth(halfWidth)))
+                        AffectChaItems.Value = !AffectChaItems.Value;
                     GUILayout.EndHorizontal();
                 }
             } // End studio settings
