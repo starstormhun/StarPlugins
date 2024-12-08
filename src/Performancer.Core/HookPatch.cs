@@ -1,10 +1,8 @@
 using HarmonyLib;
 using UnityEngine;
-using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using Studio;
-using ADV.Commands.Base;
 using Illusion.Extensions;
 
 namespace Performancer {
@@ -20,7 +18,8 @@ namespace Performancer {
         private static class Hooks {
             private static Harmony _harmony;
 
-            private static Dictionary<GuideObject, Dictionary<string, Vector3>> dicVals = new Dictionary<GuideObject, Dictionary<string, Vector3>>();
+            private static Dictionary<Transform, GuideObject> dicGuideObjects = new Dictionary<Transform, GuideObject>();
+            private static Dictionary<GuideObject, Dictionary<string, Vector3>> dicGuideObjectVals = new Dictionary<GuideObject, Dictionary<string, Vector3>>();
             private static Dictionary<GuideObject, bool> dicGuideObjectsToUpdate = new Dictionary<GuideObject, bool>();
 
             // Setup Harmony and patch methods
@@ -36,25 +35,33 @@ namespace Performancer {
             [HarmonyPrefix]
             [HarmonyPatch(typeof(GuideObject), "LateUpdate")]
             private static bool GuideObjectBeforeLateUpdate(ref GuideObject __instance) {
+                if (!dicGuideObjects.ContainsKey(__instance.transformTarget)) {
+                    dicGuideObjects[__instance.transformTarget] = __instance;
+                }
+
                 bool result;
-                if (!dicVals.ContainsKey(__instance)) {
+                // First we check if we have added the GO to the dict, so that things don't break later
+                if (!dicGuideObjectVals.ContainsKey(__instance)) {
                     var newDict = new Dictionary<string, Vector3> {
                         { "pos", __instance.m_ChangeAmount.pos },
                         { "rot", __instance.m_ChangeAmount.rot },
                         { "scale", __instance.m_ChangeAmount.scale }
                     };
-                    dicVals.Add(__instance, newDict);
+                    dicGuideObjectVals.Add(__instance, newDict);
                     result = true;
+                // Second check is whether we want to optimise the LateUpdate or not
                 } else if (!Performancer.OptimiseGuideObjectLate.Value) {
                     result = true;
+                // Third, we check if we're supposed to update this GO (because a parent object was changed)
                 } else if (dicGuideObjectsToUpdate.TryGetValue(__instance, out bool dicVal) && dicVal) {
                     result = true;
                     dicGuideObjectsToUpdate[__instance] = false;
+                // If all else fails, we check if the GO was changed since last frame
                 } else {
-                    var vals = dicVals[__instance];
+                    var vals = dicGuideObjectVals[__instance];
                     result = vals["pos"] != __instance.m_ChangeAmount.pos || vals["rot"] != __instance.m_ChangeAmount.rot || vals["scale"] != __instance.m_ChangeAmount.scale;
 
-                    // GuideObject has changed, therefore we need to update the object's children
+                    // GuideObject has changed, therefore we need to update the attached object's children
                     if (result) {
                         int id = int.MaxValue;
                         foreach (var kvp in Studio.Studio.Instance.dicChangeAmount) {
@@ -65,20 +72,22 @@ namespace Performancer {
                         }
                         if (id != int.MaxValue) {
                             if (Studio.Studio.Instance.dicObjectCtrl.TryGetValue(id, out var oci)) {
-                                var iterateList = new List<TreeNodeObject> { oci.treeNodeObject };
+                                var iterateList = new List<Transform> { oci.GetObject().transform };
                                 while (iterateList.Count > 0) {
                                     var curr = iterateList.Pop();
-                                    dicGuideObjectsToUpdate[Studio.Studio.Instance.dicInfo[curr].guideObject] = true;
-                                    iterateList.AddRange(curr.child);
+                                    if (dicGuideObjects.ContainsKey(curr)) {
+                                        dicGuideObjectsToUpdate[dicGuideObjects[curr]] = true;
+                                    }
+                                    iterateList.AddRange(curr.Children());
                                 }
                             }
                         }
                     }
                 }
 
-                dicVals[__instance]["pos"] = __instance.m_ChangeAmount.pos;
-                dicVals[__instance]["rot"] = __instance.m_ChangeAmount.rot;
-                dicVals[__instance]["scale"] = __instance.m_ChangeAmount.scale;
+                dicGuideObjectVals[__instance]["pos"] = __instance.m_ChangeAmount.pos;
+                dicGuideObjectVals[__instance]["rot"] = __instance.m_ChangeAmount.rot;
+                dicGuideObjectVals[__instance]["scale"] = __instance.m_ChangeAmount.scale;
 
                 if (result) {
                     Performancer.numGuideObjectLateUpdates++;

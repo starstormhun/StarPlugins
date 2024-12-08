@@ -22,6 +22,7 @@ namespace Performancer {
         public static Performancer Instance { get; private set; }
 
         public static ConfigEntry<bool> OptimiseGuideObjectLate {  get; private set; }
+        public static ConfigEntry<bool> OptimiseDynamicBones {  get; private set; }
         public static ConfigEntry<bool> DoLogs {  get; private set; }
 
         internal static bool isLogCoroutine = false;
@@ -32,6 +33,7 @@ namespace Performancer {
 
             DoLogs = Config.Bind("Advanced", "Log Performance Numbers", false, new ConfigDescription("", null, new ConfigurationManagerAttributes { IsAdvanced = true }));
             OptimiseGuideObjectLate = Config.Bind("General", "Optimise GuideObject LateUpdate", true, new ConfigDescription("", null, new ConfigurationManagerAttributes { IsAdvanced = true }));
+            OptimiseDynamicBones = Config.Bind("General", "Optimise Dynamic Bones", true, new ConfigDescription("REQUIRES GuideObject LateUpdate optimisation", null, new ConfigurationManagerAttributes { IsAdvanced = true }));
 
             HookPatch.Init();
         }
