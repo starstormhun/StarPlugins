@@ -50,22 +50,6 @@ namespace Performancer {
                     isLogCoroutine = false;
                 }
             }
-
-            // Make sure to turn off dynamic bone enabled values in internal plugin memory
-            if (OptimiseGuideObjectLate.Value && OptimiseDynamicBones.Value) {
-                var destroyed = new List<MonoBehaviour>();
-                foreach (var kvp in HookPatch.Hooks.dicDynBoneVals) {
-                    if (!kvp.Key.isActiveAndEnabled && kvp.Value["enabled"] is bool enabled && enabled) {
-                        kvp.Value["enabled"] = false;
-                    }
-                    if (kvp.Key.IsDestroyed()) {
-                        destroyed.Add(kvp.Key);
-                    }
-                }
-                foreach (var key in destroyed) {
-                    HookPatch.Hooks.dicDynBoneVals.Remove(key);
-                }
-            }
         }
 
         internal void Log(object data, int level = 0) {

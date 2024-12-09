@@ -18,11 +18,11 @@ namespace Performancer {
         internal static class Hooks {
             private static Harmony _harmony;
 
-            private const int frameAllowance = 6;
+            private const int frameAllowance = 3;
 
             private static Dictionary<Transform, GuideObject> dicGuideObjects = new Dictionary<Transform, GuideObject>();
             private static Dictionary<GuideObject, Dictionary<string, Vector3>> dicGuideObjectVals = new Dictionary<GuideObject, Dictionary<string, Vector3>>();
-            internal static Dictionary<MonoBehaviour, Dictionary<string, object>> dicDynBoneVals = new Dictionary<MonoBehaviour, Dictionary<string, object>>();
+            internal static Dictionary<MonoBehaviour, Dictionary<string, Vector3>> dicDynBoneVals = new Dictionary<MonoBehaviour, Dictionary<string, Vector3>>();
 
             private static Dictionary<GuideObject, bool> dicGuideObjectsToUpdate = new Dictionary<GuideObject, bool>();
             private static Dictionary<MonoBehaviour, int> dicDynBonesToUpdate = new Dictionary<MonoBehaviour, int>();
@@ -115,17 +115,11 @@ namespace Performancer {
             [HarmonyPatch(typeof(DynamicBone_Ver02), "Awake")]
             private static void DynamicBonesAfterCreate(ref MonoBehaviour __instance) {
                 // Register bones when spawned
-                dicDynBoneVals[__instance] = new Dictionary<string, object> {
-                    { "enabled", __instance.isActiveAndEnabled }
+                dicDynBoneVals[__instance] = new Dictionary<string, Vector3> {
+                    { "pos", Vector3.zero },
+                    { "force", Vector3.zero },
+                    { "gravity", Vector3.zero },
                 };
-                switch (__instance) {
-                    case DynamicBone db:
-                        dicDynBoneVals[__instance]["pos"] = db.m_Particles[db.m_Particles.Count - 1].m_Position;
-                        break;
-                    case DynamicBone_Ver02 db:
-                        dicDynBoneVals[__instance]["pos"] = db.Particles[db.Particles.Count - 1].Position;
-                        break;
-                }
 
                 // Allow bones to settle when spawned
                 dicDynBonesToUpdate[__instance] = 2*frameAllowance;
@@ -139,33 +133,37 @@ namespace Performancer {
                 // If we don't optimise, then always run the Update scripts
                 if (!Performancer.OptimiseGuideObjectLate.Value || !Performancer.OptimiseDynamicBones.Value) {
                     result = true;
+                // If some value has changed, start running
+                } else if (
+                    (__instance is DynamicBone db && (
+                        dicDynBoneVals[__instance]["force"] != db.m_Force ||
+                        dicDynBoneVals[__instance]["gravity"] != db.m_Gravity
+                    )) ||
+                    (__instance is DynamicBone_Ver02 db2 && (
+                        dicDynBoneVals[__instance]["force"] != db2.Force ||
+                        dicDynBoneVals[__instance]["gravity"] != db2.Gravity
+                    ))
+                ) {
+                    dicDynBonesToUpdate[__instance] = frameAllowance;
+                    result = true;
                 // If there's leeway time left, continue running
                 } else if (dicDynBonesToUpdate.TryGetValue(__instance, out int framesLeft) && framesLeft > 0) {
-                    result = true;
-                // If the component was just turned on, add leeway frames
-                } else if (dicDynBoneVals[__instance]["enabled"] is bool enabled && !enabled && __instance.isActiveAndEnabled) {
-                    dicDynBonesToUpdate[__instance] = frameAllowance;
                     result = true;
                 } else {
                     result = false;
                 }
 
                 // Update saved values
-                dicDynBoneVals[__instance]["enabled"] = __instance.isActiveAndEnabled;
                 switch (__instance) {
                     case DynamicBone db:
-                        if (db.m_Particles.Count > 0) {
-                            dicDynBoneVals[__instance]["pos"] = db.m_Particles[db.m_Particles.Count - 1].m_Position;
-                        } else {
-                            dicDynBoneVals[__instance]["pos"] = Vector3.zero;
-                        }
+                        dicDynBoneVals[__instance]["pos"] = db.m_Particles.Count > 0 ? db.m_Particles[db.m_Particles.Count - 1].m_Position : Vector3.zero;
+                        dicDynBoneVals[__instance]["force"] = db.m_Force;
+                        dicDynBoneVals[__instance]["gravity"] = db.m_Gravity;
                         break;
                     case DynamicBone_Ver02 db:
-                        if (db.Particles.Count > 0) {
-                            dicDynBoneVals[__instance]["pos"] = db.Particles[db.Particles.Count - 1].Position;
-                        } else {
-                            dicDynBoneVals[__instance]["pos"] = Vector3.zero;
-                        }
+                        dicDynBoneVals[__instance]["pos"] = db.Particles.Count > 0 ? db.Particles[db.Particles.Count - 1].Position : Vector3.zero;
+                        dicDynBoneVals[__instance]["force"] = db.Force;
+                        dicDynBoneVals[__instance]["gravity"] = db.Gravity;
                         break;
                 }
 
@@ -200,11 +198,24 @@ namespace Performancer {
                 }
 
                 // If it didn't change during the update, subtract from the frame allowance
-                if (dicDynBoneVals[__instance]["pos"] is Vector3 dicPos && dicPos == pos) {
+                if (dicDynBoneVals[__instance]["pos"] == pos) {
                     if (dicDynBonesToUpdate.TryGetValue(__instance, out int frames) && frames > 0) {
                         dicDynBonesToUpdate[__instance] = frames - 1;
                     }
                 }
+            }
+
+            [HarmonyPostfix]
+            [HarmonyPatch(typeof(DynamicBone), "OnEnable")]
+            [HarmonyPatch(typeof(DynamicBone_Ver02), "OnEnable")]
+            private static void DynamicBonesAfterOnEnable(ref MonoBehaviour __instance) {
+                // If we don't optimise, then skip the postfix
+                if (!Performancer.OptimiseGuideObjectLate.Value || !Performancer.OptimiseDynamicBones.Value) {
+                    return;
+                }
+
+                // Else allow the bone to update
+                dicDynBonesToUpdate[__instance] = frameAllowance;
             }
         }
     }
