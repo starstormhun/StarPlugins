@@ -1,0 +1,33 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <Import Project="..\BuildSettings.Common.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
+    <OutputPath>..\..\bin\Debug\StarPluginsKK\</OutputPath>
+	<TargetFramework>net35</TargetFramework>
+    <DefineConstants>TRACE;KK</DefineConstants>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
+    <OutputPath>..\..\bin\Release\StarPluginsKK\</OutputPath>
+	<TargetFramework>net35</TargetFramework>
+	<DefineConstants>TRACE;KK</DefineConstants>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="BepInEx.Core" Version="5.4.4" />
+	<PackageReference Include="BepInEx.Analyzers" Version="1.0.4" />
+    <PackageReference Include="ExtensibleSaveFormat.Koikatu" Version="19.3.3" />
+    <PackageReference Include="IllusionLibs.Koikatu.Assembly-CSharp" Version="2019.4.27.4" />
+    <PackageReference Include="IllusionLibs.Koikatu.Assembly-CSharp-firstpass" Version="2019.4.27.4" />
+    <PackageReference Include="IllusionLibs.Koikatu.UnityEngine" Version="5.6.2.4" />
+    <PackageReference Include="IllusionLibs.Koikatu.UnityEngine.UI" Version="5.6.2.4" />
+    <PackageReference Include="IllusionModdingAPI.KKAPI" Version="1.36.0" />
+  </ItemGroup>
+  <ItemGroup>
+    <Reference Include="KK.DynamicBoneDistributionEditor">
+      <HintPath>..\..\lib\KK_DynamicBoneDistributionEditor.dll</HintPath>
+    </Reference>
+  </ItemGroup>
+  <Import Project="..\Common.Core\Common.Core.projitems" Label="Shared" />
+  <Import Project="..\Performancer.Core\Performancer.Core.projitems" Label="Shared" />
+  <Target Name="PostBuild" AfterTargets="PostBuildEvent">
+    <Exec Command="xcopy $(OutputPath)$(AssemblyName).dll F:\Koikatu\BepInEx\plugins\MyPlugins\ /y" />
+  </Target>
+</Project>

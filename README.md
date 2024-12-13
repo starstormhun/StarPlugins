@@ -35,6 +35,10 @@ A plugin that lets you edit the properties of multiple shaders at once, based on
 For both Maker and Studio. Also lets you swap shaders for others.
 Contains a built-in tutorial and help section due to its many options.
 
+#### Performancer [KK/KKS]
+Optimises some aspects of Charastudio to make it more efficient in scenes that use lots of
+character or lots of objects.
+
 #### Shader Fixer [KK/KKS]
 By default it fixes the KKUSS / KKUTS shaders by making sure they always have at least a flat normal map.
 The shader and property name filters are configurable, thus it can be extended to work on other shaders.
