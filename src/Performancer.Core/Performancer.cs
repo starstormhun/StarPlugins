@@ -1,10 +1,9 @@
 using BepInEx;
-using BepInEx.Configuration;
+using UnityEngine;
 using KKAPI.Utilities;
 using System.Collections;
+using BepInEx.Configuration;
 using System.Collections.Generic;
-using System.Linq;
-using UnityEngine;
 
 [assembly: System.Reflection.AssemblyFileVersion(Performancer.Performancer.Version)]
 
@@ -45,6 +44,15 @@ namespace Performancer {
             DoLogging();
             if (OptimiseGuideObjectLate.Value && OptimiseDynamicBones.Value && HookPatch.Hooks.dicDynBoneVals.Count > 0) {
                 CheckDynBoneColliders();
+            }
+        }
+
+        public bool EnableDynamicBone(MonoBehaviour bone) {
+            if (HookPatch.Hooks.dicDynBonesToUpdate.ContainsKey(bone)) {
+                HookPatch.Hooks.dicDynBonesToUpdate[bone] = HookPatch.Hooks.frameAllowance;
+                return true;
+            } else {
+                return false;
             }
         }
 
