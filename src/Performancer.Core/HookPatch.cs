@@ -51,9 +51,9 @@ namespace Performancer {
 
             private static bool IsThisDBDE(MonoBehaviour mb) {
                 return
-                    ConditionalHooks.DBDEUI.referencedChara != null &&
+                    (ConditionalHooks.DBDEUI as DBDEUI).referencedChara != null &&
                     dicDynBoneCharas.TryGetValue(mb, out var val) &&
-                    val == ConditionalHooks.DBDEUI.referencedChara.ChaControl;
+                    val == (ConditionalHooks.DBDEUI as DBDEUI).referencedChara.ChaControl;
             }
 
             [HarmonyPrefix]
@@ -202,58 +202,65 @@ namespace Performancer {
                 // If we don't optimise, then always run the Update scripts
                 if (!Performancer.OptimiseGuideObjectLate.Value || !Performancer.OptimiseDynamicBones.Value) {
                     result = true;
-                // If there's leeway time left, continue running
+                // If there's leeway time left, continue
                 } else if (dicDynBonesToUpdate.TryGetValue(__instance, out int framesLeft) && framesLeft > 0) {
+                    result = true;
+                // If the weight is zero, continue
+                } else if (
+                    (__instance is DynamicBone db_00 && (db_00.m_Weight == 0)) ||
+                    (__instance is DynamicBone_Ver01 db_01 && (db_01.m_Weight == 0)) ||
+                    (__instance is DynamicBone_Ver02 db_02 && (db_02.Weight == 0))
+                ) {
                     result = true;
                 // If some value has changed, start running
                 } else if (
-                    (__instance is DynamicBone db && (
-                        (db.m_Particles.Count > 0 && dicVal["tfPos"] is Vector3 tfPos0 && tfPos0 != db.m_Particles[Mathf.Max(db.m_Particles.Count - 2, 0)].m_Transform.position) ||
-                        (dicVal["force"] is Vector3 force0 && force0 != db.m_Force) ||
-                        (dicVal["gravity"] is Vector3 gravity0 && gravity0 != db.m_Gravity) ||
-                        (dicVal["weight"] is float weight0 && weight0 != db.m_Weight) ||
-                        (IsThisDBDE(__instance) && (
-                            (dicVal["damping"] is float damping0 && damping0 != db.m_Damping) ||
-                            (dicVal["dampingD"] is AnimationCurve dampingD0 && !dampingD0.IsSame(db.m_DampingDistrib)) ||
-                            (dicVal["elasticity"] is float elasticity0 && elasticity0 != db.m_Elasticity) ||
-                            (dicVal["elasticityD"] is AnimationCurve elasticityD0 && !elasticityD0.IsSame(db.m_ElasticityDistrib)) ||
-                            (dicVal["inertia"] is float inertia0 && inertia0 != db.m_Inert) ||
-                            (dicVal["inertiaD"] is AnimationCurve inertiaD0 && !inertiaD0.IsSame(db.m_InertDistrib)) ||
-                            (dicVal["radius"] is float radius0 && radius0 != db.m_Radius) ||
-                            (dicVal["radiusD"] is AnimationCurve radiusD0 && !radiusD0.IsSame(db.m_RadiusDistrib)) ||
-                            (dicVal["stiffness"] is float stiffness0 && stiffness0 != db.m_Stiffness) ||
-                            (dicVal["stiffnessD"] is AnimationCurve stiffnessD0 && !stiffnessD0.IsSame(db.m_StiffnessDistrib))
+                    (__instance is DynamicBone db_10 && (
+                        (db_10.m_Particles.Count > 0 && dicVal["tfPos"] is Vector3 tfPos0 && tfPos0 != db_10.m_Particles[Mathf.Max(db_10.m_Particles.Count - 2, 0)].m_Transform.position) ||
+                        (dicVal["force"] is Vector3 force0 && force0 != db_10.m_Force) ||
+                        (dicVal["gravity"] is Vector3 gravity0 && gravity0 != db_10.m_Gravity) ||
+                        (dicVal["weight"] is float weight0 && weight0 != db_10.m_Weight) ||
+                        (ConditionalHooks.DBDEUI != null && IsThisDBDE(__instance) && (
+                            (dicVal["damping"] is float damping0 && damping0 != db_10.m_Damping) ||
+                            (dicVal["dampingD"] is AnimationCurve dampingD0 && !dampingD0.IsSame(db_10.m_DampingDistrib)) ||
+                            (dicVal["elasticity"] is float elasticity0 && elasticity0 != db_10.m_Elasticity) ||
+                            (dicVal["elasticityD"] is AnimationCurve elasticityD0 && !elasticityD0.IsSame(db_10.m_ElasticityDistrib)) ||
+                            (dicVal["inertia"] is float inertia0 && inertia0 != db_10.m_Inert) ||
+                            (dicVal["inertiaD"] is AnimationCurve inertiaD0 && !inertiaD0.IsSame(db_10.m_InertDistrib)) ||
+                            (dicVal["radius"] is float radius0 && radius0 != db_10.m_Radius) ||
+                            (dicVal["radiusD"] is AnimationCurve radiusD0 && !radiusD0.IsSame(db_10.m_RadiusDistrib)) ||
+                            (dicVal["stiffness"] is float stiffness0 && stiffness0 != db_10.m_Stiffness) ||
+                            (dicVal["stiffnessD"] is AnimationCurve stiffnessD0 && !stiffnessD0.IsSame(db_10.m_StiffnessDistrib))
                         ))
                     )) ||
-                    (__instance is DynamicBone_Ver01 db1 && (
-                        (db1.m_Particles.Count > 0 && dicVal["tfPos"] is Vector3 tfPos1 && tfPos1 != db1.m_Particles[Mathf.Max(db1.m_Particles.Count - 2, 0)].m_Transform.position) ||
-                        (dicVal["force"] is Vector3 force1 && force1 != db1.m_Force) ||
-                        (dicVal["gravity"] is Vector3 gravity1 && gravity1 != db1.m_Gravity) ||
-                        (dicVal["weight"] is float weight1 && weight1 != db1.m_Weight) ||
-                        (IsThisDBDE(__instance) && (
-                            (dicVal["damping"] is float damping1 && damping1 != db1.m_Damping) ||
-                            (dicVal["dampingD"] is AnimationCurve dampingD1 && !dampingD1.IsSame(db1.m_DampingDistrib)) ||
-                            (dicVal["elasticity"] is float elasticity1 && elasticity1 != db1.m_Elasticity) ||
-                            (dicVal["elasticityD"] is AnimationCurve elasticityD1 && !elasticityD1.IsSame(db1.m_ElasticityDistrib)) ||
-                            (dicVal["inertia"] is float inertia1 && inertia1 != db1.m_Inert) ||
-                            (dicVal["inertiaD"] is AnimationCurve inertiaD1 && !inertiaD1.IsSame(db1.m_InertDistrib)) ||
-                            (dicVal["radius"] is float radius1 && radius1 != db1.m_Radius) ||
-                            (dicVal["radiusD"] is AnimationCurve radiusD1 && !radiusD1.IsSame(db1.m_RadiusDistrib)) ||
-                            (dicVal["stiffness"] is float stiffness1 && stiffness1 != db1.m_Stiffness) ||
-                            (dicVal["stiffnessD"] is AnimationCurve stiffnessD1 && !stiffnessD1.IsSame(db1.m_StiffnessDistrib))
+                    (__instance is DynamicBone_Ver01 db_11 && (
+                        (db_11.m_Particles.Count > 0 && dicVal["tfPos"] is Vector3 tfPos1 && tfPos1 != db_11.m_Particles[Mathf.Max(db_11.m_Particles.Count - 2, 0)].m_Transform.position) ||
+                        (dicVal["force"] is Vector3 force1 && force1 != db_11.m_Force) ||
+                        (dicVal["gravity"] is Vector3 gravity1 && gravity1 != db_11.m_Gravity) ||
+                        (dicVal["weight"] is float weight1 && weight1 != db_11.m_Weight) ||
+                        (ConditionalHooks.DBDEUI != null && IsThisDBDE(__instance) && (
+                            (dicVal["damping"] is float damping1 && damping1 != db_11.m_Damping) ||
+                            (dicVal["dampingD"] is AnimationCurve dampingD1 && !dampingD1.IsSame(db_11.m_DampingDistrib)) ||
+                            (dicVal["elasticity"] is float elasticity1 && elasticity1 != db_11.m_Elasticity) ||
+                            (dicVal["elasticityD"] is AnimationCurve elasticityD1 && !elasticityD1.IsSame(db_11.m_ElasticityDistrib)) ||
+                            (dicVal["inertia"] is float inertia1 && inertia1 != db_11.m_Inert) ||
+                            (dicVal["inertiaD"] is AnimationCurve inertiaD1 && !inertiaD1.IsSame(db_11.m_InertDistrib)) ||
+                            (dicVal["radius"] is float radius1 && radius1 != db_11.m_Radius) ||
+                            (dicVal["radiusD"] is AnimationCurve radiusD1 && !radiusD1.IsSame(db_11.m_RadiusDistrib)) ||
+                            (dicVal["stiffness"] is float stiffness1 && stiffness1 != db_11.m_Stiffness) ||
+                            (dicVal["stiffnessD"] is AnimationCurve stiffnessD1 && !stiffnessD1.IsSame(db_11.m_StiffnessDistrib))
                         ))
                     )) ||
-                    (__instance is DynamicBone_Ver02 db2 && (
-                        (db2.Particles.Count > 0 && dicVal["tfPos"] is Vector3 tfPos2 && tfPos2 != db2.Particles[Mathf.Max(db2.Particles.Count - 2, 0)].Transform.position) ||
-                        (dicVal["force"] is Vector3 force2 && force2 != db2.Force) ||
-                        (dicVal["gravity"] is Vector3 gravity2 && gravity2 != db2.Gravity) ||
-                        (dicVal["weight"] is float weight2 && weight2 != db2.Weight) ||
-                        (IsThisDBDE(__instance) && (
-                            (dicVal["dampingD"] is AnimationCurve dampingD2 && !dampingD2.IsSame(db2.Particles, CurveType.Damping)) ||
-                            (dicVal["elasticityD"] is AnimationCurve elasticityD2 && !elasticityD2.IsSame(db2.Particles, CurveType.Elasticity)) ||
-                            (dicVal["inertiaD"] is AnimationCurve inertiaD2 && !inertiaD2.IsSame(db2.Particles, CurveType.Inertia)) ||
-                            (dicVal["radiusD"] is AnimationCurve radiusD2 && !radiusD2.IsSame(db2.Particles, CurveType.Radius)) ||
-                            (dicVal["stiffnessD"] is AnimationCurve stiffnessD2 && !stiffnessD2.IsSame(db2.Particles, CurveType.Stiffness))
+                    (__instance is DynamicBone_Ver02 db_12 && (
+                        (db_12.Particles.Count > 0 && dicVal["tfPos"] is Vector3 tfPos2 && tfPos2 != db_12.Particles[Mathf.Max(db_12.Particles.Count - 2, 0)].Transform.position) ||
+                        (dicVal["force"] is Vector3 force2 && force2 != db_12.Force) ||
+                        (dicVal["gravity"] is Vector3 gravity2 && gravity2 != db_12.Gravity) ||
+                        (dicVal["weight"] is float weight2 && weight2 != db_12.Weight) ||
+                        (ConditionalHooks.DBDEUI != null && IsThisDBDE(__instance) && (
+                            (dicVal["dampingD"] is AnimationCurve dampingD2 && !dampingD2.IsSame(db_12.Particles, CurveType.Damping)) ||
+                            (dicVal["elasticityD"] is AnimationCurve elasticityD2 && !elasticityD2.IsSame(db_12.Particles, CurveType.Elasticity)) ||
+                            (dicVal["inertiaD"] is AnimationCurve inertiaD2 && !inertiaD2.IsSame(db_12.Particles, CurveType.Inertia)) ||
+                            (dicVal["radiusD"] is AnimationCurve radiusD2 && !radiusD2.IsSame(db_12.Particles, CurveType.Radius)) ||
+                            (dicVal["stiffnessD"] is AnimationCurve stiffnessD2 && !stiffnessD2.IsSame(db_12.Particles, CurveType.Stiffness))
                         ))
                     ))
                 ) {
@@ -271,7 +278,7 @@ namespace Performancer {
                         dicVal["force"] = db.m_Force;
                         dicVal["gravity"] = db.m_Gravity;
                         dicVal["weight"] = db.m_Weight;
-                        if (IsThisDBDE(__instance)) {
+                        if (ConditionalHooks.DBDEUI != null && IsThisDBDE(__instance)) {
                             dicVal["damping"] = db.m_Damping;
                             (dicVal["dampingD"] as AnimationCurve).Copy(db.m_DampingDistrib);
                             dicVal["elasticity"] = db.m_Elasticity;
@@ -290,7 +297,7 @@ namespace Performancer {
                         dicVal["force"] = db.m_Force;
                         dicVal["gravity"] = db.m_Gravity;
                         dicVal["weight"] = db.m_Weight;
-                        if (IsThisDBDE(__instance)) {
+                        if (ConditionalHooks.DBDEUI != null && IsThisDBDE(__instance)) {
                             (dicVal["dampingD"] as AnimationCurve).Copy(db.m_DampingDistrib);
                             dicVal["elasticity"] = db.m_Elasticity;
                             (dicVal["elasticityD"] as AnimationCurve).Copy(db.m_ElasticityDistrib);
@@ -308,7 +315,7 @@ namespace Performancer {
                         dicVal["force"] = db.Force;
                         dicVal["gravity"] = db.Gravity;
                         dicVal["weight"] = db.Weight;
-                        if (IsThisDBDE(__instance)) {
+                        if (ConditionalHooks.DBDEUI != null && IsThisDBDE(__instance)) {
                             (dicVal["dampingD"] as AnimationCurve).Copy(db.Particles, CurveType.Damping);
                             (dicVal["elasticityD"] as AnimationCurve).Copy(db.Particles, CurveType.Elasticity);
                             (dicVal["inertiaD"] as AnimationCurve).Copy(db.Particles, CurveType.Inertia);
@@ -389,16 +396,16 @@ namespace Performancer {
         internal static class ConditionalHooks {
             private static Harmony _harmony;
 
-            internal static DBDEUI DBDEUI = null;
+            internal static MonoBehaviour DBDEUI = null;
 
             // Enable conditional patches
             public static void SetupHooks() {
                 // Not really a patch here but oh well, we need to get the DBDEUI reference
                 var plugins = Performancer.Instance.gameObject.GetComponents<MonoBehaviour>();
                 foreach (var plugin in plugins) {
-                    if (plugin is DBDEUI dbdeui) {
+                    if (plugin.GetType().ToString() == "DynamicBoneDistributionEditor.DBDEUI") {
                         _harmony = Harmony.CreateAndPatchAll(typeof(ConditionalHooks), null);
-                        DBDEUI = dbdeui;
+                        DBDEUI = plugin;
                         break;
                     }
                 }
