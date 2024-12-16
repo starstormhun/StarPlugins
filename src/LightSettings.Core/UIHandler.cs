@@ -507,8 +507,9 @@ namespace LightSettings.Koikatu {
                             (Mathf.Clamp(field, _sliderMin, _sliderMax) == field || !_allowOutOfBounds) ||
                             newSlider.GetComponentInChildren<Slider>(true).currentSelectionState != Selectable.SelectionState.Normal
                         )
-                    )
+                    ) {
                         newSlider.GetComponentInChildren<InputField>(true).text = f.ToString("0.000");
+                    }
                 }
             });
             newSlider.GetChild(1).GetComponent<Slider>().m_Value = _default;
@@ -523,6 +524,10 @@ namespace LightSettings.Koikatu {
             };
             newSlider.GetChild(2).GetComponent<InputField>().onValueChanged.AddListener(fieldCallback);
             newSlider.GetChild(2).GetComponent<InputField>().m_Text = _default.ToString("0.000");
+            // Make it behave in KKS
+            newSlider.GetChild(2).GetComponent<InputField>().characterLimit = 0;
+            newSlider.GetChild(2).GetComponent<RectTransform>().sizeDelta += new Vector2(5f, 0);
+            newSlider.GetChild(2).localPosition += new Vector3(-2.5f, 0, 0);
 
             // Button config
             newSlider.GetChild(3).GetComponent<Button>().onClick.AddListener(() => {

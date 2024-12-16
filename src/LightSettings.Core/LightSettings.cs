@@ -26,7 +26,7 @@ namespace LightSettings.Koikatu {
         public static LightSettings Instance { get; private set; }
 
         public const string GUID = "starstorm.lightsettings";
-        public const string Version = "1.1.0." + BuildNumber.Version;
+        public const string Version = "1.1.1." + BuildNumber.Version;
 
         internal static Dictionary<string, byte[]> cookieDict = new Dictionary<string, byte[]>();
         internal static Dictionary<string, Texture> cookieDirectionalDict = new Dictionary<string, Texture>();
