@@ -10,14 +10,15 @@ using System.Collections.Generic;
 namespace Performancer {
     [BepInDependency(KKAPI.KoikatuAPI.GUID)]
     [BepInDependency(DynamicBoneDistributionEditor.DBDE.GUID, BepInDependency.DependencyFlags.SoftDependency)]
-	[BepInProcess(KKAPI.KoikatuAPI.StudioProcessName)]
+    [BepInDependency(HSPE.HSPE.GUID, BepInDependency.DependencyFlags.SoftDependency)]
+    [BepInProcess(KKAPI.KoikatuAPI.StudioProcessName)]
     [BepInPlugin(GUID, "Performancer", Version)]
 	/// <info>
 	/// Plugin structure thanks to Keelhauled
 	/// </info>
     public class Performancer : BaseUnityPlugin {
         public const string GUID = "starstorm.performancer";
-        public const string Version = "1.0.0." + BuildNumber.Version;
+        public const string Version = "1.1.0." + BuildNumber.Version;
 
         public static Performancer Instance { get; private set; }
 

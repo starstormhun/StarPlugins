@@ -189,6 +189,51 @@ namespace Performancer {
                     break;
             }
         }
+
+        internal static Vector3[] GetDBPos(this MonoBehaviour bone, bool posOnly = false) {
+            Vector3 pos = Vector3.zero;
+            Vector3 tfPos = Vector3.zero;
+            int pCount;
+            switch (bone) {
+                case DynamicBone db:
+                    pCount = db.m_Particles.Count;
+                    if (pCount == 0) break;
+                    pos = db.m_Particles[pCount - 1].m_Position;
+                    if (posOnly) break;
+                    for (int i = pCount - 1; i >= 0; i--) {
+                        if (db.m_Particles[i].m_Transform != null) {
+                            tfPos = db.m_Particles[i].m_Transform.position;
+                            break;
+                        }
+                    }
+                    break;
+                case DynamicBone_Ver01 db:
+                    pCount = db.m_Particles.Count;
+                    if (pCount == 0) break;
+                    pos = db.m_Particles[pCount - 1].m_Position;
+                    if (posOnly) break;
+                    for (int i = pCount - 1; i >= 0; i--) {
+                        if (db.m_Particles[i].m_Transform != null) {
+                            tfPos = db.m_Particles[i].m_Transform.position;
+                            break;
+                        }
+                    }
+                    break;
+                case DynamicBone_Ver02 db:
+                    pCount = db.Particles.Count;
+                    if (pCount == 0) break;
+                    pos = db.Particles[pCount - 1].Position;
+                    if (posOnly) break;
+                    for (int i = pCount - 1; i >= 0; i--) {
+                        if (db.Particles[i].Transform != null) {
+                            tfPos = db.Particles[i].Transform.position;
+                            break;
+                        }
+                    }
+                    break;
+            }
+            return new Vector3[] { pos, tfPos };
+        }
     }
 
     internal enum CurveType {

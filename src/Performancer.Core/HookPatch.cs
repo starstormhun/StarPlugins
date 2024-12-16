@@ -1,7 +1,9 @@
+using HSPE;
 using Studio;
 using BepInEx;
 using HarmonyLib;
 using UnityEngine;
+using System.Collections;
 using Illusion.Extensions;
 using System.Collections.Generic;
 using DynamicBoneDistributionEditor;
@@ -21,13 +23,14 @@ namespace Performancer {
         internal static class Hooks {
             private static Harmony _harmony;
 
-            internal const int frameAllowance = 3;
+            internal const int frameAllowance = 9;
 
             private static Dictionary<Transform, GuideObject> dicGuideObjects = new Dictionary<Transform, GuideObject>();
 
             private static Dictionary<GuideObject, Dictionary<string, Vector3>> dicGuideObjectVals = new Dictionary<GuideObject, Dictionary<string, Vector3>>();
             internal static Dictionary<MonoBehaviour, Dictionary<string, object>> dicDynBoneVals = new Dictionary<MonoBehaviour, Dictionary<string, object>>();
             private static Dictionary<MonoBehaviour, ChaControl> dicDynBoneCharas = new Dictionary<MonoBehaviour, ChaControl>();
+            private static Dictionary<MonoBehaviour, MonoBehaviour> dicDynBonePoseCtrls = new Dictionary<MonoBehaviour, MonoBehaviour>();
 
             private static Dictionary<GuideObject, bool> dicGuideObjectsToUpdate = new Dictionary<GuideObject, bool>();
             internal static Dictionary<MonoBehaviour, int> dicDynBonesToUpdate = new Dictionary<MonoBehaviour, int>();
@@ -56,6 +59,16 @@ namespace Performancer {
                     val == (ConditionalHooks.DBDEUI as DBDEUI).referencedChara.ChaControl;
             }
 
+            private static MonoBehaviour GetPoseControl(Transform tf) {
+                return tf.GetComponent<PoseController>();
+            }
+
+            private static bool IsThisKKPE(MonoBehaviour mb) {
+                return dicDynBonePoseCtrls.TryGetValue(mb, out var val) && val.enabled && Studio.Studio.Instance.treeNodeCtrl.selectNode != null &&
+                    Studio.Studio.Instance.dicInfo.TryGetValue(Studio.Studio.Instance.treeNodeCtrl.selectNode, out var oci) &&
+                    oci.GetObject() is GameObject go && go.GetComponent<PoseController>() == val;
+            }
+
             [HarmonyPrefix]
             [HarmonyPatch(typeof(GuideObject), "LateUpdate")]
             private static bool GuideObjectBeforeLateUpdate(ref GuideObject __instance) {
@@ -74,6 +87,9 @@ namespace Performancer {
                     result = true;
                 // Second check is whether we want to optimise the LateUpdate or not
                 } else if (!Performancer.OptimiseGuideObjectLate.Value) {
+                    result = true;
+                // If the GuideObject is currently visible, it needs to be updated
+                } else if (__instance.layer == 28) {
                     result = true;
                 // Third, we check if we're supposed to update this GO (because a parent object was changed)
                 } else if (dicGuideObjectsToUpdate.TryGetValue(__instance, out bool dicVal) && dicVal) {
@@ -165,31 +181,37 @@ namespace Performancer {
                     { "force", Vector3.zero },
                     { "gravity", Vector3.zero },
                     { "weight", 0f },
-                    { "damping", 0f },
-                    { "dampingD", new AnimationCurve() },
-                    { "elasticity", 0f },
-                    { "elasticityD", new AnimationCurve() },
-                    { "inertia", 0f },
-                    { "inertiaD", new AnimationCurve() },
-                    { "radius", 0f },
-                    { "radiusD", new AnimationCurve() },
-                    { "stiffness", 0f },
-                    { "stiffnessD", new AnimationCurve() },
                 };
 
-                Transform go = __instance.transform;
-                ChaControl ctrl = null;
-                while (go != null) {
-                    ctrl = go.GetComponent<ChaControl>();
-                    if (ctrl != null) {
-                        dicDynBoneCharas.Add(__instance, ctrl);
-                        break;
-                    }
-                    go = go.parent;
-                }
+                Performancer.Instance.StartCoroutine(GetRefs(__instance));
 
                 // Allow bones to settle when spawned
                 dicDynBonesToUpdate[__instance] = frameAllowance;
+
+                IEnumerator GetRefs(MonoBehaviour _instance) {
+                    yield return KKAPI.Utilities.CoroutineUtils.WaitForEndOfFrame;
+                    Transform go = _instance.transform;
+                    ChaControl chaCtrl = null;
+                    MonoBehaviour poseCtrl = null;
+                    while (go != null && (chaCtrl == null || (ConditionalHooks.isKKPE && poseCtrl == null))) {
+                        if (chaCtrl == null) {
+                            chaCtrl = go.GetComponent<ChaControl>();
+                            if (chaCtrl != null) {
+                                dicDynBoneCharas.Add(_instance, chaCtrl);
+                            }
+                        }
+                        if (ConditionalHooks.isKKPE && poseCtrl == null) {
+                            poseCtrl = GetPoseControl(go);
+                            if (poseCtrl != null) {
+                                dicDynBonePoseCtrls.Add(_instance, poseCtrl);
+                            }
+                        }
+                        go = go.parent;
+                    }
+                    if (ConditionalHooks.isKKPE && poseCtrl == null) {
+                        Performancer.Instance.Log($"No PoseController found for {_instance.name}!", 2);
+                    }
+                }
             }
 
             [HarmonyPrefix]
@@ -199,70 +221,57 @@ namespace Performancer {
             private static bool DynamicBonesBeforeLateUpdate(ref MonoBehaviour __instance) {
                 var dicVal = dicDynBoneVals[__instance];
                 bool result;
+                bool skip = false;
                 // If we don't optimise, then always run the Update scripts
                 if (!Performancer.OptimiseGuideObjectLate.Value || !Performancer.OptimiseDynamicBones.Value) {
                     result = true;
                 // If there's leeway time left, continue
                 } else if (dicDynBonesToUpdate.TryGetValue(__instance, out int framesLeft) && framesLeft > 0) {
                     result = true;
-                // If the weight is zero, continue
+                // If there are no particles, stop running altogether
                 } else if (
-                    (__instance is DynamicBone db_00 && (db_00.m_Weight == 0)) ||
-                    (__instance is DynamicBone_Ver01 db_01 && (db_01.m_Weight == 0)) ||
-                    (__instance is DynamicBone_Ver02 db_02 && (db_02.Weight == 0))
+                    (__instance is DynamicBone db_00 && (db_00.m_Particles.Count == 0)) ||
+                    (__instance is DynamicBone_Ver01 db_01 && (db_01.m_Particles.Count == 0)) ||
+                    (__instance is DynamicBone_Ver02 db_02 && (db_02.Particles.Count == 0))
                 ) {
+                    result = false;
+                    skip = true;
+                // If the weight is zero, then continue
+                } else if (
+                    (__instance is DynamicBone db_10 && (db_10.m_Weight == 0)) ||
+                    (__instance is DynamicBone_Ver01 db_11 && (db_11.m_Weight == 0)) ||
+                    (__instance is DynamicBone_Ver02 db_12 && (db_12.Weight == 0))
+                ) {
+                    result = true;
+                // If the item / character is edited by KKPE / DBDE, always run
+                } else if (
+                    (ConditionalHooks.DBDEUI != null && IsThisDBDE(__instance)) ||
+                    (ConditionalHooks.isKKPE && IsThisKKPE(__instance))
+                ) {
+                    dicDynBonesToUpdate[__instance] = frameAllowance;
                     result = true;
                 // If some value has changed, start running
                 } else if (
-                    (__instance is DynamicBone db_10 && (
-                        (db_10.m_Particles.Count > 0 && dicVal["tfPos"] is Vector3 tfPos0 && tfPos0 != db_10.m_Particles[Mathf.Max(db_10.m_Particles.Count - 2, 0)].m_Transform.position) ||
-                        (dicVal["force"] is Vector3 force0 && force0 != db_10.m_Force) ||
-                        (dicVal["gravity"] is Vector3 gravity0 && gravity0 != db_10.m_Gravity) ||
-                        (dicVal["weight"] is float weight0 && weight0 != db_10.m_Weight) ||
-                        (ConditionalHooks.DBDEUI != null && IsThisDBDE(__instance) && (
-                            (dicVal["damping"] is float damping0 && damping0 != db_10.m_Damping) ||
-                            (dicVal["dampingD"] is AnimationCurve dampingD0 && !dampingD0.IsSame(db_10.m_DampingDistrib)) ||
-                            (dicVal["elasticity"] is float elasticity0 && elasticity0 != db_10.m_Elasticity) ||
-                            (dicVal["elasticityD"] is AnimationCurve elasticityD0 && !elasticityD0.IsSame(db_10.m_ElasticityDistrib)) ||
-                            (dicVal["inertia"] is float inertia0 && inertia0 != db_10.m_Inert) ||
-                            (dicVal["inertiaD"] is AnimationCurve inertiaD0 && !inertiaD0.IsSame(db_10.m_InertDistrib)) ||
-                            (dicVal["radius"] is float radius0 && radius0 != db_10.m_Radius) ||
-                            (dicVal["radiusD"] is AnimationCurve radiusD0 && !radiusD0.IsSame(db_10.m_RadiusDistrib)) ||
-                            (dicVal["stiffness"] is float stiffness0 && stiffness0 != db_10.m_Stiffness) ||
-                            (dicVal["stiffnessD"] is AnimationCurve stiffnessD0 && !stiffnessD0.IsSame(db_10.m_StiffnessDistrib))
+                    __instance.GetDBPos() is Vector3[] positions && (
+                        (__instance is DynamicBone db_20 && (
+                            (dicVal["tfPos"] is Vector3 tfPos0 && !tfPos0.IsSame(positions[1])) ||
+                            (dicVal["force"] is Vector3 force0 && !force0.IsSame(db_20.m_Force)) ||
+                            (dicVal["gravity"] is Vector3 gravity0 && !gravity0.IsSame(db_20.m_Gravity)) ||
+                            (dicVal["weight"] is float weight0 && weight0 != db_20.m_Weight)
+                        )) ||
+                        (__instance is DynamicBone_Ver01 db_21 && (
+                            (dicVal["tfPos"] is Vector3 tfPos1 && !tfPos1.IsSame(positions[1])) ||
+                            (dicVal["force"] is Vector3 force1 && !force1.IsSame(db_21.m_Force)) ||
+                            (dicVal["gravity"] is Vector3 gravity1 && !gravity1.IsSame(db_21.m_Gravity)) ||
+                            (dicVal["weight"] is float weight1 && weight1 != db_21.m_Weight)
+                        )) ||
+                        (__instance is DynamicBone_Ver02 db_22 && (
+                            (dicVal["tfPos"] is Vector3 tfPos2 && !tfPos2.IsSame(positions[1])) ||
+                            (dicVal["force"] is Vector3 force2 && !force2.IsSame(db_22.Force)) ||
+                            (dicVal["gravity"] is Vector3 gravity2 && !gravity2.IsSame(db_22.Gravity)) ||
+                            (dicVal["weight"] is float weight2 && weight2 != db_22.Weight)
                         ))
-                    )) ||
-                    (__instance is DynamicBone_Ver01 db_11 && (
-                        (db_11.m_Particles.Count > 0 && dicVal["tfPos"] is Vector3 tfPos1 && tfPos1 != db_11.m_Particles[Mathf.Max(db_11.m_Particles.Count - 2, 0)].m_Transform.position) ||
-                        (dicVal["force"] is Vector3 force1 && force1 != db_11.m_Force) ||
-                        (dicVal["gravity"] is Vector3 gravity1 && gravity1 != db_11.m_Gravity) ||
-                        (dicVal["weight"] is float weight1 && weight1 != db_11.m_Weight) ||
-                        (ConditionalHooks.DBDEUI != null && IsThisDBDE(__instance) && (
-                            (dicVal["damping"] is float damping1 && damping1 != db_11.m_Damping) ||
-                            (dicVal["dampingD"] is AnimationCurve dampingD1 && !dampingD1.IsSame(db_11.m_DampingDistrib)) ||
-                            (dicVal["elasticity"] is float elasticity1 && elasticity1 != db_11.m_Elasticity) ||
-                            (dicVal["elasticityD"] is AnimationCurve elasticityD1 && !elasticityD1.IsSame(db_11.m_ElasticityDistrib)) ||
-                            (dicVal["inertia"] is float inertia1 && inertia1 != db_11.m_Inert) ||
-                            (dicVal["inertiaD"] is AnimationCurve inertiaD1 && !inertiaD1.IsSame(db_11.m_InertDistrib)) ||
-                            (dicVal["radius"] is float radius1 && radius1 != db_11.m_Radius) ||
-                            (dicVal["radiusD"] is AnimationCurve radiusD1 && !radiusD1.IsSame(db_11.m_RadiusDistrib)) ||
-                            (dicVal["stiffness"] is float stiffness1 && stiffness1 != db_11.m_Stiffness) ||
-                            (dicVal["stiffnessD"] is AnimationCurve stiffnessD1 && !stiffnessD1.IsSame(db_11.m_StiffnessDistrib))
-                        ))
-                    )) ||
-                    (__instance is DynamicBone_Ver02 db_12 && (
-                        (db_12.Particles.Count > 0 && dicVal["tfPos"] is Vector3 tfPos2 && tfPos2 != db_12.Particles[Mathf.Max(db_12.Particles.Count - 2, 0)].Transform.position) ||
-                        (dicVal["force"] is Vector3 force2 && force2 != db_12.Force) ||
-                        (dicVal["gravity"] is Vector3 gravity2 && gravity2 != db_12.Gravity) ||
-                        (dicVal["weight"] is float weight2 && weight2 != db_12.Weight) ||
-                        (ConditionalHooks.DBDEUI != null && IsThisDBDE(__instance) && (
-                            (dicVal["dampingD"] is AnimationCurve dampingD2 && !dampingD2.IsSame(db_12.Particles, CurveType.Damping)) ||
-                            (dicVal["elasticityD"] is AnimationCurve elasticityD2 && !elasticityD2.IsSame(db_12.Particles, CurveType.Elasticity)) ||
-                            (dicVal["inertiaD"] is AnimationCurve inertiaD2 && !inertiaD2.IsSame(db_12.Particles, CurveType.Inertia)) ||
-                            (dicVal["radiusD"] is AnimationCurve radiusD2 && !radiusD2.IsSame(db_12.Particles, CurveType.Radius)) ||
-                            (dicVal["stiffnessD"] is AnimationCurve stiffnessD2 && !stiffnessD2.IsSame(db_12.Particles, CurveType.Stiffness))
-                        ))
-                    ))
+                    )
                 ) {
                     dicDynBonesToUpdate[__instance] = frameAllowance;
                     result = true;
@@ -270,63 +279,36 @@ namespace Performancer {
                     result = false;
                 }
 
-                // Update saved values
-                switch (__instance) {
-                    case DynamicBone db:
-                        dicVal["pos"] = db.m_Particles.Count > 0 ? db.m_Particles[db.m_Particles.Count - 1].m_Position : Vector3.zero;
-                        dicVal["tfPos"] = db.m_Particles.Count > 0 ? db.m_Particles[Mathf.Max(db.m_Particles.Count - 2, 0)].m_Transform.position : Vector3.zero;
-                        dicVal["force"] = db.m_Force;
-                        dicVal["gravity"] = db.m_Gravity;
-                        dicVal["weight"] = db.m_Weight;
-                        if (ConditionalHooks.DBDEUI != null && IsThisDBDE(__instance)) {
-                            dicVal["damping"] = db.m_Damping;
-                            (dicVal["dampingD"] as AnimationCurve).Copy(db.m_DampingDistrib);
-                            dicVal["elasticity"] = db.m_Elasticity;
-                            (dicVal["elasticityD"] as AnimationCurve).Copy(db.m_ElasticityDistrib);
-                            dicVal["inertia"] = db.m_Inert;
-                            (dicVal["inertiaD"] as AnimationCurve).Copy(db.m_InertDistrib);
-                            dicVal["radius"] = db.m_Radius;
-                            (dicVal["radiusD"] as AnimationCurve).Copy(db.m_RadiusDistrib);
-                            dicVal["stiffness"] = db.m_Stiffness;
-                            (dicVal["stiffnessD"] as AnimationCurve).Copy(db.m_StiffnessDistrib);
-                        }
-                        break;
-                    case DynamicBone_Ver01 db:
-                        dicVal["pos"] = db.m_Particles.Count > 0 ? db.m_Particles[db.m_Particles.Count - 1].m_Position : Vector3.zero;
-                        dicVal["tfPos"] = db.m_Particles.Count > 0 ? db.m_Particles[Mathf.Max(db.m_Particles.Count - 2, 0)].m_Transform.position : Vector3.zero;
-                        dicVal["force"] = db.m_Force;
-                        dicVal["gravity"] = db.m_Gravity;
-                        dicVal["weight"] = db.m_Weight;
-                        if (ConditionalHooks.DBDEUI != null && IsThisDBDE(__instance)) {
-                            (dicVal["dampingD"] as AnimationCurve).Copy(db.m_DampingDistrib);
-                            dicVal["elasticity"] = db.m_Elasticity;
-                            (dicVal["elasticityD"] as AnimationCurve).Copy(db.m_ElasticityDistrib);
-                            dicVal["inertia"] = db.m_Inert;
-                            (dicVal["inertiaD"] as AnimationCurve).Copy(db.m_InertDistrib);
-                            dicVal["radius"] = db.m_Radius;
-                            (dicVal["radiusD"] as AnimationCurve).Copy(db.m_RadiusDistrib);
-                            dicVal["stiffness"] = db.m_Stiffness;
-                            (dicVal["stiffnessD"] as AnimationCurve).Copy(db.m_StiffnessDistrib);
-                        }
-                        break;
-                    case DynamicBone_Ver02 db:
-                        dicVal["pos"] = db.Particles.Count > 0 ? db.Particles[db.Particles.Count - 1].Position : Vector3.zero;
-                        dicVal["tfPos"] = db.Particles.Count > 0 ? db.Particles[Mathf.Max(db.Particles.Count - 2, 0)].Transform.position : Vector3.zero;
-                        dicVal["force"] = db.Force;
-                        dicVal["gravity"] = db.Gravity;
-                        dicVal["weight"] = db.Weight;
-                        if (ConditionalHooks.DBDEUI != null && IsThisDBDE(__instance)) {
-                            (dicVal["dampingD"] as AnimationCurve).Copy(db.Particles, CurveType.Damping);
-                            (dicVal["elasticityD"] as AnimationCurve).Copy(db.Particles, CurveType.Elasticity);
-                            (dicVal["inertiaD"] as AnimationCurve).Copy(db.Particles, CurveType.Inertia);
-                            (dicVal["radiusD"] as AnimationCurve).Copy(db.Particles, CurveType.Radius);
-                            (dicVal["stiffnessD"] as AnimationCurve).Copy(db.Particles, CurveType.Stiffness);
-                        }
-                        break;
+                // If running, update saved values
+                if (result) {
+                    Vector3[] positions = __instance.GetDBPos();
+                    switch (__instance) {
+                        case DynamicBone db:
+                            dicVal["pos"] = positions[0];
+                            dicVal["tfPos"] = positions[1];
+                            dicVal["force"] = db.m_Force;
+                            dicVal["gravity"] = db.m_Gravity;
+                            dicVal["weight"] = db.m_Weight;
+                            break;
+                        case DynamicBone_Ver01 db:
+                            dicVal["pos"] = positions[0];
+                            dicVal["tfPos"] = positions[1];
+                            dicVal["force"] = db.m_Force;
+                            dicVal["gravity"] = db.m_Gravity;
+                            dicVal["weight"] = db.m_Weight;
+                            break;
+                        case DynamicBone_Ver02 db:
+                            dicVal["pos"] = positions[0];
+                            dicVal["tfPos"] = positions[1];
+                            dicVal["force"] = db.Force;
+                            dicVal["gravity"] = db.Gravity;
+                            dicVal["weight"] = db.Weight;
+                            break;
+                    }
                 }
 
                 // Have to call these methods when disabling the calculations, otherwise the bones won't function properly
-                if (!result) {
+                if (!result && !skip) {
                     switch (__instance) {
                         case DynamicBone db:
                             db.InitTransforms();
@@ -357,23 +339,14 @@ namespace Performancer {
                 }
 
                 // Get current position of bone
-                Vector3 pos = Vector3.zero;
-                switch (__instance) {
-                    case DynamicBone db:
-                        if (db.m_Particles.Count > 0) pos = db.m_Particles[db.m_Particles.Count - 1].m_Position;
-                        break;
-                    case DynamicBone_Ver01 db:
-                        if (db.m_Particles.Count > 0) pos = db.m_Particles[db.m_Particles.Count - 1].m_Position;
-                        break;
-                    case DynamicBone_Ver02 db:
-                        if (db.Particles.Count > 0) pos = db.Particles[db.Particles.Count - 1].Position;
-                        break;
-                }
+                var positions = __instance.GetDBPos(true);
 
-                // If it didn't change during the update, subtract from the frame allowance
-                if (dicDynBoneVals[__instance]["pos"] is Vector3 posVal && posVal.IsSame(pos)) {
-                    if (dicDynBonesToUpdate.TryGetValue(__instance, out int frames) && frames > 0) {
+                // If it's running and didn't change during the update, subtract from the frame allowance, otherwise refresh
+                if (dicDynBonesToUpdate.TryGetValue(__instance, out int frames) && frames > 0) {
+                    if (dicDynBoneVals[__instance]["pos"] is Vector3 pos && pos.IsSame(positions[0])) {
                         dicDynBonesToUpdate[__instance] = frames - 1;
+                    } else {
+                        dicDynBonesToUpdate[__instance] = frameAllowance;
                     }
                 }
             }
@@ -397,16 +370,20 @@ namespace Performancer {
             private static Harmony _harmony;
 
             internal static MonoBehaviour DBDEUI = null;
+            internal static bool isKKPE = false;
 
             // Enable conditional patches
             public static void SetupHooks() {
-                // Not really a patch here but oh well, we need to get the DBDEUI reference
+                // Not really a patch here but oh well, we need to get the DBDEUI reference and KKPE existence verified
                 var plugins = Performancer.Instance.gameObject.GetComponents<MonoBehaviour>();
                 foreach (var plugin in plugins) {
+                    if (plugin == null) continue;
                     if (plugin.GetType().ToString() == "DynamicBoneDistributionEditor.DBDEUI") {
                         _harmony = Harmony.CreateAndPatchAll(typeof(ConditionalHooks), null);
                         DBDEUI = plugin;
-                        break;
+                    }
+                    if (plugin.GetType().ToString() == "HSPE.HSPE") {
+                        isKKPE = true;
                     }
                 }
             }
