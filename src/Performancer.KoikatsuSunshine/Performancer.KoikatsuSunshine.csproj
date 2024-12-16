@@ -24,6 +24,9 @@
     <Reference Include="KKS.DynamicBoneDistributionEditor">
       <HintPath>..\..\lib\KKS_DynamicBoneDistributionEditor.dll</HintPath>
     </Reference>
+    <Reference Include="KKSPE">
+      <HintPath>..\..\lib\KKSPE.dll</HintPath>
+    </Reference>
   </ItemGroup>
   <Import Project="..\Common.Core\Common.Core.projitems" Label="Shared" />
   <Import Project="..\Performancer.Core\Performancer.Core.projitems" Label="Shared" />
