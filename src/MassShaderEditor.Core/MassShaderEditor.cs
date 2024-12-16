@@ -1011,7 +1011,7 @@ namespace MassShaderEditor.Koikatu {
                     string filter = filterList[i].Trim();
                     if (filter.Length == 0) continue;
 
-                    if (filter[0] == '-' || filter[0] == '~') {
+                    if (filter[0] == '-' || filter[0] == '~' || filter[0] == '!') {
                         if (_name.Contains(filter.Substring(1))) {
                             output = false;
                             break;
