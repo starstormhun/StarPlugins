@@ -485,22 +485,46 @@ namespace MassShaderEditor.Koikatu {
                     } else if (oci is OCIChar ociChar && AffectCharacters.Value) {
                         if (IsDebug.Value) Log($"Looking into character: {ociChar.treeNodeObject.textName}");
                         var ctrl = KKAPI.Studio.StudioObjectExtensions.GetChaControl(ociChar);
-                        if (AffectChaBody.Value && AffectMiscBodyParts.Value) SetCharaProperties(ctrl.GetController(), ociChar, 0, ObjectType.Character, _value);
-                        else if (AffectChaBody.Value) if (SetCharaProperties(ctrl.GetController(), ociChar, 0, ObjectType.Character, _value,
-                            (Renderer x) => new List<string> { "cf_O_face", "o_body_a" }.Contains(x.NameFormatted().ToLower())) && fetchValue) return true;
-                        else if (AffectMiscBodyParts.Value) if (SetCharaProperties(ctrl.GetController(), ociChar, 0, ObjectType.Character, _value,
-                            (Renderer x) => !new List<string> { "cf_O_face", "o_body_a" }.Contains(x.NameFormatted().ToLower())) && fetchValue) return true;
-                        if (AffectChaHair.Value) for(int i = 0; i<ctrl.objHair.Length; i++) if (SetCharaProperties(ctrl.GetController(), ociChar, i, ObjectType.Hair, _value) && fetchValue) return true;
-                        if (AffectChaClothes.Value) for (int i = 0; i < ctrl.objClothes.Length; i++) if (SetCharaProperties(ctrl.GetController(), ociChar, i, ObjectType.Clothing, _value) && fetchValue) return true;
-                        for (int i = 0; i < ctrl.objAccessory.Length; i++)
-                            if (
-                                SetCharaProperties(
-                                    ctrl.GetController(), ociChar, i, ObjectType.Accessory, _value, (Material x) =>
-                                    (x.shader.NameFormatted().ToLower().Contains("hair") && AffectChaHair.Value) ||
-                                    (!x.shader.NameFormatted().ToLower().Contains("hair") && AffectChaAccs.Value)
-                                ) &&
-                                fetchValue
-                            ) return true;
+
+                        // Modify body parts
+                        if (AffectChaBody.Value && AffectMiscBodyParts.Value) {
+                            SetCharaProperties(ctrl.GetController(), ociChar, 0, ObjectType.Character, _value);
+                        } else if (AffectChaBody.Value) {
+                            Predicate<Renderer> rendFilter = (Renderer x) => new List<string> { "cf_o_face", "o_body_a" }.Contains(x.NameFormatted().ToLower());
+                            if (SetCharaProperties(ctrl.GetController(), ociChar, 0, ObjectType.Character, _value, rendFilter) && fetchValue)
+                                return true;
+                        } else if (AffectMiscBodyParts.Value) {
+                            Predicate<Renderer> rendFilter = (Renderer x) => !new List<string> { "cf_o_face", "o_body_a" }.Contains(x.NameFormatted().ToLower());
+                            if (SetCharaProperties(ctrl.GetController(), ociChar, 0, ObjectType.Character, _value, rendFilter) && fetchValue)
+                                return true;
+                        }
+
+                        // Modify hair
+                        if (AffectChaHair.Value) {
+                            for (int i = 0; i < ctrl.objHair.Length; i++) {
+                                if (SetCharaProperties(ctrl.GetController(), ociChar, i, ObjectType.Hair, _value) && fetchValue)
+                                    return true;
+                            }
+                        }
+
+                        // Modify clothing
+                        if (AffectChaClothes.Value) {
+                            for (int i = 0; i < ctrl.objClothes.Length; i++) {
+                                if (SetCharaProperties(ctrl.GetController(), ociChar, i, ObjectType.Clothing, _value) && fetchValue)
+                                    return true;
+                            }
+                        }
+
+                        // Modify accessories
+                        if (AffectChaHair.Value || AffectChaAccs.Value) {
+                            for (int i = 0; i < ctrl.objAccessory.Length; i++) {
+                                Predicate<Material> matFilter = (Material x) =>
+                                    (AffectChaHair.Value && (x.shader.NameFormatted().ToLower().Contains("hair") || x.NameFormatted().ToLower().Contains("hair"))) ||
+                                    (AffectChaAccs.Value && !(x.shader.NameFormatted().ToLower().Contains("hair") || x.NameFormatted().ToLower().Contains("hair")));
+                                if (SetCharaProperties(ctrl.GetController(), ociChar, i, ObjectType.Accessory, _value, matFilter) && fetchValue)
+                                    return true;
+                            }
+                        }
                     }
                 }
                 if (MaterialEditorUI.MaterialEditorWindow.gameObject.activeSelf && !fetchValue) MEStudio.Instance.RefreshUI();
