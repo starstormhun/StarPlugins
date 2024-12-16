@@ -360,7 +360,6 @@ namespace MassShaderEditor.Koikatu {
                     Redraw(WinNum("intro"), warnRect, redrawNum);
                 }
             }
-
         }
 
         private bool SetAllProperties<T>(T _value) {
@@ -435,12 +434,12 @@ namespace MassShaderEditor.Koikatu {
                                     foreach (TreeNodeObject childTwo in childOne.child) {
                                         foreach (TreeNodeObject childItem in childTwo.child) {
                                             var childOCI = Singleton<Studio.Studio>.Instance.dicInfo[childItem];
-                                            childOCI.AddChildrenRecursive(ociList);
+                                            ociList.AddChildrenRecursive(childOCI);
                                         }
                                     }
                                 }
                             } else {
-                                oci.AddChildrenRecursive(ociList);
+                                ociList.AddChildrenRecursive(oci);
                             }
                         }
                     if (SetStudioProperties(ociList, _value) && fetchValue) return true;
@@ -539,7 +538,7 @@ namespace MassShaderEditor.Koikatu {
 
             if (IsDebug.Value) Log($"Looking into {item.NameFormatted()}...");
             foreach (var rend in GetRendererList(item.objectItem)) {
-                if (ApplyFilter(rend.NameFormatted(), filters[0]))
+                if (ApplyFilter(rend.NameFormatted(), filters[0])) {
                     if (tab == SettingType.Renderer) {
                         if (setReset) {
                             if (DecodeBitMap(rendererAffectMap, 0)) {
@@ -567,7 +566,7 @@ namespace MassShaderEditor.Koikatu {
                     } else {
                         foreach (var mat in GetMaterials(item.objectItem, rend)) {
                             if (!editedMatList.Contains(mat.NameFormatted()) && ApplyFilter(mat.NameFormatted(), filters[1]) && ApplyFilter(mat.shader.NameFormatted(), filters[2])) {
-                                if (tab == SettingType.Float || tab == SettingType.Color || tab == SettingType.Texture)
+                                if (new List<SettingType> { SettingType.Float, SettingType.Color, SettingType.Texture }.Contains(tab)) {
                                     if (mat.HasProperty("_" + setName)) {
                                         try {
                                             if (setReset) {
@@ -636,15 +635,13 @@ namespace MassShaderEditor.Koikatu {
                                     } else {
                                         if (IsDebug.Value) Log($"Material {item.NameFormatted()}\\{mat.NameFormatted()}\\{mat.shader.NameFormatted()} did not have the {setName} property...");
                                     }
-                                else if (tab == SettingType.Shader)
-                                    if (shaders.Contains(setShader.Trim()) || favShaders.Contains(setShader.Trim()) || setReset) {
+                                } else if (tab == SettingType.Shader) {
+                                    if (setReset || shaders.Contains(setShader.Trim()) || favShaders.Contains(setShader.Trim())) {
                                         try {
                                             if (setReset) {
-                                                if (_value is string) {
-                                                    ctrl.RemoveMaterialShader(item.objectInfo.dicKey, mat);
-                                                    ctrl.RemoveMaterialShaderRenderQueue(item.objectInfo.dicKey, mat);
-                                                    if (IsDebug.Value) Log($"Shader of {item.NameFormatted()}\\{mat.NameFormatted()} reset!");
-                                                } else { if (IsDebug.Value) Log($"Tried resetting shader of {item.NameFormatted()}\\{mat.NameFormatted()} with erroneous identifier type: {_value.GetType()}"); }
+                                                ctrl.RemoveMaterialShader(item.objectInfo.dicKey, mat);
+                                                ctrl.RemoveMaterialShaderRenderQueue(item.objectInfo.dicKey, mat);
+                                                if (IsDebug.Value) Log($"Shader of {item.NameFormatted()}\\{mat.NameFormatted()} reset!");
                                             } else if (_value is string stringval) {
                                                 ctrl.SetMaterialShader(item.objectInfo.dicKey, mat, stringval.Trim());
                                                 if (setQueue != 0) ctrl.SetMaterialShaderRenderQueue(item.objectInfo.dicKey, mat, setQueue);
@@ -654,10 +651,11 @@ namespace MassShaderEditor.Koikatu {
                                             Logger.LogError($"Unknown error during shader assignment of {item.NameFormatted()}\\{mat.NameFormatted()}\\{mat.shader.NameFormatted()}\\{setName}: {e}");
                                         }
                                     } else { if (IsDebug.Value) Log($"Tried setting {item.NameFormatted()}\\{mat.NameFormatted()} to nonexistent shader!"); }
-                                else { throw new ArgumentException("Erroneous / unimplemented tab type!"); }
+                                } else { throw new ArgumentException("Erroneous / unimplemented tab type!"); }
                             }
                         }
                     }
+                }
             }
             return false;
         }

@@ -68,7 +68,7 @@ namespace MassShaderEditor.Koikatu {
 #endif
         }
 
-        public static void AddChildrenRecursive(this ObjectCtrlInfo _oci, List<ObjectCtrlInfo> _list) {
+        public static void AddChildrenRecursive(this List<ObjectCtrlInfo> _list, ObjectCtrlInfo _oci) {
             Recurse(_oci, _list);
 
             void Recurse(ObjectCtrlInfo oci, List<ObjectCtrlInfo> list) {
