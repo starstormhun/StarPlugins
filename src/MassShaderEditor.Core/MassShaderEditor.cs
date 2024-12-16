@@ -30,7 +30,7 @@ namespace MassShaderEditor.Koikatu {
 	/// </info>
     public partial class MassShaderEditor : BaseUnityPlugin {
         public const string GUID = "starstorm.massshadereditor";
-        public const string Version = "1.3.0." + BuildNumber.Version;
+        public const string Version = "1.3.1." + BuildNumber.Version;
 
         // General
         public ConfigEntry<float> UIScale { get; private set; }
@@ -360,7 +360,6 @@ namespace MassShaderEditor.Koikatu {
                     Redraw(WinNum("intro"), warnRect, redrawNum);
                 }
             }
-
         }
 
         private bool SetAllProperties<T>(T _value) {
@@ -435,12 +434,12 @@ namespace MassShaderEditor.Koikatu {
                                     foreach (TreeNodeObject childTwo in childOne.child) {
                                         foreach (TreeNodeObject childItem in childTwo.child) {
                                             var childOCI = Singleton<Studio.Studio>.Instance.dicInfo[childItem];
-                                            childOCI.AddChildrenRecursive(ociList);
+                                            ociList.AddChildrenRecursive(childOCI);
                                         }
                                     }
                                 }
                             } else {
-                                oci.AddChildrenRecursive(ociList);
+                                ociList.AddChildrenRecursive(oci);
                             }
                         }
                     if (SetStudioProperties(ociList, _value) && fetchValue) return true;
@@ -485,22 +484,46 @@ namespace MassShaderEditor.Koikatu {
                     } else if (oci is OCIChar ociChar && AffectCharacters.Value) {
                         if (IsDebug.Value) Log($"Looking into character: {ociChar.treeNodeObject.textName}");
                         var ctrl = KKAPI.Studio.StudioObjectExtensions.GetChaControl(ociChar);
-                        if (AffectChaBody.Value && AffectMiscBodyParts.Value) SetCharaProperties(ctrl.GetController(), ociChar, 0, ObjectType.Character, _value);
-                        else if (AffectChaBody.Value) if (SetCharaProperties(ctrl.GetController(), ociChar, 0, ObjectType.Character, _value,
-                            (Renderer x) => new List<string> { "cf_O_face", "o_body_a" }.Contains(x.NameFormatted().ToLower())) && fetchValue) return true;
-                        else if (AffectMiscBodyParts.Value) if (SetCharaProperties(ctrl.GetController(), ociChar, 0, ObjectType.Character, _value,
-                            (Renderer x) => !new List<string> { "cf_O_face", "o_body_a" }.Contains(x.NameFormatted().ToLower())) && fetchValue) return true;
-                        if (AffectChaHair.Value) for(int i = 0; i<ctrl.objHair.Length; i++) if (SetCharaProperties(ctrl.GetController(), ociChar, i, ObjectType.Hair, _value) && fetchValue) return true;
-                        if (AffectChaClothes.Value) for (int i = 0; i < ctrl.objClothes.Length; i++) if (SetCharaProperties(ctrl.GetController(), ociChar, i, ObjectType.Clothing, _value) && fetchValue) return true;
-                        for (int i = 0; i < ctrl.objAccessory.Length; i++)
-                            if (
-                                SetCharaProperties(
-                                    ctrl.GetController(), ociChar, i, ObjectType.Accessory, _value, (Material x) =>
-                                    (x.shader.NameFormatted().ToLower().Contains("hair") && AffectChaHair.Value) ||
-                                    (!x.shader.NameFormatted().ToLower().Contains("hair") && AffectChaAccs.Value)
-                                ) &&
-                                fetchValue
-                            ) return true;
+
+                        // Modify body parts
+                        if (AffectChaBody.Value && AffectMiscBodyParts.Value) {
+                            SetCharaProperties(ctrl.GetController(), ociChar, 0, ObjectType.Character, _value);
+                        } else if (AffectChaBody.Value) {
+                            Predicate<Renderer> rendFilter = (Renderer x) => new List<string> { "cf_o_face", "o_body_a" }.Contains(x.NameFormatted().ToLower());
+                            if (SetCharaProperties(ctrl.GetController(), ociChar, 0, ObjectType.Character, _value, rendFilter) && fetchValue)
+                                return true;
+                        } else if (AffectMiscBodyParts.Value) {
+                            Predicate<Renderer> rendFilter = (Renderer x) => !new List<string> { "cf_o_face", "o_body_a" }.Contains(x.NameFormatted().ToLower());
+                            if (SetCharaProperties(ctrl.GetController(), ociChar, 0, ObjectType.Character, _value, rendFilter) && fetchValue)
+                                return true;
+                        }
+
+                        // Modify hair
+                        if (AffectChaHair.Value) {
+                            for (int i = 0; i < ctrl.objHair.Length; i++) {
+                                if (SetCharaProperties(ctrl.GetController(), ociChar, i, ObjectType.Hair, _value) && fetchValue)
+                                    return true;
+                            }
+                        }
+
+                        // Modify clothing
+                        if (AffectChaClothes.Value) {
+                            for (int i = 0; i < ctrl.objClothes.Length; i++) {
+                                if (SetCharaProperties(ctrl.GetController(), ociChar, i, ObjectType.Clothing, _value) && fetchValue)
+                                    return true;
+                            }
+                        }
+
+                        // Modify accessories
+                        if (AffectChaHair.Value || AffectChaAccs.Value) {
+                            for (int i = 0; i < ctrl.objAccessory.Length; i++) {
+                                Predicate<Material> matFilter = (Material x) =>
+                                    (AffectChaHair.Value && (x.shader.NameFormatted().ToLower().Contains("hair") || x.NameFormatted().ToLower().Contains("hair"))) ||
+                                    (AffectChaAccs.Value && !(x.shader.NameFormatted().ToLower().Contains("hair") || x.NameFormatted().ToLower().Contains("hair")));
+                                if (SetCharaProperties(ctrl.GetController(), ociChar, i, ObjectType.Accessory, _value, matFilter) && fetchValue)
+                                    return true;
+                            }
+                        }
                     }
                 }
                 if (MaterialEditorUI.MaterialEditorWindow.gameObject.activeSelf && !fetchValue) MEStudio.Instance.RefreshUI();
@@ -515,7 +538,7 @@ namespace MassShaderEditor.Koikatu {
 
             if (IsDebug.Value) Log($"Looking into {item.NameFormatted()}...");
             foreach (var rend in GetRendererList(item.objectItem)) {
-                if (ApplyFilter(rend.NameFormatted(), filters[0]))
+                if (ApplyFilter(rend.NameFormatted(), filters[0])) {
                     if (tab == SettingType.Renderer) {
                         if (setReset) {
                             if (DecodeBitMap(rendererAffectMap, 0)) {
@@ -543,7 +566,7 @@ namespace MassShaderEditor.Koikatu {
                     } else {
                         foreach (var mat in GetMaterials(item.objectItem, rend)) {
                             if (!editedMatList.Contains(mat.NameFormatted()) && ApplyFilter(mat.NameFormatted(), filters[1]) && ApplyFilter(mat.shader.NameFormatted(), filters[2])) {
-                                if (tab == SettingType.Float || tab == SettingType.Color || tab == SettingType.Texture)
+                                if (new List<SettingType> { SettingType.Float, SettingType.Color, SettingType.Texture }.Contains(tab)) {
                                     if (mat.HasProperty("_" + setName)) {
                                         try {
                                             if (setReset) {
@@ -612,15 +635,13 @@ namespace MassShaderEditor.Koikatu {
                                     } else {
                                         if (IsDebug.Value) Log($"Material {item.NameFormatted()}\\{mat.NameFormatted()}\\{mat.shader.NameFormatted()} did not have the {setName} property...");
                                     }
-                                else if (tab == SettingType.Shader)
-                                    if (shaders.Contains(setShader.Trim()) || favShaders.Contains(setShader.Trim()) || setReset) {
+                                } else if (tab == SettingType.Shader) {
+                                    if (setReset || shaders.Contains(setShader.Trim()) || favShaders.Contains(setShader.Trim())) {
                                         try {
                                             if (setReset) {
-                                                if (_value is string) {
-                                                    ctrl.RemoveMaterialShader(item.objectInfo.dicKey, mat);
-                                                    ctrl.RemoveMaterialShaderRenderQueue(item.objectInfo.dicKey, mat);
-                                                    if (IsDebug.Value) Log($"Shader of {item.NameFormatted()}\\{mat.NameFormatted()} reset!");
-                                                } else { if (IsDebug.Value) Log($"Tried resetting shader of {item.NameFormatted()}\\{mat.NameFormatted()} with erroneous identifier type: {_value.GetType()}"); }
+                                                ctrl.RemoveMaterialShader(item.objectInfo.dicKey, mat);
+                                                ctrl.RemoveMaterialShaderRenderQueue(item.objectInfo.dicKey, mat);
+                                                if (IsDebug.Value) Log($"Shader of {item.NameFormatted()}\\{mat.NameFormatted()} reset!");
                                             } else if (_value is string stringval) {
                                                 ctrl.SetMaterialShader(item.objectInfo.dicKey, mat, stringval.Trim());
                                                 if (setQueue != 0) ctrl.SetMaterialShaderRenderQueue(item.objectInfo.dicKey, mat, setQueue);
@@ -630,10 +651,11 @@ namespace MassShaderEditor.Koikatu {
                                             Logger.LogError($"Unknown error during shader assignment of {item.NameFormatted()}\\{mat.NameFormatted()}\\{mat.shader.NameFormatted()}\\{setName}: {e}");
                                         }
                                     } else { if (IsDebug.Value) Log($"Tried setting {item.NameFormatted()}\\{mat.NameFormatted()} to nonexistent shader!"); }
-                                else { throw new ArgumentException("Erroneous / unimplemented tab type!"); }
+                                } else { throw new ArgumentException("Erroneous / unimplemented tab type!"); }
                             }
                         }
                     }
+                }
             }
             return false;
         }
@@ -987,7 +1009,7 @@ namespace MassShaderEditor.Koikatu {
                     string filter = filterList[i].Trim();
                     if (filter.Length == 0) continue;
 
-                    if (filter[0] == '-' || filter[0] == '~') {
+                    if (filter[0] == '-' || filter[0] == '~' || filter[0] == '!') {
                         if (_name.Contains(filter.Substring(1))) {
                             output = false;
                             break;
