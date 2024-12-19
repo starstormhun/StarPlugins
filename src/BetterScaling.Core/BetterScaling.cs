@@ -7,7 +7,8 @@ using BepInEx.Configuration;
 
 namespace BetterScaling {
     [BepInDependency(KKAPI.KoikatuAPI.GUID)]
-	[BepInProcess(KKAPI.KoikatuAPI.StudioProcessName)]
+    [BepInDependency(Performancer.Performancer.GUID, BepInDependency.DependencyFlags.SoftDependency)]
+    [BepInProcess(KKAPI.KoikatuAPI.StudioProcessName)]
     [BepInPlugin(GUID, "Better Scaling", Version)]
 	/// <info>
 	/// Plugin structure thanks to Keelhauled
@@ -25,8 +26,6 @@ namespace BetterScaling {
         public static ConfigEntry<bool> IsDebug { get; private set; }
 
         private void Awake() {
-            Log.SetLogSource(Logger);
-
             Instance = this;
 
             Enabled = Config.Bind("General", "Enable plugin", true, new ConfigDescription("REQUIRES RESTART! Enable/disable the plugin entirely. DO NOT save / modify current scene after changing this setting!", null, new ConfigurationManagerAttributes { Order = 10 }));
@@ -35,11 +34,29 @@ namespace BetterScaling {
             HierarchyScaling = Config.Bind("General", "Hierarchy scaling", true, "REQUIRES RESTART! Enable toggling of hierarchy scaling. Mark objects in the Workspace window. Marked objects will scale their direct children by their own scale. DO NOT save / modify current scene after changing this setting!");
             IsDebug = Config.Bind("Debug", "Logging", false, new ConfigDescription("Enable verbose logging", null, new ConfigurationManagerAttributes { IsAdvanced = true }));
 
-            if (IsDebug.Value) Log.Info("Awoken!");
+            if (IsDebug.Value) Log("Awoken!");
 
             if (!Enabled.Value) return;
 
             HookPatch.Init();
+        }
+
+        internal void Log(object data, int level = 0) {
+            switch (level) {
+                case 0:
+                    Logger.LogInfo(data); return;
+                case 1:
+                    Logger.LogDebug(data); return;
+                case 2:
+                    Logger.LogWarning(data); return;
+                case 3:
+                    Logger.LogError(data); return;
+                case 4:
+                    Logger.LogFatal(data); return;
+                case 5:
+                    Logger.LogMessage(data); return;
+                default: return;
+            }
         }
     }
 }

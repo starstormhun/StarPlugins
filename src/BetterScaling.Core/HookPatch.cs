@@ -1,5 +1,6 @@
 ﻿using System;
 using Studio;
+using BepInEx;
 using HarmonyLib;
 using UnityEngine;
 using UnityEngine.UI;
@@ -68,6 +69,8 @@ namespace BetterScaling {
             private static Sprite toggleOn;
             private static Sprite toggleOff;
 
+            private static int performancerPresence = 0;
+
             private static Dictionary<GuideObject, TreeNodeObject> dicGuideToTNO = new Dictionary<GuideObject, TreeNodeObject>();
             private static Dictionary<TreeNodeObject, bool> dicTNOScaleHierarchy = new Dictionary<TreeNodeObject, bool>();
             private static Dictionary<GuideObject, bool> dicGuideObjectCalcScale = new Dictionary<GuideObject, bool>();
@@ -75,6 +78,16 @@ namespace BetterScaling {
             // Setup functionality on launch / enable
             public static void SetupHooks() {
                 if (BetterScaling.HierarchyScaling.Value) {
+                    // Read plugins
+                    var plugins = BetterScaling.Instance.gameObject.GetComponents<MonoBehaviour>();
+                    foreach (var plugin in plugins) {
+                        if (plugin == null) continue;
+                        if (plugin.GetType().ToString() == "Performancer.Performancer") {
+                            GetPerformancerVersion(plugin as BaseUnityPlugin);
+                            break;
+                        }
+                    }
+
                     // Load toggle image and create sprites
                     Texture2D toggleIcon = new Texture2D(1, 1);
                     toggleIcon.LoadImage(Convert.FromBase64String(IMG.selectorIcon));
@@ -89,6 +102,29 @@ namespace BetterScaling {
             // Disable functionality when disabled in settings
             public static void UnregisterHooks() {
                 _harmony.UnpatchSelf();
+            }
+
+            private static void GetPerformancerVersion(BaseUnityPlugin plugin) {
+                if (plugin.Info.Metadata.Version.Major == 1 && plugin.Info.Metadata.Version.Minor < 2) {
+                    performancerPresence = 1;
+                    BetterScaling.Instance.Log("[BetterScaling] Outdated Performancer version detected! Hierarchy scaling won't work correctly, please update to v1.2.1 or later!", 5);
+                } else {
+                    performancerPresence = 2;
+                }
+            }
+
+            private static void MakePerformancerUpdate(TreeNodeObject tno) {
+                switch (performancerPresence) {
+                    case 2:
+                        MakePerformancerUpdateInternal();
+                        break;
+                    default:
+                        return;
+                }
+
+                void MakePerformancerUpdateInternal() {
+                    Performancer.Performancer.Instance.EnableGuideObject(Studio.Studio.Instance.dicInfo[tno].guideObject);
+                }
             }
 
             // Register TNO in dictionaries and create toggle button
@@ -114,6 +150,7 @@ namespace BetterScaling {
                         bool newVal = !dicTNOScaleHierarchy[__instance];
                         dicTNOScaleHierarchy[__instance] = newVal;
                         img.sprite = newVal ? toggleOn : toggleOff;
+                        MakePerformancerUpdate(__instance);
                     });
                     toggle.transform.localPosition = new Vector3(__instance.m_ButtonVisible.gameObject.activeSelf ? 40f : 20f, 0, 0);
 

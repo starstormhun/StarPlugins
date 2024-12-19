@@ -20,6 +20,11 @@
     <PackageReference Include="IllusionLibs.Koikatu.UnityEngine.UI" Version="5.6.2.4" />
     <PackageReference Include="IllusionModdingAPI.KKAPI" Version="1.36.0" />
   </ItemGroup>
+  <ItemGroup>
+    <Reference Include="Performancer.Koikatu">
+      <HintPath>..\..\lib\Performancer.Koikatu.dll</HintPath>
+    </Reference>
+  </ItemGroup>
   <Import Project="..\Common.Core\Common.Core.projitems" Label="Shared" />
   <Import Project="..\BetterScaling.Core\BetterScaling.Core.projitems" Label="Shared" />
   <Target Name="PostBuild" AfterTargets="PostBuildEvent">
