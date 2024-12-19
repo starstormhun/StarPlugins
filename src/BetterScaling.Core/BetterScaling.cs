@@ -2,6 +2,7 @@ using BepInEx;
 using UnityEngine;
 using KKAPI.Utilities;
 using BepInEx.Configuration;
+using KKAPI.Studio.SaveLoad;
 
 [assembly: System.Reflection.AssemblyFileVersion(BetterScaling.BetterScaling.Version)]
 
@@ -37,6 +38,8 @@ namespace BetterScaling {
             if (IsDebug.Value) Log("Awoken!");
 
             if (!Enabled.Value) return;
+
+            StudioSaveLoadApi.RegisterExtraBehaviour<SceneDataController>(SceneDataController.SaveID);
 
             HookPatch.Init();
         }

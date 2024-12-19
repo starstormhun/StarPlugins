@@ -63,17 +63,19 @@ namespace BetterScaling {
             }
         }
 
-        private static class Hierarchy {
+        internal static class Hierarchy {
             private static Harmony _harmony;
 
-            private static Sprite toggleOn;
+            internal static Sprite toggleOn;
             private static Sprite toggleOff;
 
             private static int performancerPresence = 0;
 
             private static Dictionary<GuideObject, TreeNodeObject> dicGuideToTNO = new Dictionary<GuideObject, TreeNodeObject>();
-            private static Dictionary<TreeNodeObject, bool> dicTNOScaleHierarchy = new Dictionary<TreeNodeObject, bool>();
+            internal static Dictionary<TreeNodeObject, bool> dicTNOScaleHierarchy = new Dictionary<TreeNodeObject, bool>();
             private static Dictionary<GuideObject, bool> dicGuideObjectCalcScale = new Dictionary<GuideObject, bool>();
+
+            internal static Dictionary<TreeNodeObject, GameObject> dicTNOButtons = new Dictionary<TreeNodeObject, GameObject>();
 
             // Setup functionality on launch / enable
             public static void SetupHooks() {
@@ -136,7 +138,11 @@ namespace BetterScaling {
                     // Register TNO in dictionaries
                     dicGuideToTNO[oci.guideObject] = __instance;
                     if (!dicTNOScaleHierarchy.ContainsKey(__instance)) {
-                        dicTNOScaleHierarchy[__instance] = false;
+                        bool contains = SceneDataController.listScaledTNO.Contains(__instance);
+                        dicTNOScaleHierarchy[__instance] = contains;
+                        if (contains) {
+                            SceneDataController.listScaledTNO.Remove(__instance);
+                        }
                     }
 
                     // Create scaling toggle
@@ -153,6 +159,8 @@ namespace BetterScaling {
                         MakePerformancerUpdate(__instance);
                     });
                     toggle.transform.localPosition = new Vector3(__instance.m_ButtonVisible.gameObject.activeSelf ? 40f : 20f, 0, 0);
+                    toggle.name = "BS_ScaleChildren";
+                    dicTNOButtons[__instance] = toggle;
 
                     // Recalculate text position
                     __instance.RecalcSelectButtonPos();
