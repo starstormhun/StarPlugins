@@ -8,6 +8,7 @@ namespace BetterScaling {
     public static class HookPatch {
         internal static void Init() {
             Hooks.SetupHooks();
+            Hierarchy.SetupHooks();
         }
 
         internal static void Deactivate() {
@@ -16,10 +17,6 @@ namespace BetterScaling {
 
         private static class Hooks {
             private static Harmony _harmony;
-
-            private static Dictionary<GuideObject, TreeNodeObject> dicGuideToTNO = new Dictionary<GuideObject, TreeNodeObject>();
-            private static Dictionary<TreeNodeObject, bool> dicTNOScaleHierarchy = new Dictionary<TreeNodeObject, bool>();
-            private static Dictionary<GuideObject, bool> dicGuideObjectCalcScale = new Dictionary<GuideObject, bool>();
 
             // Setup functionality on launch / enable
             public static void SetupHooks() {
@@ -35,7 +32,7 @@ namespace BetterScaling {
             [HarmonyPostfix]
             [HarmonyPatch(typeof(AddObjectFolder), "Load", new Type[] { typeof(OIFolderInfo), typeof(ObjectCtrlInfo), typeof(TreeNodeObject), typeof(bool), typeof(int) })]
             private static void AddObjectFolderAfterLoad(ref OCIFolder __result) {
-                if (BetterScaling.FolderScaling.Value) {
+                if (BetterScaling.Enabled.Value && BetterScaling.FolderScaling.Value) {
                     __result.guideObject.enableScale = true;
                     __result.guideObject.isActiveFunc += new GuideObject.IsActiveFunc(__result.OnSelect);
                 }
@@ -61,6 +58,26 @@ namespace BetterScaling {
                     }
                     return false;
                 } else return true;
+            }
+        }
+
+        private static class Hierarchy {
+            private static Harmony _harmony;
+
+            private static Dictionary<GuideObject, TreeNodeObject> dicGuideToTNO = new Dictionary<GuideObject, TreeNodeObject>();
+            private static Dictionary<TreeNodeObject, bool> dicTNOScaleHierarchy = new Dictionary<TreeNodeObject, bool>();
+            private static Dictionary<GuideObject, bool> dicGuideObjectCalcScale = new Dictionary<GuideObject, bool>();
+
+            // Setup functionality on launch / enable
+            public static void SetupHooks() {
+                if (BetterScaling.HierarchyScaling.Value) {
+                    _harmony = Harmony.CreateAndPatchAll(typeof(Hooks), null);
+                }
+            }
+
+            // Disable functionality when disabled in settings
+            public static void UnregisterHooks() {
+                _harmony.UnpatchSelf();
             }
 
             // Register GuideObject -> TNO connection on TNO creation
@@ -90,8 +107,6 @@ namespace BetterScaling {
                 } else {
                     dicGuideObjectCalcScale[__instance] = false;
                 }
-
-                // TODO Performancer compatibility here !!!
 
                 return true;
             }
