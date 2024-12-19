@@ -20,7 +20,7 @@ namespace Performancer {
 	/// </info>
     public class Performancer : BaseUnityPlugin {
         public const string GUID = "starstorm.performancer";
-        public const string Version = "1.2.0." + BuildNumber.Version;
+        public const string Version = "1.2.1." + BuildNumber.Version;
 
         public static Performancer Instance { get; private set; }
 
@@ -63,7 +63,7 @@ namespace Performancer {
         public bool EnableGuideObject(GuideObject guide) {
             if (guide == null) return false;
             try {
-                HookPatch.Hooks.dicGuideObjectsToUpdate[guide] = true;
+                HookPatch.Hooks.dicGuideObjectsToUpdate[guide] = 2;
                 return true;
             } catch {
                 return false;
