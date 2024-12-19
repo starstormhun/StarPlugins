@@ -71,6 +71,10 @@ namespace BetterScaling {
             }
         }
 
+        public static bool IsHierarchyScalable(TreeNodeObject tno) {
+            return HookPatch.Hierarchy.dicTNOScaleHierarchy.ContainsKey(tno);
+        }
+
         internal void Log(object data, int level = 0) {
             switch (level) {
                 case 0:
