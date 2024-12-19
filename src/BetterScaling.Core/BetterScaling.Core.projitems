@@ -6,11 +6,13 @@
     <SharedGUID>6c9e0956-133b-47c3-9f24-4d17f134ccdf</SharedGUID>
   </PropertyGroup>
   <PropertyGroup Label="Configuration">
-    <Import_RootNamespace>BetterScaling.Koikatu</Import_RootNamespace>
+    <Import_RootNamespace>BetterScaling</Import_RootNamespace>
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="$(MSBuildThisFileDirectory)BetterScaling.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)IMG.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Extensions.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)HookPatch.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)SceneDataController.cs" />
   </ItemGroup>
 </Project>

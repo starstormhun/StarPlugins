@@ -1,6 +1,6 @@
 ﻿using UnityEngine;
 
-namespace BetterScaling.Koikatu {
+namespace BetterScaling {
     static class Extensions {
         public static Vector3 ToDb(this Vector3 v) => new Vector3(Mathf.Log10(v.x), Mathf.Log10(v.y), Mathf.Log10(v.z))*20;
 
