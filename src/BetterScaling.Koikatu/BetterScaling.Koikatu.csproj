@@ -24,6 +24,9 @@
     <Reference Include="Performancer.Koikatu">
       <HintPath>..\..\lib\Performancer.Koikatu.dll</HintPath>
     </Reference>
+    <Reference Include="Timeline">
+      <HintPath>..\..\lib\Timeline_KK.dll</HintPath>
+    </Reference>
   </ItemGroup>
   <Import Project="..\Common.Core\Common.Core.projitems" Label="Shared" />
   <Import Project="..\BetterScaling.Core\BetterScaling.Core.projitems" Label="Shared" />

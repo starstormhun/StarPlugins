@@ -1,5 +1,5 @@
 using BepInEx;
-using UnityEngine;
+using UnityEngine.UI;
 using KKAPI.Utilities;
 using BepInEx.Configuration;
 using KKAPI.Studio.SaveLoad;
@@ -17,7 +17,7 @@ namespace BetterScaling {
 	/// </info>
     public class BetterScaling : BaseUnityPlugin {
         public const string GUID = "starstorm.betterscaling";
-        public const string Version = "0.2.0." + BuildNumber.Version;
+        public const string Version = "1.0.0." + BuildNumber.Version;
 
         public static BetterScaling Instance { get; private set; }
 
@@ -46,17 +46,20 @@ namespace BetterScaling {
         }
 
         public static bool ToggleScaling(TreeNodeObject tno) {
+            if (tno == null) return false;
             if (HookPatch.Hierarchy.dicTNOScaleHierarchy.TryGetValue(tno, out bool val)) {
-                HookPatch.Hierarchy.dicTNOScaleHierarchy[tno] = !val;
-                return true;
+                return SetScaling(tno, !val);
             } else {
                 return false;
             }
         }
 
         public static bool SetScaling(TreeNodeObject tno, bool state) {
-            if (HookPatch.Hierarchy.dicTNOScaleHierarchy.ContainsKey(tno)) {
+            if (tno == null) return false;
+            if (HookPatch.Hierarchy.dicTNOScaleHierarchy.ContainsKey(tno) && HookPatch.Hierarchy.dicTNOButtons.TryGetValue(tno, out var toggle)) {
                 HookPatch.Hierarchy.dicTNOScaleHierarchy[tno] = state;
+                toggle.GetComponent<Image>().sprite = state ? HookPatch.Hierarchy.toggleOn : HookPatch.Hierarchy.toggleOff;
+                HookPatch.Hierarchy.MakePerformancerUpdate(tno);
                 return true;
             } else {
                 return false;
@@ -64,6 +67,7 @@ namespace BetterScaling {
         }
 
         public static bool IsScaled(TreeNodeObject tno) {
+            if (tno == null) return false;
             if (HookPatch.Hierarchy.dicTNOScaleHierarchy.TryGetValue(tno, out bool val)) {
                 return val;
             } else {
@@ -72,6 +76,7 @@ namespace BetterScaling {
         }
 
         public static bool IsHierarchyScalable(TreeNodeObject tno) {
+            if (tno == null) return false;
             return HookPatch.Hierarchy.dicTNOScaleHierarchy.ContainsKey(tno);
         }
 

@@ -6,6 +6,7 @@ using UnityEngine;
 using System.Linq;
 using UnityEngine.UI;
 using System.Collections.Generic;
+using System.Xml;
 
 namespace BetterScaling {
     public static class HookPatch {
@@ -68,7 +69,7 @@ namespace BetterScaling {
             private static Harmony _harmony;
 
             internal static Sprite toggleOn;
-            private static Sprite toggleOff;
+            internal static Sprite toggleOff;
 
             private static int performancerPresence = 0;
 
@@ -87,7 +88,8 @@ namespace BetterScaling {
                         if (plugin == null) continue;
                         if (plugin.GetType().ToString() == "Performancer.Performancer") {
                             GetPerformancerVersion(plugin as BaseUnityPlugin);
-                            break;
+                        } else if (plugin.GetType().ToString() == "Timeline.Timeline") {
+                            AddTimelineCompatibility();
                         }
                     }
 
@@ -116,7 +118,7 @@ namespace BetterScaling {
                 }
             }
 
-            private static void MakePerformancerUpdate(TreeNodeObject tno) {
+            internal static void MakePerformancerUpdate(TreeNodeObject tno) {
                 switch (performancerPresence) {
                     case 2:
                         MakePerformancerUpdateInternal();
@@ -128,6 +130,23 @@ namespace BetterScaling {
                 void MakePerformancerUpdateInternal() {
                     Performancer.Performancer.Instance.EnableGuideObject(Studio.Studio.Instance.dicInfo[tno].guideObject);
                 }
+            }
+
+            private static void AddTimelineCompatibility() {
+                Timeline.Timeline.AddInterpolableModelDynamic(
+                    owner: "Better Scaling",
+                    id: "hierarchyScaling",
+                    name: "Scale Children",
+                    interpolateBefore: (oci, parameter, leftValue, rightValue, factor) => BetterScaling.SetScaling(oci?.treeNodeObject, factor < 1 ? (bool)leftValue : (bool)rightValue),
+                    interpolateAfter: null,
+                    isCompatibleWithTarget: oci => BetterScaling.IsHierarchyScalable(oci?.treeNodeObject),
+                    getValue: (oci, parameter) => BetterScaling.IsScaled(oci?.treeNodeObject),
+                    readValueFromXml: (parameter, node) => XmlConvert.ToBoolean(node.Attributes["value"].Value),
+                    writeValueToXml: (parameter, writer, value) => writer.WriteAttributeString("value", XmlConvert.ToString((bool)value)),
+                    getParameter: oci => oci.treeNodeObject,
+                    readParameterFromXml: (oci, node) => oci.treeNodeObject,
+                    getFinalName: (currentName, oci, parameter) => "Scale Children"
+                );
             }
 
             // Register TNO in dictionaries and create toggle button

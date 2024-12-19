@@ -25,6 +25,9 @@
     <Reference Include="Performancer.KoikatsuSunshine">
       <HintPath>..\..\lib\Performancer.KoikatsuSunshine.dll</HintPath>
     </Reference>
+    <Reference Include="Timeline">
+      <HintPath>..\..\lib\Timeline_KKS.dll</HintPath>
+    </Reference>
   </ItemGroup>
   <Import Project="..\Common.Core\Common.Core.projitems" Label="Shared" />
   <Import Project="..\BetterScaling.Core\BetterScaling.Core.projitems" Label="Shared" />
