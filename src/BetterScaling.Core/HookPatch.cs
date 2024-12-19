@@ -4,7 +4,7 @@ using HarmonyLib;
 using Studio;
 using UnityEngine;
 
-namespace BetterScaling.Koikatu {
+namespace BetterScaling {
     public static class HookPatch {
         internal static void Init() {
             Hooks.SetupHooks();
@@ -16,6 +16,10 @@ namespace BetterScaling.Koikatu {
 
         private static class Hooks {
             private static Harmony _harmony;
+
+            private static Dictionary<GuideObject, TreeNodeObject> dicGuideToTNO = new Dictionary<GuideObject, TreeNodeObject>();
+            private static Dictionary<TreeNodeObject, bool> dicTNOScaleHierarchy = new Dictionary<TreeNodeObject, bool>();
+            private static Dictionary<GuideObject, bool> dicGuideObjectCalcScale = new Dictionary<GuideObject, bool>();
 
             // Setup functionality on launch / enable
             public static void SetupHooks() {
@@ -57,6 +61,56 @@ namespace BetterScaling.Koikatu {
                     }
                     return false;
                 } else return true;
+            }
+
+            // Register GuideObject -> TNO connection on TNO creation
+            [HarmonyPostfix]
+            [HarmonyPatch(typeof(TreeNodeObject), "Start")]
+            private static void TNOAfterStart(TreeNodeObject __instance) {
+                dicGuideToTNO[Studio.Studio.Instance.dicInfo[__instance].guideObject] = __instance;
+            }
+
+            // Prefix LateUpdate to potentially disable scale calculation
+            [HarmonyPrefix]
+            [HarmonyPatch(typeof(GuideObject), "LateUpdate")]
+            private static bool GuideObjectBeforeLateUpdate(GuideObject __instance) {
+                // If the hierarchy scaling feature is disabled, do nothing
+                if (!BetterScaling.HierarchyScaling.Value) return true;
+
+                // Disable default scaling calculations if necessary
+                if (
+                    __instance.calcScale &&
+                    __instance.enableScale &&
+                    dicGuideToTNO.TryGetValue(__instance, out TreeNodeObject tno) &&
+                    tno.parent != null &&
+                    dicTNOScaleHierarchy.TryGetValue(tno.parent, out bool isScale) && isScale
+                ) {
+                    dicGuideObjectCalcScale[__instance] = true;
+                    __instance.calcScale = false;
+                } else {
+                    dicGuideObjectCalcScale[__instance] = false;
+                }
+
+                // TODO Performancer compatibility here !!!
+
+                return true;
+            }
+
+            // Postfix LateUpdate to restore stored scale calculation
+            [HarmonyPostfix]
+            [HarmonyPatch(typeof(GuideObject), "LateUpdate")]
+            private static void GuideObjectAfterLateUpdate(GuideObject __instance) {
+                // If the hierarchy scaling feature is disabled, do nothing
+                if (!BetterScaling.HierarchyScaling.Value) return;
+
+                // Make adjusted calculations, then restore saved value, if necessary
+                if (dicGuideObjectCalcScale[__instance]) {
+                    // Adjust scale
+                    __instance.transformTarget.localScale = __instance.changeAmount.scale;
+
+                    // Restore calcScale value to not break other code
+                    __instance.calcScale = true;
+                }
             }
         }
     }
