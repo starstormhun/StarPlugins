@@ -10,6 +10,7 @@ using Studio;
 namespace BetterScaling {
     [BepInDependency(KKAPI.KoikatuAPI.GUID)]
     [BepInDependency(Performancer.Performancer.GUID, BepInDependency.DependencyFlags.SoftDependency)]
+    [BepInDependency(Timeline.Timeline.GUID, BepInDependency.DependencyFlags.SoftDependency)]
     [BepInProcess(KKAPI.KoikatuAPI.StudioProcessName)]
     [BepInPlugin(GUID, "Better Scaling", Version)]
 	/// <info>
@@ -25,6 +26,7 @@ namespace BetterScaling {
         public static ConfigEntry<bool> FolderScaling { get; private set; }
         public static ConfigEntry<bool> LogarithmicScaling { get; private set; }
         public static ConfigEntry<bool> HierarchyScaling { get; private set; }
+        public static ConfigEntry<bool> AdjustScales { get; private set; }
         public static ConfigEntry<bool> IsDebug { get; private set; }
 
         private void Awake() {
@@ -32,8 +34,9 @@ namespace BetterScaling {
 
             Enabled = Config.Bind("General", "Enable plugin", true, new ConfigDescription("REQUIRES RESTART! Enable/disable the plugin entirely. DO NOT save / modify current scene after changing this setting!", null, new ConfigurationManagerAttributes { Order = 10 }));
             FolderScaling = Config.Bind("General", "Scale folders", true, "Makes it possible to scale folders. You need to save/reload the scene after changing this.");
-            LogarithmicScaling = Config.Bind("General", "Logaritchmic guideobject scaling", false, "The bigger the scale, the faster it scales! And the smaller the scale, the slower it goes. Allows better control across all scales.");
+            LogarithmicScaling = Config.Bind("General", "Logaritchmic scaling", true, "The bigger the scale, the faster it scales! And the smaller the scale, the slower it goes. Allows better control across all scales.");
             HierarchyScaling = Config.Bind("General", "Hierarchy scaling", true, "REQUIRES RESTART! Enable toggling of hierarchy scaling. Mark objects in the Workspace window. Marked objects will scale their direct children by their own scale. DO NOT save / modify current scene after changing this setting!");
+            AdjustScales = Config.Bind("General", "Auto-adjust scales", true, new ConfigDescription("Auto-adjust item scaling when toggling hierarchy-scaling or parenting to/releasing an item from a hierarchy-scaled object, in order to maintain a constant apparent size. WARNING: Toggling this off (default is ON) might break compatibility with scenes created with this setting turned ON.", null, new ConfigurationManagerAttributes { IsAdvanced = true }));
             IsDebug = Config.Bind("Debug", "Logging", false, new ConfigDescription("Enable verbose logging", null, new ConfigurationManagerAttributes { IsAdvanced = true }));
 
             if (IsDebug.Value) Log("Awoken!");
@@ -48,7 +51,7 @@ namespace BetterScaling {
         public static bool ToggleScaling(TreeNodeObject tno) {
             if (tno == null) return false;
             if (HookPatch.Hierarchy.dicTNOScaleHierarchy.TryGetValue(tno, out bool val)) {
-                return SetScaling(tno, !val);
+                return HookPatch.Hierarchy.HandleSetScaling(tno, !val);
             } else {
                 return false;
             }
@@ -56,11 +59,8 @@ namespace BetterScaling {
 
         public static bool SetScaling(TreeNodeObject tno, bool state) {
             if (tno == null) return false;
-            if (HookPatch.Hierarchy.dicTNOScaleHierarchy.ContainsKey(tno) && HookPatch.Hierarchy.dicTNOButtons.TryGetValue(tno, out var toggle)) {
-                HookPatch.Hierarchy.dicTNOScaleHierarchy[tno] = state;
-                toggle.GetComponent<Image>().sprite = state ? HookPatch.Hierarchy.toggleOn : HookPatch.Hierarchy.toggleOff;
-                HookPatch.Hierarchy.MakePerformancerUpdate(tno);
-                return true;
+            if (HookPatch.Hierarchy.dicTNOScaleHierarchy.ContainsKey(tno)) {
+                return HookPatch.Hierarchy.HandleSetScaling(tno, state);
             } else {
                 return false;
             }
