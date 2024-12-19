@@ -1,7 +1,7 @@
 using BepInEx;
-using BepInEx.Configuration;
-using KKAPI.Utilities;
 using UnityEngine;
+using KKAPI.Utilities;
+using BepInEx.Configuration;
 
 [assembly: System.Reflection.AssemblyFileVersion(BetterScaling.BetterScaling.Version)]
 
