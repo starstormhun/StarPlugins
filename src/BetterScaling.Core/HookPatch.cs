@@ -89,7 +89,7 @@ namespace BetterScaling {
                         if (plugin.GetType().ToString() == "Performancer.Performancer") {
                             GetPerformancerVersion(plugin as BaseUnityPlugin);
                         } else if (plugin.GetType().ToString() == "Timeline.Timeline") {
-                            AddTimelineCompatibility();
+                            RegisterTimelineBehaviour();
                         }
                     }
 
@@ -132,7 +132,7 @@ namespace BetterScaling {
                 }
             }
 
-            private static void AddTimelineCompatibility() {
+            private static void RegisterTimelineBehaviour() {
                 Timeline.Timeline.AddInterpolableModelDynamic(
                     owner: "Better Scaling",
                     id: "hierarchyScaling",
@@ -147,6 +147,52 @@ namespace BetterScaling {
                     readParameterFromXml: (oci, node) => oci.treeNodeObject,
                     getFinalName: (currentName, oci, parameter) => "Scale Children"
                 );
+            }
+
+            internal static bool HandleSetScaling(TreeNodeObject tno, bool newVal) {
+                if (dicTNOButtons.TryGetValue(tno, out var extraToggle) && dicTNOScaleHierarchy.TryGetValue(tno, out bool oldVal) && newVal != oldVal) {
+                    if (BetterScaling.AdjustScales.Value) {
+                        var oci = Studio.Studio.Instance.dicInfo[tno];
+                        if (oci is OCIChar) {
+                            foreach (var child1 in tno.child) {
+                                foreach (var child2 in child1.child) {
+                                    Vector3 parentScale;
+                                    Vector3 scale;
+                                    foreach (var child in child2.child) {
+                                        var childOCI = Studio.Studio.Instance.dicInfo[child];
+                                        parentScale = childOCI.guideObject.transformTarget.parent.lossyScale;
+                                        scale = childOCI.guideObject.m_ChangeAmount.scale;
+                                        if (newVal) {
+                                            scale.x /= parentScale.x; scale.y /= parentScale.y; scale.z /= parentScale.z;
+                                        } else {
+                                            scale.x *= parentScale.x; scale.y *= parentScale.y; scale.z *= parentScale.z;
+                                        }
+                                        childOCI.guideObject.m_ChangeAmount.scale = scale;
+                                    }
+                                }
+                            }
+                        } else {
+                            Vector3 parentScale = oci.guideObject.transformTarget.lossyScale;
+                            var childList = tno.child;
+                            foreach (var child in childList) {
+                                var childOCI = Studio.Studio.Instance.dicInfo[child];
+                                Vector3 scale = childOCI.guideObject.m_ChangeAmount.scale;
+                                if (newVal) {
+                                    scale.x /= parentScale.x; scale.y /= parentScale.y; scale.z /= parentScale.z;
+                                } else {
+                                    scale.x *= parentScale.x; scale.y *= parentScale.y; scale.z *= parentScale.z;
+                                }
+                                childOCI.guideObject.m_ChangeAmount.scale = scale;
+                            }
+                        }
+                    }
+                    dicTNOScaleHierarchy[tno] = newVal;
+                    extraToggle.GetComponent<Image>().sprite = newVal ? toggleOn : toggleOff;
+                    MakePerformancerUpdate(tno);
+
+                    return true;
+                }
+                return false;
             }
 
             // Register TNO in dictionaries and create toggle button
@@ -174,17 +220,13 @@ namespace BetterScaling {
                     img.sprite = isScale ? toggleOn : toggleOff;
                     btn.onClick.AddListener(() => {
                         bool newVal = !dicTNOScaleHierarchy[__instance];
-                        dicTNOScaleHierarchy[__instance] = newVal;
-                        img.sprite = newVal ? toggleOn : toggleOff;
-                        MakePerformancerUpdate(__instance);
+                        HandleSetScaling(__instance, newVal);
 
                         var selected = Studio.Studio.Instance.treeNodeCtrl.selectNodes;
                         if (selected.Contains(__instance)) {
                             foreach (var tno in selected) {
-                                if (tno != __instance && dicTNOButtons.TryGetValue(tno, out var extraToggle)) {
-                                    dicTNOScaleHierarchy[tno] = newVal;
-                                    extraToggle.GetComponent<Image>().sprite = newVal ? toggleOn : toggleOff;
-                                    MakePerformancerUpdate(tno);
+                                if (tno != __instance) {
+                                    HandleSetScaling(tno, newVal);
                                 }
                             }
                         }
@@ -220,8 +262,12 @@ namespace BetterScaling {
                     __instance.calcScale &&
                     __instance.enableScale &&
                     dicGuideToTNO.TryGetValue(__instance, out TreeNodeObject tno) &&
-                    tno.parent != null &&
-                    dicTNOScaleHierarchy.TryGetValue(tno.parent, out bool isScale) && isScale
+                    tno.parent != null && (
+                        (dicTNOScaleHierarchy.TryGetValue(tno.parent, out bool isScale) && isScale) || (
+                            tno.parent?.parent?.parent != null && Studio.Studio.Instance.dicInfo.TryGetValue(tno.parent.parent.parent, out var ociChar) &&
+                            ociChar is OCIChar && dicTNOScaleHierarchy.TryGetValue(ociChar.treeNodeObject, out bool isScaleChar) && isScaleChar
+                        )
+                    )
                 ) {
                     dicGuideObjectCalcScale[__instance] = true;
                     __instance.calcScale = false;
@@ -247,6 +293,64 @@ namespace BetterScaling {
                     // Restore calcScale value to not break other code
                     __instance.calcScale = true;
                 }
+            }
+
+            // Handle auto-scaling upon parenting
+            [HarmonyPrefix]
+            [HarmonyPatch(typeof(TreeNodeObject), "SetParent")]
+            private static bool TNOBeforeSetParent(TreeNodeObject __instance, TreeNodeObject _parent) {
+                if (!BetterScaling.AdjustScales.Value || KKAPI.Studio.SaveLoad.StudioSaveLoadApi.LoadInProgress || KKAPI.Studio.SaveLoad.StudioSaveLoadApi.ImportInProgress) return true;
+                if (__instance == null || !Studio.Studio.Instance.dicInfo.TryGetValue(__instance, out var oci)) return true;
+
+                bool scaled = false;
+                Vector3 scale = oci.guideObject.m_ChangeAmount.scale;
+                // Current parent is scaled and a normal item
+                BetterScaling.Instance.Log("Helo 1!");
+                if (__instance.parent != null && dicTNOScaleHierarchy.TryGetValue(__instance.parent, out bool oldScaled) && oldScaled) {
+                    BetterScaling.Instance.Log("Helo 1.1!");
+                    Vector3 oldScale = Studio.Studio.Instance.dicInfo[__instance.parent].guideObject.transformTarget.lossyScale;
+                    scale.x *= oldScale.x; scale.y *= oldScale.y; scale.z *= oldScale.z;
+                    scaled = true;
+                }
+                // Current parent is scaled and a character
+                BetterScaling.Instance.Log("Helo 2!");
+                if (
+                    __instance.parent?.parent?.parent != null && Studio.Studio.Instance.dicInfo.TryGetValue(__instance.parent.parent.parent, out var ociCharOld) &&
+                    ociCharOld is OCIChar && dicTNOScaleHierarchy.TryGetValue(ociCharOld.treeNodeObject, out bool oldScaledChar) && oldScaledChar
+                ) {
+                    BetterScaling.Instance.Log("Helo 2.1!");
+                    Vector3 oldScale = Studio.Studio.Instance.dicInfo[__instance].guideObject.transformTarget.parent.lossyScale;
+                    scale.x *= oldScale.x; scale.y *= oldScale.y; scale.z *= oldScale.z;
+                    scaled = true;
+                }
+                // New parent is scaled and a normal item
+                BetterScaling.Instance.Log("Helo 3!");
+                if (_parent != null && dicTNOScaleHierarchy.TryGetValue(_parent, out bool newScaled) && newScaled) {
+                    BetterScaling.Instance.Log("Helo 3.1!");
+                    Vector3 newScale = Studio.Studio.Instance.dicInfo[_parent].guideObject.transformTarget.lossyScale;
+                    scale.x /= newScale.x; scale.y /= newScale.y; scale.z /= newScale.z;
+                    scaled = true;
+                }
+                // New parent is scaled and (part of) a character
+                BetterScaling.Instance.Log("Helo 4!");
+                if (
+                    _parent?.parent?.parent != null && Studio.Studio.Instance.dicInfo.TryGetValue(_parent.parent.parent, out var ociCharNew_oci) &&
+                    ociCharNew_oci is OCIChar ociCharNew && dicTNOScaleHierarchy.TryGetValue(ociCharNew.treeNodeObject, out bool newScaledChar) && newScaledChar &&
+                    ociCharNew.dicAccessoryPoint.TryGetValue(_parent, out var key) && Singleton<Info>.Instance.dicAccessoryPointInfo.TryGetValue(key, out var info)
+                ) {
+                    BetterScaling.Instance.Log("Helo 4.1!");
+                    GameObject referenceInfo = ociCharNew.charReference.GetReferenceInfo((ChaReference.RefObjKey)Enum.Parse(typeof(ChaReference.RefObjKey), info.key));
+                    Vector3 newScale = referenceInfo.transform.lossyScale;
+                    scale.x /= newScale.x; scale.y /= newScale.y; scale.z /= newScale.z;
+                    scaled = true;
+                }
+
+                BetterScaling.Instance.Log("Gudbai!");
+                if (scaled) {
+                    oci.guideObject.m_ChangeAmount.scale = scale;
+                }
+
+                return true;
             }
         }
     }
