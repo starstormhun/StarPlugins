@@ -71,7 +71,7 @@ namespace BetterScaling {
             // Setup functionality on launch / enable
             public static void SetupHooks() {
                 if (BetterScaling.HierarchyScaling.Value) {
-                    _harmony = Harmony.CreateAndPatchAll(typeof(Hooks), null);
+                    _harmony = Harmony.CreateAndPatchAll(typeof(Hierarchy), null);
                 }
             }
 
