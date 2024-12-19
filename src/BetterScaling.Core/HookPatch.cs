@@ -31,7 +31,7 @@ namespace BetterScaling.Koikatu {
             [HarmonyPostfix]
             [HarmonyPatch(typeof(AddObjectFolder), "Load", new Type[] { typeof(OIFolderInfo), typeof(ObjectCtrlInfo), typeof(TreeNodeObject), typeof(bool), typeof(int) })]
             private static void AddObjectFolderAfterLoad(ref OCIFolder __result) {
-                if (BetterScaling.Enabled.Value && BetterScaling.FolderScaling.Value) {
+                if (BetterScaling.FolderScaling.Value) {
                     __result.guideObject.enableScale = true;
                     __result.guideObject.isActiveFunc += new GuideObject.IsActiveFunc(__result.OnSelect);
                 }
