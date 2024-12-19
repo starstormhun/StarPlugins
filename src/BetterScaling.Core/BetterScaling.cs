@@ -3,6 +3,7 @@ using UnityEngine;
 using KKAPI.Utilities;
 using BepInEx.Configuration;
 using KKAPI.Studio.SaveLoad;
+using Studio;
 
 [assembly: System.Reflection.AssemblyFileVersion(BetterScaling.BetterScaling.Version)]
 
@@ -16,7 +17,7 @@ namespace BetterScaling {
 	/// </info>
     public class BetterScaling : BaseUnityPlugin {
         public const string GUID = "starstorm.betterscaling";
-        public const string Version = "1.0.0." + BuildNumber.Version;
+        public const string Version = "0.2.0." + BuildNumber.Version;
 
         public static BetterScaling Instance { get; private set; }
 
@@ -42,6 +43,32 @@ namespace BetterScaling {
             StudioSaveLoadApi.RegisterExtraBehaviour<SceneDataController>(SceneDataController.SaveID);
 
             HookPatch.Init();
+        }
+
+        public static bool ToggleScaling(TreeNodeObject tno) {
+            if (HookPatch.Hierarchy.dicTNOScaleHierarchy.TryGetValue(tno, out bool val)) {
+                HookPatch.Hierarchy.dicTNOScaleHierarchy[tno] = !val;
+                return true;
+            } else {
+                return false;
+            }
+        }
+
+        public static bool SetScaling(TreeNodeObject tno, bool state) {
+            if (HookPatch.Hierarchy.dicTNOScaleHierarchy.ContainsKey(tno)) {
+                HookPatch.Hierarchy.dicTNOScaleHierarchy[tno] = state;
+                return true;
+            } else {
+                return false;
+            }
+        }
+
+        public static bool IsScaled(TreeNodeObject tno) {
+            if (HookPatch.Hierarchy.dicTNOScaleHierarchy.TryGetValue(tno, out bool val)) {
+                return val;
+            } else {
+                return false;
+            }
         }
 
         internal void Log(object data, int level = 0) {

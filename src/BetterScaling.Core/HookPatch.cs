@@ -3,6 +3,7 @@ using Studio;
 using BepInEx;
 using HarmonyLib;
 using UnityEngine;
+using System.Linq;
 using UnityEngine.UI;
 using System.Collections.Generic;
 
@@ -157,6 +158,17 @@ namespace BetterScaling {
                         dicTNOScaleHierarchy[__instance] = newVal;
                         img.sprite = newVal ? toggleOn : toggleOff;
                         MakePerformancerUpdate(__instance);
+
+                        var selected = Studio.Studio.Instance.treeNodeCtrl.selectNodes;
+                        if (selected.Contains(__instance)) {
+                            foreach (var tno in selected) {
+                                if (tno != __instance && dicTNOButtons.TryGetValue(tno, out var extraToggle)) {
+                                    dicTNOScaleHierarchy[tno] = newVal;
+                                    extraToggle.GetComponent<Image>().sprite = newVal ? toggleOn : toggleOff;
+                                    MakePerformancerUpdate(tno);
+                                }
+                            }
+                        }
                     });
                     toggle.transform.localPosition = new Vector3(__instance.m_ButtonVisible.gameObject.activeSelf ? 40f : 20f, 0, 0);
                     toggle.name = "BS_ScaleChildren";
