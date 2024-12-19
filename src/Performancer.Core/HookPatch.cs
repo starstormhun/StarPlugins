@@ -32,7 +32,7 @@ namespace Performancer {
             private static Dictionary<MonoBehaviour, ChaControl> dicDynBoneCharas = new Dictionary<MonoBehaviour, ChaControl>();
             private static Dictionary<MonoBehaviour, MonoBehaviour> dicDynBonePoseCtrls = new Dictionary<MonoBehaviour, MonoBehaviour>();
 
-            internal static Dictionary<GuideObject, bool> dicGuideObjectsToUpdate = new Dictionary<GuideObject, bool>();
+            internal static Dictionary<GuideObject, int> dicGuideObjectsToUpdate = new Dictionary<GuideObject, int>();
             internal static Dictionary<MonoBehaviour, int> dicDynBonesToUpdate = new Dictionary<MonoBehaviour, int>();
 
             private static List<Transform> iterateList = new List<Transform>();
@@ -91,9 +91,10 @@ namespace Performancer {
                 } else if (!Performancer.OptimiseGuideObjectLate.Value) {
                     result = true;
                 // Third, we check if we're supposed to update this GO (because a parent object was changed)
-                } else if (dicGuideObjectsToUpdate.TryGetValue(__instance, out bool dicVal) && dicVal) {
+                } else if (dicGuideObjectsToUpdate.TryGetValue(__instance, out int dicVal) && dicVal > 0) {
                     result = true;
-                    dicGuideObjectsToUpdate[__instance] = false;
+                    if (dicVal < 2) skipChildren = true;
+                    dicGuideObjectsToUpdate[__instance] = 0;
                 // Check if the GO was changed since last frame
                 } else if (
                     dicGuideObjectVals[__instance] is var vals && (
@@ -127,7 +128,7 @@ namespace Performancer {
                             while (iterateList.Count > 0) {
                                 var curr = iterateList.Pop();
                                 if (dicGuideObjects.ContainsKey(curr)) {
-                                    dicGuideObjectsToUpdate[dicGuideObjects[curr]] = true;
+                                    dicGuideObjectsToUpdate[dicGuideObjects[curr]] = 1;
                                 }
                                 iterateList.AddRange(curr.Children());
 
