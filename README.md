@@ -17,6 +17,8 @@ Optionally converts the sliders to logarithmic base.
 
 #### Better Scaling [KK/KKS]
 Allows scaling of folders, and logarithmic scaling of all objects using the guide objects.
+Also allows items to scale their children relatively, settable with a UI toggle in the workspace.
+Includes Timeline compatibility.
 
 #### Expression Control [KK/KKS]
 This is an old plugin which I decompiled and modified to also be able to be used on males.
