@@ -32,7 +32,7 @@ namespace Performancer {
             private static Dictionary<MonoBehaviour, ChaControl> dicDynBoneCharas = new Dictionary<MonoBehaviour, ChaControl>();
             private static Dictionary<MonoBehaviour, MonoBehaviour> dicDynBonePoseCtrls = new Dictionary<MonoBehaviour, MonoBehaviour>();
 
-            private static Dictionary<GuideObject, bool> dicGuideObjectsToUpdate = new Dictionary<GuideObject, bool>();
+            internal static Dictionary<GuideObject, bool> dicGuideObjectsToUpdate = new Dictionary<GuideObject, bool>();
             internal static Dictionary<MonoBehaviour, int> dicDynBonesToUpdate = new Dictionary<MonoBehaviour, int>();
 
             private static List<Transform> iterateList = new List<Transform>();
@@ -77,6 +77,8 @@ namespace Performancer {
                 }
 
                 bool result;
+                bool skipChildren = false;
+
                 // First we check if we have added the GO to the dict, so that things don't break later
                 if (!dicGuideObjectVals.ContainsKey(__instance)) {
                     dicGuideObjectVals.Add(__instance, new Dictionary<string, Vector3> {
@@ -88,52 +90,57 @@ namespace Performancer {
                 // Second check is whether we want to optimise the LateUpdate or not
                 } else if (!Performancer.OptimiseGuideObjectLate.Value) {
                     result = true;
-                // If the GuideObject is currently visible, it needs to be updated
-                } else if (__instance.layer == 28) {
-                    result = true;
                 // Third, we check if we're supposed to update this GO (because a parent object was changed)
                 } else if (dicGuideObjectsToUpdate.TryGetValue(__instance, out bool dicVal) && dicVal) {
                     result = true;
                     dicGuideObjectsToUpdate[__instance] = false;
-                // If all else fails, we check if the GO was changed since last frame
-                } else {
-                    var vals = dicGuideObjectVals[__instance];
-                    result =
+                // Check if the GO was changed since last frame
+                } else if (
+                    dicGuideObjectVals[__instance] is var vals && (
                         vals["pos"]   != __instance.m_ChangeAmount.pos ||
                         vals["rot"]   != __instance.m_ChangeAmount.rot ||
-                        vals["scale"] != __instance.m_ChangeAmount.scale;
+                        vals["scale"] != __instance.m_ChangeAmount.scale
+                    )
+                ) {
+                    result = true;
+                // If the GuideObject is currently visible, it needs to always be updated
+                } else if (__instance.layer == 28) {
+                    result = true;
+                    skipChildren = true;
+                } else {
+                    result = false;
+                }
 
-                    // GuideObject has changed, therefore we need to update the attached object's children
-                    if (result) {
-                        int id = int.MaxValue;
-                        foreach (var kvp in Studio.Studio.Instance.dicChangeAmount) {
-                            if (kvp.Value == __instance.m_ChangeAmount) {
-                                id = kvp.Key;
-                                break;
-                            }
+                if (result && !skipChildren) {
+                    // GuideObject has been updated in some way, therefore we need to update the attached object's children
+                    int id = int.MaxValue;
+                    foreach (var kvp in Studio.Studio.Instance.dicChangeAmount) {
+                        if (kvp.Value == __instance.m_ChangeAmount) {
+                            id = kvp.Key;
+                            break;
                         }
-                        if (id != int.MaxValue) {
-                            if (Studio.Studio.Instance.dicObjectCtrl.TryGetValue(id, out var oci)) {
-                                iterateList.Clear();
-                                iterateList.Add(oci.GetObject().transform);
-                                while (iterateList.Count > 0) {
-                                    var curr = iterateList.Pop();
-                                    if (dicGuideObjects.ContainsKey(curr)) {
-                                        dicGuideObjectsToUpdate[dicGuideObjects[curr]] = true;
-                                    }
-                                    iterateList.AddRange(curr.Children());
+                    }
+                    if (id != int.MaxValue) {
+                        if (Studio.Studio.Instance.dicObjectCtrl.TryGetValue(id, out var oci)) {
+                            iterateList.Clear();
+                            iterateList.Add(oci.GetObject().transform);
+                            while (iterateList.Count > 0) {
+                                var curr = iterateList.Pop();
+                                if (dicGuideObjects.ContainsKey(curr)) {
+                                    dicGuideObjectsToUpdate[dicGuideObjects[curr]] = true;
+                                }
+                                iterateList.AddRange(curr.Children());
 
-                                    if (Performancer.OptimiseDynamicBones.Value) {
-                                        foreach (var bone in curr.GetComponents<DynamicBone>()) {
-                                            dicDynBonesToUpdate[bone] = frameAllowance;
-                                        };
-                                        foreach (var bone in curr.GetComponents<DynamicBone_Ver01>()) {
-                                            dicDynBonesToUpdate[bone] = frameAllowance;
-                                        };
-                                        foreach (var bone in curr.GetComponents<DynamicBone_Ver02>()) {
-                                            dicDynBonesToUpdate[bone] = frameAllowance;
-                                        };
-                                    }
+                                if (Performancer.OptimiseDynamicBones.Value) {
+                                    foreach (var bone in curr.GetComponents<DynamicBone>()) {
+                                        dicDynBonesToUpdate[bone] = frameAllowance;
+                                    };
+                                    foreach (var bone in curr.GetComponents<DynamicBone_Ver01>()) {
+                                        dicDynBonesToUpdate[bone] = frameAllowance;
+                                    };
+                                    foreach (var bone in curr.GetComponents<DynamicBone_Ver02>()) {
+                                        dicDynBonesToUpdate[bone] = frameAllowance;
+                                    };
                                 }
                             }
                         }
@@ -144,7 +151,6 @@ namespace Performancer {
                 dicValue["pos"]   = __instance.m_ChangeAmount.pos;
                 dicValue["rot"]   = __instance.m_ChangeAmount.rot;
                 dicValue["scale"] = __instance.m_ChangeAmount.scale;
-                dicValue = null;
 
                 if (result) {
                     Performancer.numGuideObjectLateUpdates++;

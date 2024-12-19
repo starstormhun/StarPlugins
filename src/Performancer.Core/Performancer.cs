@@ -4,6 +4,8 @@ using KKAPI.Utilities;
 using System.Collections;
 using BepInEx.Configuration;
 using System.Collections.Generic;
+using Studio;
+using static RootMotion.FinalIK.IKSolver;
 
 [assembly: System.Reflection.AssemblyFileVersion(Performancer.Performancer.Version)]
 
@@ -18,7 +20,7 @@ namespace Performancer {
 	/// </info>
     public class Performancer : BaseUnityPlugin {
         public const string GUID = "starstorm.performancer";
-        public const string Version = "1.1.0." + BuildNumber.Version;
+        public const string Version = "1.2.0." + BuildNumber.Version;
 
         public static Performancer Instance { get; private set; }
 
@@ -54,6 +56,16 @@ namespace Performancer {
                 HookPatch.Hooks.dicDynBonesToUpdate[bone] = HookPatch.Hooks.frameAllowance;
                 return true;
             } else {
+                return false;
+            }
+        }
+
+        public bool EnableGuideObject(GuideObject guide) {
+            if (guide == null) return false;
+            try {
+                HookPatch.Hooks.dicGuideObjectsToUpdate[guide] = true;
+                return true;
+            } catch {
                 return false;
             }
         }
