@@ -58,7 +58,7 @@ namespace LightSettings.Koikatu {
 #else
                 false,
 #endif
-                "Enable unified control over map lights. This can cause issues in KKS.");
+				"Enable unified control over map lights. This can cause issues in KKS. Changes take effect on Studio restart.");
 
             CharaLightToggleType = Config.Bind("1. General", "Character light toggle", "Cramped", new ConfigDescription("How the character light on/off toggle will be handled. Changes take effect on Studio restart.", new AcceptableValueList<string>(new string[] { "None", "Cramped", "Below Vanilla" }), new ConfigurationManagerAttributes { Order = 5 }));
             
