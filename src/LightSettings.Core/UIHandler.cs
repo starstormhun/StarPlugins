@@ -38,7 +38,7 @@ namespace LightSettings.Koikatu {
 #if KK
                         new Vector2(170, 0),
 #else
-                    new Vector2(305, 0),
+                        new Vector2(305, 0),
 #endif
                         Vector2.zero
                     )
