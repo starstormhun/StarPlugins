@@ -72,7 +72,11 @@ namespace LightSettings.Koikatu {
             private static void AfterMapListOnClick() {
                 MapLightChecker();
             }
-            private static void MapLightChecker() {
+            private static void MapLightChecker()
+            {
+                if (LightSettings.Instance.ControlMapLights.Value == false)
+                    return;
+
                 var map = Singleton<Map>.Instance.mapRoot;
                 if (map) {
                     var lights = map.GetComponentsInChildren<Light>(true).ToList();

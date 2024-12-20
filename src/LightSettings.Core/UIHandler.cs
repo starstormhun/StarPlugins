@@ -29,21 +29,23 @@ namespace LightSettings.Koikatu {
             MakeGUI(ref containerItem, SetupExtendedPanel(Studio.Studio.Instance.manipulatePanelCtrl.itemPanelInfo.mpItemCtrl.transform, new Vector2(0, -30), new Vector2(280, 30), true));
             containerItem.localPosition = new Vector2(0, -60);
 
-            // Setup the maplight control panel
-            MakeGUI(
-                ref containerMap,
-                SetupExtendedPanel(
-                    Studio.Studio.Instance.transform.Find("Canvas Main Menu/01_Add/03_Map"),
+            if (LightSettings.Instance.ControlMapLights.Value) {
+                // Setup the maplight control panel
+                MakeGUI(
+                    ref containerMap,
+                    SetupExtendedPanel(
+                        Studio.Studio.Instance.transform.Find("Canvas Main Menu/01_Add/03_Map"),
 #if KK
-                    new Vector2(170, 0),
+                        new Vector2(170, 0),
 #else
                     new Vector2(305, 0),
 #endif
-                    Vector2.zero
-                )
-            );
-            containerMap.localPosition = new Vector2(0, -60);
-            
+                        Vector2.zero
+                    )
+                );
+                containerMap.localPosition = new Vector2(0, -60);
+            }
+
             // Create item light settings GUI
             MakeGUI(ref containerLight, Studio.Studio.Instance.manipulatePanelCtrl.lightPanelInfo.mpLightCtrl.transform);
 
