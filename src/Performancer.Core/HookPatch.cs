@@ -105,7 +105,7 @@ namespace Performancer {
                 ) {
                     result = true;
                 // If the GuideObject is currently visible, it needs to always be updated
-                } else if (__instance.layer == 28) {
+                } else if (__instance.layer == 28 || Studio.Studio.optionSystem.selectedState == 0) {
                     result = true;
                     skipChildren = true;
                 } else {
