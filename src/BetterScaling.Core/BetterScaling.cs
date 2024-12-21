@@ -18,7 +18,7 @@ namespace BetterScaling {
 	/// </info>
     public class BetterScaling : BaseUnityPlugin {
         public const string GUID = "starstorm.betterscaling";
-        public const string Version = "1.0.0." + BuildNumber.Version;
+        public const string Version = "1.0.1." + BuildNumber.Version;
 
         public static BetterScaling Instance { get; private set; }
 

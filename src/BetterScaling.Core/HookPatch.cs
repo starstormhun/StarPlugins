@@ -305,47 +305,38 @@ namespace BetterScaling {
                 bool scaled = false;
                 Vector3 scale = oci.guideObject.m_ChangeAmount.scale;
                 // Current parent is scaled and a normal item
-                BetterScaling.Instance.Log("Helo 1!");
                 if (__instance.parent != null && dicTNOScaleHierarchy.TryGetValue(__instance.parent, out bool oldScaled) && oldScaled) {
-                    BetterScaling.Instance.Log("Helo 1.1!");
                     Vector3 oldScale = Studio.Studio.Instance.dicInfo[__instance.parent].guideObject.transformTarget.lossyScale;
                     scale.x *= oldScale.x; scale.y *= oldScale.y; scale.z *= oldScale.z;
                     scaled = true;
                 }
                 // Current parent is scaled and a character
-                BetterScaling.Instance.Log("Helo 2!");
                 if (
                     __instance.parent?.parent?.parent != null && Studio.Studio.Instance.dicInfo.TryGetValue(__instance.parent.parent.parent, out var ociCharOld) &&
                     ociCharOld is OCIChar && dicTNOScaleHierarchy.TryGetValue(ociCharOld.treeNodeObject, out bool oldScaledChar) && oldScaledChar
                 ) {
-                    BetterScaling.Instance.Log("Helo 2.1!");
                     Vector3 oldScale = Studio.Studio.Instance.dicInfo[__instance].guideObject.transformTarget.parent.lossyScale;
                     scale.x *= oldScale.x; scale.y *= oldScale.y; scale.z *= oldScale.z;
                     scaled = true;
                 }
                 // New parent is scaled and a normal item
-                BetterScaling.Instance.Log("Helo 3!");
                 if (_parent != null && dicTNOScaleHierarchy.TryGetValue(_parent, out bool newScaled) && newScaled) {
-                    BetterScaling.Instance.Log("Helo 3.1!");
                     Vector3 newScale = Studio.Studio.Instance.dicInfo[_parent].guideObject.transformTarget.lossyScale;
                     scale.x /= newScale.x; scale.y /= newScale.y; scale.z /= newScale.z;
                     scaled = true;
                 }
                 // New parent is scaled and (part of) a character
-                BetterScaling.Instance.Log("Helo 4!");
                 if (
                     _parent?.parent?.parent != null && Studio.Studio.Instance.dicInfo.TryGetValue(_parent.parent.parent, out var ociCharNew_oci) &&
                     ociCharNew_oci is OCIChar ociCharNew && dicTNOScaleHierarchy.TryGetValue(ociCharNew.treeNodeObject, out bool newScaledChar) && newScaledChar &&
                     ociCharNew.dicAccessoryPoint.TryGetValue(_parent, out var key) && Singleton<Info>.Instance.dicAccessoryPointInfo.TryGetValue(key, out var info)
                 ) {
-                    BetterScaling.Instance.Log("Helo 4.1!");
                     GameObject referenceInfo = ociCharNew.charReference.GetReferenceInfo((ChaReference.RefObjKey)Enum.Parse(typeof(ChaReference.RefObjKey), info.key));
                     Vector3 newScale = referenceInfo.transform.lossyScale;
                     scale.x /= newScale.x; scale.y /= newScale.y; scale.z /= newScale.z;
                     scaled = true;
                 }
 
-                BetterScaling.Instance.Log("Gudbai!");
                 if (scaled) {
                     oci.guideObject.m_ChangeAmount.scale = scale;
                 }
