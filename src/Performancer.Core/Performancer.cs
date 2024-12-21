@@ -6,6 +6,7 @@ using BepInEx.Configuration;
 using System.Collections.Generic;
 using Studio;
 using static RootMotion.FinalIK.IKSolver;
+using System.Linq;
 
 [assembly: System.Reflection.AssemblyFileVersion(Performancer.Performancer.Version)]
 
@@ -30,6 +31,7 @@ namespace Performancer {
 
         internal static bool isLogCoroutine = false;
         internal static int numGuideObjectLateUpdates = 0;
+        internal static int guideObjectAfterLoadFrames = 0;
 
         private static MonoBehaviour selectDynBone = null;
         private static Dictionary<DynamicBoneCollider, Dictionary<string, object>> dicColliderVals = new Dictionary<DynamicBoneCollider, Dictionary<string, object>>();
@@ -40,6 +42,12 @@ namespace Performancer {
             DoLogs = Config.Bind("Advanced", "Log Performance Numbers", false, new ConfigDescription("", null, new ConfigurationManagerAttributes { IsAdvanced = true }));
             OptimiseGuideObjectLate = Config.Bind("General", "Optimise GuideObject LateUpdate", true, new ConfigDescription("", null, new ConfigurationManagerAttributes { IsAdvanced = true }));
             OptimiseDynamicBones = Config.Bind("General", "Optimise Dynamic Bones", true, new ConfigDescription("REQUIRES GuideObject LateUpdate optimisation", null, new ConfigurationManagerAttributes { IsAdvanced = true }));
+
+            KKAPI.Studio.SaveLoad.StudioSaveLoadApi.SceneLoad += (x, y) => {
+                foreach (var key in new List<GuideObject>(HookPatch.Hooks.dicGuideObjectsToUpdate.Keys)) {
+                    HookPatch.Hooks.dicGuideObjectsToUpdate[key] = HookPatch.Hooks.frameAllowance;
+                }
+            };
 
             HookPatch.Init();
         }

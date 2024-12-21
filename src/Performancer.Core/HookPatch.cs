@@ -105,10 +105,6 @@ namespace Performancer {
                     )
                 ) {
                     result = true;
-                // See if we're loading or importing a scene and if so activate GuideObjects for a while
-                } else if (KKAPI.Studio.SaveLoad.StudioSaveLoadApi.LoadInProgress || KKAPI.Studio.SaveLoad.StudioSaveLoadApi.ImportInProgress) {
-                    dicGuideObjectsToUpdate[__instance] = frameAllowance;
-                    result = true;
                 // If the GuideObject is currently visible, it needs to always be updated
                 } else if (__instance.layer == 28 || Studio.Studio.optionSystem.selectedState == 0) {
                     result = true;
