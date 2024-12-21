@@ -52,10 +52,13 @@ namespace LightSettings.Koikatu {
                                 LightSettings.charaLightSetCountDown = 5;
                             }
                         } else if (lightData.ObjectId == mapLightID) {
-                            var map = Singleton<Map>.Instance.mapRoot;
-                            if (map) {
-                                var lights = map.GetComponentsInChildren<Light>(true).ToList();
-                                if (lights.Count > 0) SetLoadedData(lightData, lights, true, true);
+                            if (LightSettings.Instance.ControlMapLights.Value) {
+                                var map = Singleton<Map>.Instance.mapRoot;
+                                if (map)
+                                {
+                                    var lights = map.GetComponentsInChildren<Light>(true).ToList();
+                                    if (lights.Count > 0) SetLoadedData(lightData, lights, true, true);
+                                }
                             }
                         }
                     }
@@ -112,11 +115,14 @@ namespace LightSettings.Koikatu {
             // Add chara light
             saveData.Add(charaLightData);
 
-            // Add map light
-            var map = Singleton<Map>.Instance.mapRoot;
-            if (map) {
-                var light = map.GetComponentsInChildren<Light>(true)[0];
-                if (light) AddSaveData(saveData, mapLightID, light);
+            if (LightSettings.Instance.ControlMapLights.Value) {
+	            // Add map light
+	            var map = Singleton<Map>.Instance.mapRoot;
+	            if (map)
+	            {
+		            var light = map.GetComponentsInChildren<Light>(true)[0];
+		            if (light) AddSaveData(saveData, mapLightID, light);
+	            }
             }
 
             // Add item lights
