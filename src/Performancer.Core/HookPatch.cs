@@ -93,16 +93,21 @@ namespace Performancer {
                 // Third, we check if we're supposed to update this GO (because a parent object was changed)
                 } else if (dicGuideObjectsToUpdate.TryGetValue(__instance, out int dicVal) && dicVal > 0) {
                     result = true;
-                    if (dicVal < 2) skipChildren = true;
-                    dicGuideObjectsToUpdate[__instance] = 0;
+                    // If skipChildren is left false too many times it will slow down the game considerably
+                    if (dicVal != 2) skipChildren = true;
+                    dicGuideObjectsToUpdate[__instance] = dicVal - 1;
                 // Check if the GO was changed since last frame
                 } else if (
                     dicGuideObjectVals[__instance] is var vals && (
-                        vals["pos"]   != __instance.m_ChangeAmount.pos ||
-                        vals["rot"]   != __instance.m_ChangeAmount.rot ||
+                        vals["pos"] != __instance.m_ChangeAmount.pos ||
+                        vals["rot"] != __instance.m_ChangeAmount.rot ||
                         vals["scale"] != __instance.m_ChangeAmount.scale
                     )
                 ) {
+                    result = true;
+                // See if we're loading or importing a scene and if so activate GuideObjects for a while
+                } else if (KKAPI.Studio.SaveLoad.StudioSaveLoadApi.LoadInProgress || KKAPI.Studio.SaveLoad.StudioSaveLoadApi.ImportInProgress) {
+                    dicGuideObjectsToUpdate[__instance] = frameAllowance;
                     result = true;
                 // If the GuideObject is currently visible, it needs to always be updated
                 } else if (__instance.layer == 28 || Studio.Studio.optionSystem.selectedState == 0) {
