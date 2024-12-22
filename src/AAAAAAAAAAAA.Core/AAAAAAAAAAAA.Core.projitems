@@ -9,6 +9,7 @@
     <Import_RootNamespace>AAAAAAAAAAAA</Import_RootNamespace>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="$(MSBuildThisFileDirectory)Maker.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)AAAAAAAAAAAA.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)HookPatch.cs" />
   </ItemGroup>

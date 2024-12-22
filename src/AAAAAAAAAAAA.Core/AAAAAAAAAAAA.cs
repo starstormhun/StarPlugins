@@ -1,6 +1,7 @@
 using BepInEx;
-using BepInEx.Configuration;
 using UnityEngine;
+using KKAPI.Utilities;
+using BepInEx.Configuration;
 
 [assembly: System.Reflection.AssemblyFileVersion(AAAAAAAAAAAA.AAAAAAAAAAAA.Version)]
 
@@ -17,17 +18,47 @@ namespace AAAAAAAAAAAA {
 	/// <info>
 	/// Plugin structure thanks to Keelhauled
 	/// </info>
-    public class AAAAAAAAAAAA : BaseUnityPlugin {
+    public partial class AAAAAAAAAAAA : BaseUnityPlugin {
         // Actual plugin name: Attach All Accessories Anywhere, Anytime, At Any Angle And Artistic Arrangement, Allegedly
         public const string GUID = "starstorm.aaaaaaaaaaaa";
         public const string Version = "0.1.0." + BuildNumber.Version;
 
-        private void Awake() {
+        public static AAAAAAAAAAAA Instance {  get; private set; }
 
+        public static ConfigEntry<bool> IsDebug { get; private set; }
+
+        private void Awake() {
+            Instance = this;
+
+            IsDebug = Config.Bind("General", "Debug", false, new ConfigDescription("Log debug messages", null, new ConfigurationManagerAttributes { IsAdvanced = true }));
+
+            if (KKAPI.KoikatuAPI.GetCurrentGameMode() != KKAPI.GameMode.Studio) {
+                HookPatch.InitMaker();
+            } else {
+                // HookPatch.InitStudio();
+            }
         }
 
         private void Update() {
 			
+        }
+
+        internal void Log(object data, int level = 0) {
+            switch (level) {
+                case 0:
+                    Logger.LogInfo(data); return;
+                case 1:
+                    Logger.LogDebug(data); return;
+                case 2:
+                    Logger.LogWarning(data); return;
+                case 3:
+                    Logger.LogError(data); return;
+                case 4:
+                    Logger.LogFatal(data); return;
+                case 5:
+                    Logger.LogMessage(data); return;
+                default: return;
+            }
         }
     }
 }
