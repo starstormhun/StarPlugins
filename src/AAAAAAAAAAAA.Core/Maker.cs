@@ -4,7 +4,7 @@ using UnityEngine;
 namespace AAAAAAAAAAAA {
     public partial class AAAAAAAAAAAA : BaseUnityPlugin {
         internal static void OnParentButtonPressed() {
-            if (HookPatch.Maker.parentDropdown.value != HookPatch.Maker.aaaaaaaaaaaaOptionIdx) {
+            if (HookPatch.Maker.aaaaaaaaaaaaOptionIdx != -1 && HookPatch.Maker.parentDropdown.value != HookPatch.Maker.aaaaaaaaaaaaOptionIdx) {
                 HookPatch.Maker.parentDropdown.value = HookPatch.Maker.aaaaaaaaaaaaOptionIdx;
                 return;
             }

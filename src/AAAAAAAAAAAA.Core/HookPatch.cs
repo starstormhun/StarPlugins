@@ -70,7 +70,7 @@ namespace AAAAAAAAAAAA {
             [HarmonyPrefix]
             [HarmonyPatch(typeof(KK_MoreAccessoryParents.Interface), "OnSelectionChanged")]
             private static bool KKMoreAccessoryParentsInterfaceBeforeOnSelectionChanged() {
-                if (parentToggle.isOn && parentDropdown.options[parentDropdown.value].text == "AAAAAAAAAAAA") {
+                if (parentToggle.isOn && parentDropdown.value == aaaaaaaaaaaaOptionIdx) {
                     if (AAAAAAAAAAAA.IsDebug.Value) AAAAAAAAAAAA.Instance.Log("AAAAAAAAAAAA Parentage detected!");
                     AAAAAAAAAAAA.RegisterParent();
                     return false;
