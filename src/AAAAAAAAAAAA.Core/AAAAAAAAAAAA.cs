@@ -37,6 +37,8 @@ namespace AAAAAAAAAAAA {
             } else {
                 // HookPatch.InitStudio();
             }
+
+            KKAPI.Maker.MakerAPI.MakerFinishedLoading += (x, y) => { InitMaker(); };
         }
 
         private void Update() {
