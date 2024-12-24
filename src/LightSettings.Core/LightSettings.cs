@@ -52,13 +52,7 @@ namespace LightSettings.Koikatu {
 
             IsDebug = Config.Bind("0. Advanced", "Logging", false, new ConfigDescription("Enable verbose logging for debugging purposes", null, new KKAPI.Utilities.ConfigurationManagerAttributes { IsAdvanced = true }));
             Enabled = Config.Bind("1. General", "Enable plugin", true, new ConfigDescription("Enable/disable the plugin entirely. You need to save/reload the scene after changing this. Changes take effect on Studio restart.", null, new ConfigurationManagerAttributes { Order = 10 }));
-            ControlMapLights = Config.Bind("1. General", "Control Map Lights",
-#if KK
-                true,
-#else
-                false,
-#endif
-				"Enable unified control over map lights. This can cause issues in KKS. Changes take effect on Studio restart.");
+            ControlMapLights = Config.Bind("1. General", "Control Map Lights", false, "Enable unified control over map lights. This can cause issues in KKS. Changes take effect on Studio restart.");
 
             CharaLightToggleType = Config.Bind("1. General", "Character light toggle", "Cramped", new ConfigDescription("How the character light on/off toggle will be handled. Changes take effect on Studio restart.", new AcceptableValueList<string>(new string[] { "None", "Cramped", "Below Vanilla" }), new ConfigurationManagerAttributes { Order = 5 }));
             
