@@ -18,13 +18,15 @@ namespace AAAAAAAAAAAA {
         public static Bone makerBoneRoot = null;
         public static Bone ponyBone = null;
         public static Dictionary<int, Dictionary<int, string>> dicMakerModifiedParents = new Dictionary<int, Dictionary<int, string>>();
+        public static Dictionary<Transform, Bone> dicMakerTfBones = new Dictionary<Transform, Bone>();
+        public static Dictionary<string, Bone> dicMakerHashBones = new Dictionary<string, Bone>();
 
         internal static void InitMaker() {
             makerBoneRoot?.Destroy();
             makerBoneRoot = null;
             dicMakerModifiedParents.Clear();
-            dicTfBones.Clear();
-            dicHashBones.Clear();
+            dicMakerTfBones.Clear();
+            dicMakerHashBones.Clear();
             mainMenu = FindObjectOfType<CustomChangeMainMenu>();
             chaCtrl = FindObjectOfType<ChaControl>();
             coordinateDropdown = FindObjectOfType<CustomControl>().ddCoordinate;
@@ -59,7 +61,7 @@ namespace AAAAAAAAAAAA {
 
             // Parent current accessory to selected bone
             int selectedAcc = mainMenu.ccAcsMenu.GetSelectIndex();
-            if (TryGetAccBone(selectedAcc, out var accBone) && dicTfBones.TryGetValue(selected, out var parentBone)) {
+            if (TryGetMakerAccBone(selectedAcc, out var accBone) && dicMakerTfBones.TryGetValue(selected, out var parentBone)) {
                 // Make sure not to parent anything to itself or its children
                 if (parentBone.IsChildOf(accBone)) {
                     Instance.Log("[AAAAAAAAAAAA] Can't parent accessory to itself or its children!", 5);
@@ -86,25 +88,25 @@ namespace AAAAAAAAAAAA {
 
         internal static void MakeMakerTree() {
             if (makerBoneRoot == null) {
-                makerBoneRoot = BuildBoneTree(chaCtrl.transform);
+                makerBoneRoot = BuildBoneTree(chaCtrl.transform, dicMakerTfBones, null);
             }
         }
 
         internal static void UpdateMakerTree(bool performParenting = false, bool clearNullTransforms = false) {
             if (makerBoneRoot != null) {
                 if (clearNullTransforms) {
-                    var dicCopy = dicTfBones.ToList();
-                    dicTfBones.Clear();
+                    var dicCopy = dicMakerTfBones.ToList();
+                    dicMakerTfBones.Clear();
                     foreach (var kvp in  dicCopy) {
-                        if (kvp.Key != null) dicTfBones[kvp.Key] = kvp.Value;
+                        if (kvp.Key != null) dicMakerTfBones[kvp.Key] = kvp.Value;
                         else kvp.Value.Destroy();
                     }
                 }
-                BuildBoneTree(makerBoneRoot.bone);
+                BuildBoneTree(makerBoneRoot.bone, dicMakerTfBones, null);
                 if (performParenting && dicMakerModifiedParents.TryGetValue(coordinateDropdown.value, out var dicChanges)) {
                     var keysToRemove = new List<int>();
                     foreach (var kvp in dicChanges) {
-                        if (TryGetAccBone(kvp.Key, out var accBone) && dicHashBones.TryGetValue(kvp.Value, out var parentBone)) {
+                        if (TryGetMakerAccBone(kvp.Key, out var accBone) && dicMakerHashBones.TryGetValue(kvp.Value, out var parentBone)) {
                             accBone.SetParent(parentBone);
                             accBone.PerformBoneUpdate();
                         } else {
@@ -122,22 +124,22 @@ namespace AAAAAAAAAAAA {
             }
         }
 
-        internal static bool TryGetAccBone(int slot, out Bone bone) {
+        internal static bool TryGetMakerAccBone(int slot, out Bone bone) {
             bone = null;
-            var acc = chaCtrl.objAccessory[slot]?.transform;
+            var acc = chaCtrl.objAccessory?[slot]?.transform;
             if (acc == null) return false;
-            if (dicTfBones.TryGetValue(acc, out bone)) return true;
+            if (dicMakerTfBones.TryGetValue(acc, out bone)) return true;
             return false;
         }
 
         internal static void UpdateHash(int slot) {
             if (makerBoneRoot == null) return;
-            if (TryGetAccBone(slot, out var acc)) {
+            if (TryGetMakerAccBone(slot, out var acc)) {
                 // Update the accessory bone and all children, but NOT other accessories
                 var accBones = new List<Bone>();
                 for (int i = 0; i < customAcsChangeSlot.cvsAccessory.Length; i++) {
                     if (i == slot) continue;
-                    if (TryGetAccBone(i, out Bone acc_i)) accBones.Add(acc_i);
+                    if (TryGetMakerAccBone(i, out Bone acc_i)) accBones.Add(acc_i);
                 }
                 if (IsDebug.Value) Instance.Log($"{acc.bone.name} has changed parent, updating hashes...");
                 var bonesToCheck = new List<Bone> { acc };
@@ -161,9 +163,9 @@ namespace AAAAAAAAAAAA {
                                 }
                             }
                         }
-                        if (dicHashBones.ContainsKey(oldHash)) {
-                            dicHashBones[newHash] = dicHashBones[oldHash];
-                            dicHashBones.Remove(oldHash);
+                        if (dicMakerHashBones.ContainsKey(oldHash)) {
+                            dicMakerHashBones[newHash] = dicMakerHashBones[oldHash];
+                            dicMakerHashBones.Remove(oldHash);
                         }
                     }
                     bonesToCheck.AddRange(current.children);
@@ -172,15 +174,15 @@ namespace AAAAAAAAAAAA {
         }
 
         internal static void RemoveParentedChildren(int slot) {
-            if (TryGetAccBone(slot, out Bone accBone) && dicMakerModifiedParents.TryGetValue(coordinateDropdown.value, out var dicCoord)) {
+            if (TryGetMakerAccBone(slot, out Bone accBone) && dicMakerModifiedParents.TryGetValue(coordinateDropdown.value, out var dicCoord)) {
                 // Traverse bone tree down and look for accessories
                 if (IsDebug.Value) Instance.Log($"{accBone.bone.name} is being removed, scanning for children...");
-                var rootBone = dicTfBones[chaCtrl.transform.Find("BodyTop/p_cf_body_bone/cf_j_root")];
+                var rootBone = dicMakerTfBones[chaCtrl.transform.Find("BodyTop/p_cf_body_bone/cf_j_root")];
                 var backupParent = ponyBone ?? rootBone;
                 var accBones = new Dictionary<Bone, int>();
                 for (int i = 0; i < customAcsChangeSlot.cvsAccessory.Length; i++) {
                     if (i == slot) continue;
-                    if (TryGetAccBone(i, out Bone acc_i)) accBones.Add(acc_i, i);
+                    if (TryGetMakerAccBone(i, out Bone acc_i)) accBones.Add(acc_i, i);
                 }
                 var bonesToCheck = new List<Bone>{accBone};
                 while (bonesToCheck.Count > 0) {

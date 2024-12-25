@@ -38,10 +38,11 @@ namespace AAAAAAAAAAAA {
             if (KKAPI.KoikatuAPI.GetCurrentGameMode() != KKAPI.GameMode.Studio) {
                 HookPatch.InitMaker();
             } else {
-                // HookPatch.InitStudio();
+                HookPatch.InitStudio();
             }
 
             KKAPI.Maker.MakerAPI.MakerFinishedLoading += (x, y) => { InitMaker(); };
+            KKAPI.Studio.StudioAPI.StudioLoadedChanged += (x, y) => { InitStudio(); };
         }
 
         private void Update() {

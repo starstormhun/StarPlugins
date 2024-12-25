@@ -15,8 +15,14 @@ namespace AAAAAAAAAAAA {
             Maker.SetupHooks();
         }
 
+        internal static void InitStudio() {
+            if (AAAAAAAAAAAA.IsDebug.Value) AAAAAAAAAAAA.Instance.Log("Initialising AAAAAAAAAAAA for Studio!");
+            Studio.SetupHooks();
+        }
+
         internal static void Deactivate() {
             Maker.UnregisterHooks();
+            Studio.UnregisterHooks();
         }
 
         public static class Maker {
@@ -259,6 +265,31 @@ namespace AAAAAAAAAAAA {
                     }
                 }
                 AAAAAAAAAAAA.UpdateMakerTree(true);
+            }
+        }
+
+        public static class Studio {
+            private static Harmony _harmony;
+
+            // Setup Harmony and patch methods
+            public static void SetupHooks() {
+                _harmony = Harmony.CreateAndPatchAll(typeof(Studio), null);
+            }
+
+            // Disable Harmony patches of this plugin
+            public static void UnregisterHooks() {
+                _harmony.UnpatchSelf();
+            }
+
+            // Apply saved data when switching between coordinates
+            [HarmonyPostfix]
+            [HarmonyPatch(typeof(ChaControl), "ChangeCoordinateType", new[] { typeof(ChaFileDefine.CoordinateType), typeof(bool) })]
+            private static void ChaControlAfterChangeCoordinateTypeAndReload(ChaControl __instance) {
+                AAAAAAAAAAAA.Instance.StartCoroutine(UpdateData());
+                IEnumerator UpdateData() {
+                    yield return KKAPI.Utilities.CoroutineUtils.WaitForEndOfFrame;
+                    AAAAAAAAAAAA.ApplyStudioData(__instance.transform.GetComponent<CardDataController>());
+                }
             }
         }
     }

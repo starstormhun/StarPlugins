@@ -8,14 +8,11 @@ namespace AAAAAAAAAAAA {
         public Transform bone;
         public Bone parent = null;
         public List<Bone> children = new List<Bone>();
+        public CardDataController controller;
 
         public string Hash { get; private set; }
 
-        public Bone(Transform _bone) : this(_bone, null, null) { }
-
-        public Bone(Transform _bone, Bone _parent) : this(_bone, _parent, null) { }
-
-        public Bone(Transform _bone, Bone _parent, IEnumerable<Bone> _children) {
+        public Bone(Transform _bone, Bone _parent = null, IEnumerable<Bone> _children = null, CardDataController _controller = null) {
             bone = _bone;
             if (_parent != null) {
                 parent = _parent;
@@ -24,9 +21,22 @@ namespace AAAAAAAAAAAA {
             if (_children != null) {
                 children = new List<Bone>(_children);
             }
+            if (_controller != null) {
+                controller = _controller;
+            }
+            if (KKAPI.Studio.StudioAPI.InsideStudio && controller == null) {
+                AAAAAAAAAAAA.Instance.Log("Did not provide CardDataController for Bone constructor in Studio!", 3);
+                AAAAAAAAAAAA.Instance.Log("[AAAAAAAAAAAA] ERROR: No CardDataController found for Bone constructor in Studio!", 5);
+            }
             Hash = MakeHash();
-            AAAAAAAAAAAA.dicTfBones.Add(_bone, this);
-            AAAAAAAAAAAA.dicHashBones.Add(Hash, this);
+            if (KKAPI.Maker.MakerAPI.InsideMaker) {
+                AAAAAAAAAAAA.dicMakerTfBones.Add(_bone, this);
+                AAAAAAAAAAAA.dicMakerHashBones.Add(Hash, this);
+            }
+            if (KKAPI.Studio.StudioAPI.InsideStudio) {
+                controller.dicTfBones.Add(_bone, this);
+                controller.dicHashBones.Add(Hash, this);
+            }
         }
 
         internal void SetParent(Bone newParent) {
@@ -45,8 +55,14 @@ namespace AAAAAAAAAAAA {
             foreach (Bone child in children) {
                 child.Destroy();
             }
-            if (bone != null) AAAAAAAAAAAA.dicTfBones.Remove(bone);
-            if (Hash != "") AAAAAAAAAAAA.dicHashBones.Remove(Hash);
+            if (KKAPI.Maker.MakerAPI.InsideMaker) {
+                if (bone != null) AAAAAAAAAAAA.dicMakerTfBones.Remove(bone);
+                if (Hash != "") AAAAAAAAAAAA.dicMakerHashBones.Remove(Hash);
+            }
+            if (KKAPI.Studio.StudioAPI.InsideStudio) {
+                if (bone != null) controller.dicTfBones.Remove(bone);
+                if (Hash != "") controller.dicHashBones.Remove(Hash);
+            }
             if (children.Count > 0) children.Clear();
             parent = null;
             bone = null;
@@ -87,10 +103,19 @@ namespace AAAAAAAAAAAA {
                     result += string.Format("{0:x2}", x);
                 }
                 if (tryKeepOld && result.Split('/')[0] == Hash) return Hash;
-                if (AAAAAAAAAAAA.dicHashBones.ContainsKey(result)) {
-                    int i = 1;
-                    while (AAAAAAAAAAAA.dicHashBones.ContainsKey(result + $"/{i}")) i++;
-                    result += $"/{i}";
+                if (KKAPI.Maker.MakerAPI.InsideMaker) {
+                    if (AAAAAAAAAAAA.dicMakerHashBones.ContainsKey(result)) {
+                        int i = 1;
+                        while (AAAAAAAAAAAA.dicMakerHashBones.ContainsKey(result + $"/{i}")) i++;
+                        result += $"/{i}";
+                    }
+                }
+                if (KKAPI.Studio.StudioAPI.InsideStudio) {
+                    if (controller.dicHashBones.ContainsKey(result)) {
+                        int i = 1;
+                        while (controller.dicHashBones.ContainsKey(result + $"/{i}")) i++;
+                        result += $"/{i}";
+                    }
                 }
                 return result;
             }

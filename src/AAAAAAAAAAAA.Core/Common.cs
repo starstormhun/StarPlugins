@@ -7,21 +7,18 @@ using System.Collections.Generic;
 
 namespace AAAAAAAAAAAA {
     public partial class AAAAAAAAAAAA : BaseUnityPlugin {
-        public static Dictionary<Transform, Bone> dicTfBones = new Dictionary<Transform, Bone>();
-        public static Dictionary<string, Bone> dicHashBones = new Dictionary<string, Bone>();
-
-        internal static Bone BuildBoneTree(Transform start) {
+        internal static Bone BuildBoneTree(Transform start, Dictionary<Transform, Bone> tfBones, CardDataController controller) {
             Stopwatch sw = null;
             if (IsDebug.Value) {
                 Instance.Log($"Building bone tree!");
                 sw = Stopwatch.StartNew();
             }
             if (start == null) return null;
-            if (dicTfBones.TryGetValue(start, out Bone bone)) {
+            if (tfBones.TryGetValue(start, out Bone bone)) {
                 BuildBoneTreeRecursive(bone);
                 return bone;
             } else {
-                var newBone = new Bone(start);
+                var newBone = new Bone(start, null, null, controller);
                 BuildBoneTreeRecursive(newBone);
                 return newBone;
             }
@@ -32,14 +29,14 @@ namespace AAAAAAAAAAAA {
                 while (transforms.Count > 0) {
                     Transform tf = transforms.Pop();
                     if (parent == null || tf.parent != parent.bone) {
-                        parent = dicTfBones[tf.parent];
+                        parent = tfBones[tf.parent];
                         foreach (Bone child in parent.children) {
                             if (child.bone.IsDestroyed()) {
                                 child.Destroy();
                             }
                         }
                     }
-                    if (dicTfBones.TryGetValue(tf, out Bone existingBone)) {
+                    if (tfBones.TryGetValue(tf, out Bone existingBone)) {
                         if (existingBone.bone.IsDestroyed()) {
                             existingBone.Destroy();
                             continue;
@@ -47,7 +44,7 @@ namespace AAAAAAAAAAAA {
                             existingBone.SetParent(parent);
                         }
                     } else if (tf.GetComponent<ChaControl>() == null) {
-                        var newBone = new Bone(tf, parent);
+                        var newBone = new Bone(tf, parent, null, controller);
                         if (KKAPI.Maker.MakerAPI.InsideMaker && tf.name == "a_n_hair_pony") {
                             ponyBone = newBone;
                         }
