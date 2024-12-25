@@ -132,13 +132,13 @@ namespace AAAAAAAAAAAA {
 
         internal static void UpdateHash(int slot) {
             if (makerBoneRoot == null) return;
-            var accBones = new List<Bone>();
-            for (int i = 0; i < customAcsChangeSlot.cvsAccessory.Length; i++) {
-                if (i == slot) continue;
-                if (TryGetAccBone(i, out Bone acc_i)) accBones.Add(acc_i);
-            }
             if (TryGetAccBone(slot, out var acc)) {
                 // Update the accessory bone and all children, but NOT other accessories
+                var accBones = new List<Bone>();
+                for (int i = 0; i < customAcsChangeSlot.cvsAccessory.Length; i++) {
+                    if (i == slot) continue;
+                    if (TryGetAccBone(i, out Bone acc_i)) accBones.Add(acc_i);
+                }
                 if (IsDebug.Value) Instance.Log($"{acc.bone.name} has changed parent, updating hashes...");
                 var bonesToCheck = new List<Bone> { acc };
                 while (bonesToCheck.Count > 0) {
@@ -173,24 +173,26 @@ namespace AAAAAAAAAAAA {
 
         internal static void RemoveParentedChildren(int slot) {
             if (TryGetAccBone(slot, out Bone accBone) && dicMakerModifiedParents.TryGetValue(coordinateDropdown.value, out var dicCoord)) {
+                // Traverse bone tree down and look for accessories
                 if (IsDebug.Value) Instance.Log($"{accBone.bone.name} is being removed, scanning for children...");
-                var toDelete = new List<int>();
                 var rootBone = dicTfBones[chaCtrl.transform.Find("BodyTop/p_cf_body_bone/cf_j_root")];
                 var backupParent = ponyBone ?? rootBone;
-                foreach (var kvp in dicCoord) {
-                    if (IsDebug.Value) Instance.Log($"Looking at #{kvp.Key}...");
-                    if (dicHashBones.TryGetValue(kvp.Value, out var bone) && bone.IsChildOf(accBone)) {
-                        if (IsDebug.Value) Instance.Log($"#{kvp.Key} was child of {accBone.bone.name}!");
-                        toDelete.Add(kvp.Key);
-                        if (TryGetAccBone(kvp.Key, out Bone childAcc)) {
-                            if (IsDebug.Value) Instance.Log("Reparenting...");
-                            childAcc.SetParent(backupParent);
-                            childAcc.PerformBoneUpdate();
-                        }
-                    }
+                var accBones = new Dictionary<Bone, int>();
+                for (int i = 0; i < customAcsChangeSlot.cvsAccessory.Length; i++) {
+                    if (i == slot) continue;
+                    if (TryGetAccBone(i, out Bone acc_i)) accBones.Add(acc_i, i);
                 }
-                foreach (var key in toDelete) {
-                    dicCoord.Remove(key);
+                var bonesToCheck = new List<Bone>{accBone};
+                while (bonesToCheck.Count > 0) {
+                    var current = bonesToCheck.Pop();
+                    if (accBones.ContainsKey(current)) {
+                        if (IsDebug.Value) Instance.Log($"#{accBones[current]} was child of {accBone.bone.name}! Reparenting...");
+                        dicCoord.Remove(accBones[current]);
+                        current.SetParent(backupParent);
+                        current.PerformBoneUpdate();
+                    } else {
+                        bonesToCheck.AddRange(current.children);
+                    }
                 }
             }
         }
