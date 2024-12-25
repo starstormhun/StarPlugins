@@ -2,6 +2,7 @@ using BepInEx;
 using UnityEngine;
 using KKAPI.Utilities;
 using BepInEx.Configuration;
+using KKAPI.Chara;
 
 [assembly: System.Reflection.AssemblyFileVersion(AAAAAAAAAAAA.AAAAAAAAAAAA.Version)]
 
@@ -31,6 +32,8 @@ namespace AAAAAAAAAAAA {
             Instance = this;
 
             IsDebug = Config.Bind("General", "Debug", false, new ConfigDescription("Log debug messages", null, new ConfigurationManagerAttributes { IsAdvanced = true }));
+
+            CharacterApi.RegisterExtraBehaviour<CardDataController>(CardDataController.SaveID);
 
             if (KKAPI.KoikatuAPI.GetCurrentGameMode() != KKAPI.GameMode.Studio) {
                 HookPatch.InitMaker();

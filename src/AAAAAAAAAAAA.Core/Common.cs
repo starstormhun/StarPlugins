@@ -46,7 +46,7 @@ namespace AAAAAAAAAAAA {
                         } else {
                             existingBone.SetParent(parent);
                         }
-                    } else {
+                    } else if (tf.GetComponent<ChaControl>() == null) {
                         var newBone = new Bone(tf, parent);
                         if (KKAPI.Maker.MakerAPI.InsideMaker && tf.name == "a_n_hair_pony") {
                             ponyBone = newBone;
