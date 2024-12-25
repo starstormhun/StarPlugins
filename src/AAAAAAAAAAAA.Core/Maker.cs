@@ -102,11 +102,21 @@ namespace AAAAAAAAAAAA {
                 }
                 BuildBoneTree(makerBoneRoot.bone);
                 if (performParenting && dicMakerModifiedParents.TryGetValue(coordinateDropdown.value, out var dicChanges)) {
+                    var keysToRemove = new List<int>();
                     foreach (var kvp in dicChanges) {
                         if (TryGetAccBone(kvp.Key, out var accBone) && dicHashBones.TryGetValue(kvp.Value, out var parentBone)) {
                             accBone.SetParent(parentBone);
                             accBone.PerformBoneUpdate();
+                        } else {
+                            Instance.Log($"Invalid parentage found for [{coordinateDropdown.value}][{kvp.Key}] = \"{kvp.Value}\"! Removing...", 2);
+                            keysToRemove.Add(kvp.Key);
                         }
+                    }
+                    foreach (var key in keysToRemove) {
+                        dicChanges.Remove(key);
+                    }
+                    if (dicChanges.Count == 0) {
+                        dicMakerModifiedParents.Remove(coordinateDropdown.value);
                     }
                 }
             }

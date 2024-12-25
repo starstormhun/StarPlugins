@@ -127,30 +127,32 @@ namespace AAAAAAAAAAAA {
             [HarmonyPrefix]
             [HarmonyPatch(typeof(CvsAccessory), "UpdateSelectAccessoryType")]
             private static bool CvsAccessoryBeforeUpdateSelectAccessoryType(CvsAccessory __instance) {
+                if (isLoadingNewClothing || !AAAAAAAAAAAA.mainMenu || !AAAAAAAAAAAA.customAcsChangeSlot) return true;
+                if (AAAAAAAAAAAA.IsDebug.Value) AAAAAAAAAAAA.Instance.Log($"(C) Acc#{__instance.nSlotNo} changed type!");
+                AAAAAAAAAAAA.RemoveParentedChildren(__instance.nSlotNo);
                 if (
                     AAAAAAAAAAAA.dicMakerModifiedParents.TryGetValue(AAAAAAAAAAAA.coordinateDropdown.value, out var dicCoord) &&
-                    dicCoord.ContainsKey(__instance.nSlotNo) &&
-                    __instance.ddAcsType.value != 0 &&
-                    !isLoadingNewClothing
+                    dicCoord.ContainsKey(__instance.nSlotNo) && __instance.ddAcsType.value != 0
                 ) {
-                    if (AAAAAAAAAAAA.IsDebug.Value) AAAAAAAAAAAA.Instance.Log($"(C) Acc#{__instance.nSlotNo} changed type!");
+                    if (AAAAAAAAAAAA.IsDebug.Value) AAAAAAAAAAAA.Instance.Log($"Acc#{__instance.nSlotNo} had custom parent! Removing...");
                     DoRemoveSaveBoneParentageFromDict(__instance.nSlotNo);
                 }
-                AAAAAAAAAAAA.RemoveParentedChildren(__instance.nSlotNo);
                 return true;
             }
             [HarmonyPrefix]
             [HarmonyPatch(typeof(TMP_Dropdown), "value", MethodType.Setter)]
             private static bool TMPDropdownBeforeValueChanged(TMP_Dropdown __instance, int value) {
                 if (isLoadingNewClothing || !AAAAAAAAAAAA.mainMenu || !AAAAAAAAAAAA.customAcsChangeSlot) return true;
-                int slot = AAAAAAAAAAAA.mainMenu.ccAcsMenu.GetSelectIndex();
+                if (__instance.transform.parent?.name != "ddCategory") return true;
+                if (!int.TryParse(__instance.transform.parent?.parent?.parent?.parent?.parent?.parent?.name.Replace("tglSlot", ""), out int slot)) return true;
                 var dropDown = AAAAAAAAAAAA.customAcsChangeSlot.cvsAccessory[slot].ddAcsType;
                 if (__instance == dropDown && (value == 0 || dropDown.value != value)) {
                     if (AAAAAAAAAAAA.IsDebug.Value) AAAAAAAAAAAA.Instance.Log($"(T) Acc#{slot} changed type!");
+                    AAAAAAAAAAAA.RemoveParentedChildren(slot);
                     if (AAAAAAAAAAAA.dicMakerModifiedParents.TryGetValue(AAAAAAAAAAAA.coordinateDropdown.value, out var dicCoord) && dicCoord.ContainsKey(slot)) {
+                        if (AAAAAAAAAAAA.IsDebug.Value) AAAAAAAAAAAA.Instance.Log($"Acc#{slot} had custom parent! Removing...");
                         DoRemoveSaveBoneParentageFromDict(slot);
                     }
-                    AAAAAAAAAAAA.RemoveParentedChildren(slot);
                 }
                 return true;
             }
@@ -159,10 +161,11 @@ namespace AAAAAAAAAAAA {
             private static bool ChaControlBeforeChangeAccessory(ChaControl __instance, int slotNo, int type, int id) {
                 if (__instance.infoAccessory[slotNo] != null) {
                     if (AAAAAAAAAAAA.IsDebug.Value) AAAAAAAAAAAA.Instance.Log($"Acc#{slotNo} changed to different type or kind!");
+                    AAAAAAAAAAAA.RemoveParentedChildren(slotNo);
                     if (AAAAAAAAAAAA.dicMakerModifiedParents.TryGetValue(AAAAAAAAAAAA.coordinateDropdown.value, out var dicCoord) && dicCoord.ContainsKey(slotNo)) {
+                        if (AAAAAAAAAAAA.IsDebug.Value) AAAAAAAAAAAA.Instance.Log($"Acc#{slotNo} had custom parent! Removing...");
                         DoRemoveSaveBoneParentageFromDict(slotNo);
                     }
-                    AAAAAAAAAAAA.RemoveParentedChildren(slotNo);
                 }
                 return true;
             }
@@ -216,6 +219,28 @@ namespace AAAAAAAAAAAA {
                     for (int i = 0; i < 5; i++) yield return KKAPI.Utilities.CoroutineUtils.WaitForEndOfFrame;
                     AAAAAAAAAAAA.UpdateMakerTree();
                     isTreeUpdateCoroutine = false;
+                }
+            }
+
+            // Add support for copying / transfering accessories
+            [HarmonyPostfix]
+            [HarmonyPatch(typeof(CvsAccessoryCopy), "CopyAcs")]
+            private static void CvsAccessoryCopyAfterCopyAcs(CvsAccessoryCopy __instance) {
+                // Yes, this isn't a mistake, they're stored in reverse order
+                int coord1 = __instance.ddCoordeType[1].value;
+                int coord2 = __instance.ddCoordeType[0].value;
+                for (int i = 0; i < __instance.tglKind.Length; i++) {
+                    if (__instance.tglKind[i].isOn) {
+                        if (AAAAAAAAAAAA.dicMakerModifiedParents.TryGetValue(coord1, out var dicCoord1) && dicCoord1.TryGetValue(i, out var hash)) {
+                            if (AAAAAAAAAAAA.IsDebug.Value) AAAAAAAAAAAA.Instance.Log($"Copying acc#{i} data from coord [{coord1}] to [{coord2}]!");
+                            if (!AAAAAAAAAAAA.dicMakerModifiedParents.ContainsKey(coord2))
+                                AAAAAAAAAAAA.dicMakerModifiedParents[coord2] = new Dictionary<int, string>();
+                            AAAAAAAAAAAA.dicMakerModifiedParents[coord2][i] = hash;
+                        }
+                    }
+                }
+                if (coord2 == AAAAAAAAAAAA.coordinateDropdown.value) {
+                    AAAAAAAAAAAA.UpdateMakerTree(true);
                 }
             }
         }

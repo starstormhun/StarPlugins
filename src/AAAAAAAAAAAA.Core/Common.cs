@@ -48,7 +48,7 @@ namespace AAAAAAAAAAAA {
                         }
                     } else {
                         var newBone = new Bone(tf, parent);
-                        if (KKAPI.Maker.MakerAPI.InsideMaker) {
+                        if (KKAPI.Maker.MakerAPI.InsideMaker && tf.name == "a_n_hair_pony") {
                             ponyBone = newBone;
                         }
                     }
