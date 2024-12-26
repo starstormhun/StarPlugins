@@ -7,10 +7,13 @@ using UnityEngine.UI;
 using System.Collections;
 using System.Collections.Generic;
 using System.Reflection;
+using KKAPI.Maker.UI;
 
 namespace AAAAAAAAAAAA {
     public static class HookPatch {
         internal static void InitMaker() {
+            KKAPI.Maker.MakerAPI.MakerStartedLoading += (x, y) => { Maker.makerLoaded = false; };
+            KKAPI.Maker.MakerAPI.MakerFinishedLoading += (x, y) => { Maker.makerLoaded = true; };
             if (AAAAAAAAAAAA.IsDebug.Value) AAAAAAAAAAAA.Instance.Log("Initialising AAAAAAAAAAAA for Maker!");
             Maker.SetupHooks();
         }
@@ -27,6 +30,8 @@ namespace AAAAAAAAAAAA {
 
         public static class Maker {
             private static Harmony _harmony;
+
+            internal static bool makerLoaded = false;
 
             internal static TMP_Dropdown parentDropdown;
             internal static Toggle ponytailToggle;
@@ -88,6 +93,7 @@ namespace AAAAAAAAAAAA {
             [HarmonyPrefix]
             [HarmonyPatch(typeof(KK_MoreAccessoryParents.Interface), "OnSelectionChanged")]
             private static bool KKMoreAccessoryParentsInterfaceBeforeOnSelectionChanged() {
+                if (!makerLoaded) return true;
                 if (AAAAAAAAAAAA.acsParentWindow.updateWin) return false;
                 if (parentToggle.isOn && parentDropdown.value == aaaaaaaaaaaaOptionIdx) {
                     if (AAAAAAAAAAAA.IsDebug.Value) AAAAAAAAAAAA.Instance.Log("AAAAAAAAAAAA Parentage detected!");
@@ -101,12 +107,14 @@ namespace AAAAAAAAAAAA {
             [HarmonyPrefix]
             [HarmonyPatch(typeof(ChaControl), "ChangeCoordinateTypeAndReload", new[] { typeof(ChaFileDefine.CoordinateType), typeof(bool) })]
             private static bool ChaControlBeforeChangeCoordinateTypeAndReload() {
+                if (!makerLoaded) return true;
                 isLoading = true;
                 return true;
             }
             [HarmonyPostfix]
             [HarmonyPatch(typeof(ChaControl), "ChangeCoordinateTypeAndReload", new[] { typeof(ChaFileDefine.CoordinateType), typeof(bool) })]
             private static void ChaControlAfterChangeCoordinateTypeAndReload() {
+                if (!makerLoaded) return;
                 isLoading = false;
                 AAAAAAAAAAAA.UpdateMakerTree(true, true);
             }
@@ -115,6 +123,7 @@ namespace AAAAAAAAAAAA {
             [HarmonyPostfix]
             [HarmonyPatch(typeof(CvsAccessory), "UpdateSelectAccessoryParent")]
             private static void CvsAccessoryAfterUpdateSelectAccessoryParent(CvsAccessory __instance, int index) {
+                if (!makerLoaded) return;
                 if (AAAAAAAAAAAA.dicMakerModifiedParents.TryGetValue(AAAAAAAAAAAA.coordinateDropdown.value, out var dicCoord) && dicCoord.ContainsKey(__instance.nSlotNo)) {
                     if (AAAAAAAAAAAA.IsDebug.Value) AAAAAAAAAAAA.Instance.Log($"Moving acc#{__instance.nSlotNo} from custom parent to: {index}");
                     DoRemoveSaveBoneParentageFromDict(__instance.nSlotNo);
@@ -128,6 +137,7 @@ namespace AAAAAAAAAAAA {
             [HarmonyPrefix]
             [HarmonyPatch(typeof(CvsAccessory), "UpdateSelectAccessoryType")]
             private static bool CvsAccessoryBeforeUpdateSelectAccessoryType(CvsAccessory __instance, int index) {
+                if (!makerLoaded) return true;
                 if (isLoading || !AAAAAAAAAAAA.mainMenu || !AAAAAAAAAAAA.customAcsChangeSlot) return true;
                 if (AAAAAAAAAAAA.chaCtrl?.infoAccessory?[__instance.nSlotNo]?.Category - 120 == index) return true;
                 if (AAAAAAAAAAAA.IsDebug.Value) AAAAAAAAAAAA.Instance.Log($"(C) Acc#{__instance.nSlotNo} changed type!");
@@ -144,6 +154,7 @@ namespace AAAAAAAAAAAA {
             [HarmonyPrefix]
             [HarmonyPatch(typeof(TMP_Dropdown), "value", MethodType.Setter)]
             private static bool TMPDropdownBeforeValueChanged(TMP_Dropdown __instance, int value) {
+                if (!makerLoaded) return true;
                 if (isLoading || !AAAAAAAAAAAA.mainMenu || !AAAAAAAAAAAA.customAcsChangeSlot) return true;
                 if (__instance.transform.parent?.name != "ddCategory") return true;
                 if (!int.TryParse(__instance.transform.parent?.parent?.parent?.parent?.parent?.parent?.name.Replace("tglSlot", ""), out int slot)) return true;
@@ -162,6 +173,7 @@ namespace AAAAAAAAAAAA {
             [HarmonyPrefix]
             [HarmonyPatch(typeof(ChaControl), "ChangeAccessory", new[] { typeof(int), typeof(int), typeof(int), typeof(string), typeof(bool) })]
             private static bool ChaControlBeforeChangeAccessory(ChaControl __instance, int slotNo, int type, int id) {
+                if (!makerLoaded) return true;
                 if (__instance.infoAccessory[slotNo] != null) {
                     if (AAAAAAAAAAAA.IsDebug.Value) AAAAAAAAAAAA.Instance.Log($"Acc#{slotNo} changed to different type ({type}) or kind ({id})!");
                     AAAAAAAAAAAA.RemoveParentedChildren(slotNo);
@@ -195,6 +207,7 @@ namespace AAAAAAAAAAAA {
             [HarmonyPostfix]
             [HarmonyPatch(typeof(CvsAccessory), "UpdateAccessoryParentInfo")]
             private static void CvsAccessoryAfterUpdateAccessoryParentInfo(CvsAccessory __instance) {
+                if (!makerLoaded) return;
                 if (
                     AAAAAAAAAAAA.dicMakerModifiedParents != null &&
                     AAAAAAAAAAAA.coordinateDropdown?.value != null &&
@@ -217,6 +230,7 @@ namespace AAAAAAAAAAAA {
             [HarmonyPostfix]
             [HarmonyPatch(typeof(ChaControl), "ChangeAccessoryAsync", new[] { typeof(int), typeof(int), typeof(int), typeof(string), typeof(bool), typeof(bool) })]
             private static void ChaControlAfterChangeAccessoryAsync() {
+                if (!makerLoaded) return;
                 AAAAAAAAAAAA.UpdateMakerTree();
             }
 
@@ -224,6 +238,7 @@ namespace AAAAAAAAAAAA {
             [HarmonyPostfix]
             [HarmonyPatch(typeof(CvsAccessoryCopy), "CopyAcs")]
             private static void CvsAccessoryCopyAfterCopyAcs(CvsAccessoryCopy __instance) {
+                if (!makerLoaded) return;
                 // Yes, this isn't a mistake, they're stored in reverse order
                 int coord1 = __instance.ddCoordeType[1].value;
                 int coord2 = __instance.ddCoordeType[0].value;
@@ -242,6 +257,7 @@ namespace AAAAAAAAAAAA {
             [HarmonyPrefix]
             [HarmonyPatch(typeof(CvsAccessoryChange), "CopyAcs")]
             private static bool CvsAccessoryChangeBeforeCopyAcs(CvsAccessoryChange __instance, ref List<KeyValuePair<int, string>> __state) {
+                if (!makerLoaded) return true;
                 int nowCoord = AAAAAAAAAAAA.coordinateDropdown.value;
                 if (AAAAAAAAAAAA.IsDebug.Value) AAAAAAAAAAAA.Instance.Log("Moving acc children to ponytail slot before transfering...");
                 __state = AAAAAAAAAAAA.RemoveParentedChildren(__instance.selSrc);
@@ -265,6 +281,7 @@ namespace AAAAAAAAAAAA {
             [HarmonyPostfix]
             [HarmonyPatch(typeof(CvsAccessoryChange), "CopyAcs")]
             private static void CvsAccessoryChangeAfterCopyAcs(CvsAccessoryChange __instance, ref List<KeyValuePair<int, string>> __state) {
+                if (!makerLoaded) return;
                 if (AAAAAAAAAAAA.dicMakerModifiedParents.TryGetValue(AAAAAAAAAAAA.coordinateDropdown.value, out var dicCoord)) {
                     foreach (var kvp in __state) {
                         dicCoord[kvp.Key] = kvp.Value;
