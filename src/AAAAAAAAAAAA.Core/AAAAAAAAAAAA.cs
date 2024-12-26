@@ -45,10 +45,6 @@ namespace AAAAAAAAAAAA {
             KKAPI.Studio.StudioAPI.StudioLoadedChanged += (x, y) => { InitStudio(); };
         }
 
-        private void Update() {
-			
-        }
-
         internal void Log(object data, int level = 0) {
             switch (level) {
                 case 0:

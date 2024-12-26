@@ -82,7 +82,7 @@ namespace AAAAAAAAAAAA {
                 acsParentWindow.updateWin = true;
                 HookPatch.Maker.parentToggle.isOn = true;
                 acsParentWindow.updateWin = false;
-                customAcsChangeSlot.cvsAccessory[selectedAcc].textAcsParent.text = "AAAAAAAAAAAA";
+                customAcsChangeSlot.cvsAccessory[selectedAcc].textAcsParent.text = $"A12: {parentBone.bone.name}";
             }
         }
 

@@ -211,13 +211,14 @@ namespace AAAAAAAAAAAA {
                     AAAAAAAAAAAA.dicMakerModifiedParents != null &&
                     AAAAAAAAAAAA.coordinateDropdown?.value != null &&
                     AAAAAAAAAAAA.dicMakerModifiedParents.TryGetValue(AAAAAAAAAAAA.coordinateDropdown.value, out var dicCoord) &&
-                    dicCoord.ContainsKey(__instance.nSlotNo)
+                    dicCoord.TryGetValue(__instance.nSlotNo, out var hash) &&
+                    AAAAAAAAAAAA.dicMakerHashBones.TryGetValue(hash, out var parentBone)
                 ) {
                     int num = __instance.ddAcsType.value - 1;
                     if (0 <= num) {
                         if (null != __instance.cusAcsParentWin) {
                             if (__instance.textAcsParent) {
-                                __instance.textAcsParent.text = "AAAAAAAAAAAA";
+                                __instance.textAcsParent.text = $"A12: {parentBone.bone.name}";
                             }
                         }
                     }
