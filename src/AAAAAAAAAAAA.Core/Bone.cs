@@ -81,6 +81,11 @@ namespace AAAAAAAAAAAA {
         internal void PerformBoneUpdate() {
             if (parent != null && bone.parent != parent.bone) {
                 var oldScale = bone.localScale;
+                if (parent.bone.childCount == 0) {
+                    var dummy = new GameObject("dummy");
+                    dummy.transform.SetParent(parent.bone);
+                    dummy.transform.localPosition = Vector3.zero;
+                }
                 bone.SetParent(parent.bone);
                 bone.localPosition = Vector3.zero;
                 bone.localRotation = Quaternion.identity;
