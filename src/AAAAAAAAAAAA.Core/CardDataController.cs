@@ -56,6 +56,8 @@ namespace AAAAAAAAAAAA {
                 if (KKAPI.Studio.StudioAPI.InsideStudio) LoadData();
                 return;
             }
+            if (KKAPI.Maker.MakerAPI.InsideMaker) AAAAAAAAAAAA.dicMakerModifiedParents[(int)CurrentCoordinate.Value] = new Dictionary<int, string>();
+            if (KKAPI.Studio.StudioAPI.InsideStudio) customAccParents[(int)CurrentCoordinate.Value] = new Dictionary<int, string>();
             PluginData data = GetCoordinateExtendedData(coordinate);
             if (data == null || data.data == null) return;
             if (data.data.TryGetValue(coordDataID, out var accData)) {
@@ -73,6 +75,8 @@ namespace AAAAAAAAAAAA {
                 if (KKAPI.Studio.StudioAPI.InsideStudio) LoadData();
                 return;
             }
+            if (KKAPI.Maker.MakerAPI.InsideMaker) AAAAAAAAAAAA.dicMakerModifiedParents = new Dictionary<int, Dictionary<int, string>>();
+            if (KKAPI.Studio.StudioAPI.InsideStudio) customAccParents = new Dictionary<int, Dictionary<int, string>>();
             PluginData data = GetExtendedData();
             if (data == null || data.data == null) return;
             if (data.data.TryGetValue(cardDataID, out object cardData)) {

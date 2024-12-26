@@ -34,8 +34,7 @@ namespace AAAAAAAAAAAA {
             internal static Toggle parentToggle;
             internal static int aaaaaaaaaaaaOptionIdx = -1;
 
-            private static bool isTreeUpdateCoroutine = false;
-            private static bool isLoadingNewClothing = false;
+            internal static bool isLoading = false;
 
             // Setup Harmony and patch methods
             public static void SetupHooks() {
@@ -45,13 +44,6 @@ namespace AAAAAAAAAAAA {
             // Disable Harmony patches of this plugin
             public static void UnregisterHooks() {
                 _harmony.UnpatchSelf();
-            }
-
-            public static IEnumerator DoDelayedUpdate(bool doParenting) {
-                isTreeUpdateCoroutine = true;
-                yield return KKAPI.Utilities.CoroutineUtils.WaitForEndOfFrame;
-                AAAAAAAAAAAA.UpdateMakerTree(doParenting);
-                isTreeUpdateCoroutine = false;
             }
 
             // Create custom interface elements by piggybacking off of KK_MoreAccessoryParents's method
@@ -109,18 +101,14 @@ namespace AAAAAAAAAAAA {
             [HarmonyPrefix]
             [HarmonyPatch(typeof(ChaControl), "ChangeCoordinateTypeAndReload", new[] { typeof(ChaFileDefine.CoordinateType), typeof(bool) })]
             private static bool ChaControlBeforeChangeCoordinateTypeAndReload() {
-                isLoadingNewClothing = true;
+                isLoading = true;
                 return true;
             }
             [HarmonyPostfix]
             [HarmonyPatch(typeof(ChaControl), "ChangeCoordinateTypeAndReload", new[] { typeof(ChaFileDefine.CoordinateType), typeof(bool) })]
             private static void ChaControlAfterChangeCoordinateTypeAndReload() {
-                AAAAAAAAAAAA.Instance.StartCoroutine(UpdateData());
-                IEnumerator UpdateData() {
-                    yield return KKAPI.Utilities.CoroutineUtils.WaitForEndOfFrame;
-                    AAAAAAAAAAAA.UpdateMakerTree(true, true);
-                    isLoadingNewClothing = false;
-                }
+                isLoading = false;
+                AAAAAAAAAAAA.UpdateMakerTree(true, true);
             }
 
             // Handling removing / changing accessories
@@ -140,7 +128,7 @@ namespace AAAAAAAAAAAA {
             [HarmonyPrefix]
             [HarmonyPatch(typeof(CvsAccessory), "UpdateSelectAccessoryType")]
             private static bool CvsAccessoryBeforeUpdateSelectAccessoryType(CvsAccessory __instance, int index) {
-                if (isLoadingNewClothing || !AAAAAAAAAAAA.mainMenu || !AAAAAAAAAAAA.customAcsChangeSlot) return true;
+                if (isLoading || !AAAAAAAAAAAA.mainMenu || !AAAAAAAAAAAA.customAcsChangeSlot) return true;
                 if (AAAAAAAAAAAA.chaCtrl?.infoAccessory?[__instance.nSlotNo]?.Category - 120 == index) return true;
                 if (AAAAAAAAAAAA.IsDebug.Value) AAAAAAAAAAAA.Instance.Log($"(C) Acc#{__instance.nSlotNo} changed type!");
                 AAAAAAAAAAAA.RemoveParentedChildren(__instance.nSlotNo);
@@ -156,7 +144,7 @@ namespace AAAAAAAAAAAA {
             [HarmonyPrefix]
             [HarmonyPatch(typeof(TMP_Dropdown), "value", MethodType.Setter)]
             private static bool TMPDropdownBeforeValueChanged(TMP_Dropdown __instance, int value) {
-                if (isLoadingNewClothing || !AAAAAAAAAAAA.mainMenu || !AAAAAAAAAAAA.customAcsChangeSlot) return true;
+                if (isLoading || !AAAAAAAAAAAA.mainMenu || !AAAAAAAAAAAA.customAcsChangeSlot) return true;
                 if (__instance.transform.parent?.name != "ddCategory") return true;
                 if (!int.TryParse(__instance.transform.parent?.parent?.parent?.parent?.parent?.parent?.name.Replace("tglSlot", ""), out int slot)) return true;
                 if (AAAAAAAAAAAA.chaCtrl?.infoAccessory?[slot]?.Category - 120 == value) return true;
@@ -229,7 +217,7 @@ namespace AAAAAAAAAAAA {
             [HarmonyPostfix]
             [HarmonyPatch(typeof(ChaControl), "ChangeAccessoryAsync", new[] { typeof(int), typeof(int), typeof(int), typeof(string), typeof(bool), typeof(bool) })]
             private static void ChaControlAfterChangeAccessoryAsync() {
-                if (!isTreeUpdateCoroutine) AAAAAAAAAAAA.Instance.StartCoroutine(DoDelayedUpdate(false));
+                AAAAAAAAAAAA.UpdateMakerTree();
             }
 
             // Add support for copying / transfering accessories
@@ -282,7 +270,7 @@ namespace AAAAAAAAAAAA {
                         dicCoord[kvp.Key] = kvp.Value;
                     }
                 }
-                AAAAAAAAAAAA.Instance.StartCoroutine(DoDelayedUpdate(true));
+                AAAAAAAAAAAA.UpdateMakerTree(true);
             }
         }
 

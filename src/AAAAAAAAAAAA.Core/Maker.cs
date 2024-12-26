@@ -3,6 +3,7 @@ using BepInEx;
 using ChaCustom;
 using UnityEngine;
 using KKAPI.Utilities;
+using System.Collections;
 using System.Collections.Generic;
 using Illusion.Extensions;
 using System.Linq;
@@ -20,6 +21,9 @@ namespace AAAAAAAAAAAA {
         public static Dictionary<int, Dictionary<int, string>> dicMakerModifiedParents = new Dictionary<int, Dictionary<int, string>>();
         public static Dictionary<Transform, Bone> dicMakerTfBones = new Dictionary<Transform, Bone>();
         public static Dictionary<string, Bone> dicMakerHashBones = new Dictionary<string, Bone>();
+
+        internal static bool performParenting = false;
+        internal static bool clearNullTransforms = false;
 
         internal static void InitMaker() {
             makerBoneRoot?.Destroy();
@@ -92,35 +96,46 @@ namespace AAAAAAAAAAAA {
             }
         }
 
-        internal static void UpdateMakerTree(bool performParenting = false, bool clearNullTransforms = false) {
-            if (makerBoneRoot != null) {
-                if (clearNullTransforms) {
-                    var dicCopy = dicMakerTfBones.ToList();
-                    dicMakerTfBones.Clear();
-                    foreach (var kvp in  dicCopy) {
-                        if (kvp.Key != null) dicMakerTfBones[kvp.Key] = kvp.Value;
-                        else kvp.Value.Destroy();
-                    }
-                }
-                BuildBoneTree(makerBoneRoot.bone, dicMakerTfBones, null);
-                if (performParenting && dicMakerModifiedParents.TryGetValue(coordinateDropdown.value, out var dicChanges)) {
-                    var keysToRemove = new List<int>();
-                    foreach (var kvp in dicChanges) {
-                        if (TryGetMakerAccBone(kvp.Key, out var accBone) && dicMakerHashBones.TryGetValue(kvp.Value, out var parentBone)) {
-                            accBone.SetParent(parentBone);
-                            accBone.PerformBoneUpdate();
-                        } else {
-                            Instance.Log($"Invalid parentage found for [{coordinateDropdown.value}][{kvp.Key}] = \"{kvp.Value}\"! Removing...", 2);
-                            keysToRemove.Add(kvp.Key);
+        internal static void UpdateMakerTree(bool _performParenting = false, bool _clearNullTransforms = false) {
+            if (_performParenting) performParenting = true;
+            if (_clearNullTransforms) clearNullTransforms = true;
+            if (HookPatch.Maker.isLoading) return;
+            HookPatch.Maker.isLoading = true;
+            Instance.StartCoroutine(UpdateData());
+            IEnumerator UpdateData() {
+                for (int i = 0; i < 6; i++) yield return CoroutineUtils.WaitForEndOfFrame;
+                if (makerBoneRoot != null) {
+                    if (clearNullTransforms) {
+                        clearNullTransforms = false;
+                        var dicCopy = dicMakerTfBones.ToList();
+                        dicMakerTfBones.Clear();
+                        foreach (var kvp in  dicCopy) {
+                            if (kvp.Key != null) dicMakerTfBones[kvp.Key] = kvp.Value;
+                            else kvp.Value.Destroy();
                         }
                     }
-                    foreach (var key in keysToRemove) {
-                        dicChanges.Remove(key);
-                    }
-                    if (dicChanges.Count == 0) {
-                        dicMakerModifiedParents.Remove(coordinateDropdown.value);
+                    BuildBoneTree(makerBoneRoot.bone, dicMakerTfBones, null);
+                    if (performParenting && dicMakerModifiedParents.TryGetValue(coordinateDropdown.value, out var dicChanges)) {
+                        performParenting = false;
+                        var keysToRemove = new List<int>();
+                        foreach (var kvp in dicChanges) {
+                            if (TryGetMakerAccBone(kvp.Key, out var accBone) && dicMakerHashBones.TryGetValue(kvp.Value, out var parentBone)) {
+                                accBone.SetParent(parentBone);
+                                accBone.PerformBoneUpdate();
+                            } else {
+                                Instance.Log($"Invalid parentage found for [{coordinateDropdown.value}][{kvp.Key}] = \"{kvp.Value}\"! Removing...", 2);
+                                keysToRemove.Add(kvp.Key);
+                            }
+                        }
+                        foreach (var key in keysToRemove) {
+                            dicChanges.Remove(key);
+                        }
+                        if (dicChanges.Count == 0) {
+                            dicMakerModifiedParents.Remove(coordinateDropdown.value);
+                        }
                     }
                 }
+                HookPatch.Maker.isLoading = false;
             }
         }
 
