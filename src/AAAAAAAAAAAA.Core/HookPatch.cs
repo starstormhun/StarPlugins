@@ -47,6 +47,13 @@ namespace AAAAAAAAAAAA {
                 _harmony.UnpatchSelf();
             }
 
+            public static IEnumerator DoDelayedUpdate(bool doParenting) {
+                isTreeUpdateCoroutine = true;
+                yield return KKAPI.Utilities.CoroutineUtils.WaitForEndOfFrame;
+                AAAAAAAAAAAA.UpdateMakerTree(doParenting);
+                isTreeUpdateCoroutine = false;
+            }
+
             // Create custom interface elements by piggybacking off of KK_MoreAccessoryParents's method
             [HarmonyPostfix]
             [HarmonyPatch(typeof(KK_MoreAccessoryParents.Interface), "CreateInterface")]
@@ -109,7 +116,6 @@ namespace AAAAAAAAAAAA {
             [HarmonyPatch(typeof(ChaControl), "ChangeCoordinateTypeAndReload", new[] { typeof(ChaFileDefine.CoordinateType), typeof(bool) })]
             private static void ChaControlAfterChangeCoordinateTypeAndReload() {
                 AAAAAAAAAAAA.Instance.StartCoroutine(UpdateData());
-
                 IEnumerator UpdateData() {
                     yield return KKAPI.Utilities.CoroutineUtils.WaitForEndOfFrame;
                     AAAAAAAAAAAA.UpdateMakerTree(true, true);
@@ -222,13 +228,7 @@ namespace AAAAAAAAAAAA {
             [HarmonyPostfix]
             [HarmonyPatch(typeof(ChaControl), "ChangeAccessoryAsync", new[] { typeof(int), typeof(int), typeof(int), typeof(string), typeof(bool), typeof(bool) })]
             private static void ChaControlAfterChangeAccessoryAsync() {
-                if (!isTreeUpdateCoroutine) AAAAAAAAAAAA.Instance.StartCoroutine(DoUpdate());
-                IEnumerator DoUpdate() {
-                    isTreeUpdateCoroutine = true;
-                    for (int i = 0; i < 5; i++) yield return KKAPI.Utilities.CoroutineUtils.WaitForEndOfFrame;
-                    AAAAAAAAAAAA.UpdateMakerTree();
-                    isTreeUpdateCoroutine = false;
-                }
+                if (!isTreeUpdateCoroutine) AAAAAAAAAAAA.Instance.StartCoroutine(DoDelayedUpdate(false));
             }
 
             // Add support for copying / transfering accessories
@@ -250,21 +250,38 @@ namespace AAAAAAAAAAAA {
                 }
                 AAAAAAAAAAAA.UpdateMakerTree(true);
             }
+            [HarmonyPrefix]
+            [HarmonyPatch(typeof(CvsAccessoryChange), "CopyAcs")]
+            private static bool CvsAccessoryChangeBeforeCopyAcs(CvsAccessoryChange __instance, ref List<KeyValuePair<int, string>> __state) {
+                int nowCoord = AAAAAAAAAAAA.coordinateDropdown.value;
+                if (AAAAAAAAAAAA.IsDebug.Value) AAAAAAAAAAAA.Instance.Log("Moving acc children to ponytail slot before transfering...");
+                __state = AAAAAAAAAAAA.RemoveParentedChildren(__instance.selSrc);
+                if (AAAAAAAAAAAA.IsDebug.Value) AAAAAAAAAAAA.Instance.Log($"Moved {__state.Count} children!");
+                if (
+                    AAAAAAAAAAAA.dicMakerModifiedParents.TryGetValue(nowCoord, out var dicCoord) &&
+                    dicCoord.TryGetValue(__instance.selSrc, out var src) &&
+                    AAAAAAAAAAAA.TryGetMakerAccBone(__instance.selSrc, out var srcBone)
+                ) {
+                    if (AAAAAAAAAAAA.IsDebug.Value) AAAAAAAAAAAA.Instance.Log("Moving acc to ponytail slot before transfering...");
+                    var rootBone = AAAAAAAAAAAA.dicMakerTfBones[AAAAAAAAAAAA.chaCtrl.transform.Find("BodyTop/p_cf_body_bone/cf_j_root")];
+                    var backupParent = AAAAAAAAAAAA.ponyBone ?? rootBone;
+                    dicCoord.Remove(__instance.selSrc);
+                    srcBone.SetParent(backupParent);
+                    srcBone.PerformBoneUpdate();
+                    __state.Add(new KeyValuePair<int, string>(__instance.selSrc, src));
+                    __state.Add(new KeyValuePair<int, string>(__instance.selDst, src));
+                }
+                return true;
+            }
             [HarmonyPostfix]
             [HarmonyPatch(typeof(CvsAccessoryChange), "CopyAcs")]
-            private static void CvsAccessoryChangeAfterCopyAcs(CvsAccessoryChange __instance) {
-                int nowCoord = AAAAAAAAAAAA.coordinateDropdown.value;
-                if (AAAAAAAAAAAA.dicMakerModifiedParents.TryGetValue(nowCoord, out var dicCoord)) {
-                    if (dicCoord.ContainsKey(__instance.selDst)) {
-                        if (AAAAAAAAAAAA.IsDebug.Value) AAAAAAAAAAAA.Instance.Log($"Transfer: Removing old data from slot#{__instance.selDst}!");
-                        dicCoord.Remove(__instance.selDst);
-                    }
-                    if (dicCoord.TryGetValue(__instance.selSrc, out var src)) {
-                        if (AAAAAAAAAAAA.IsDebug.Value) AAAAAAAAAAAA.Instance.Log($"Transfer: Copying data from acc #{__instance.selSrc} to #{__instance.selDst}!");
-                        dicCoord[__instance.selDst] = src;
+            private static void CvsAccessoryChangeAfterCopyAcs(CvsAccessoryChange __instance, ref List<KeyValuePair<int, string>> __state) {
+                if (AAAAAAAAAAAA.dicMakerModifiedParents.TryGetValue(AAAAAAAAAAAA.coordinateDropdown.value, out var dicCoord)) {
+                    foreach (var kvp in __state) {
+                        dicCoord[kvp.Key] = kvp.Value;
                     }
                 }
-                AAAAAAAAAAAA.UpdateMakerTree(true);
+                AAAAAAAAAAAA.Instance.StartCoroutine(DoDelayedUpdate(true));
             }
         }
 
@@ -284,12 +301,8 @@ namespace AAAAAAAAAAAA {
             // Apply saved data when switching between coordinates
             [HarmonyPostfix]
             [HarmonyPatch(typeof(ChaControl), "ChangeCoordinateType", new[] { typeof(ChaFileDefine.CoordinateType), typeof(bool) })]
-            private static void ChaControlAfterChangeCoordinateTypeAndReload(ChaControl __instance) {
-                AAAAAAAAAAAA.Instance.StartCoroutine(UpdateData());
-                IEnumerator UpdateData() {
-                    yield return KKAPI.Utilities.CoroutineUtils.WaitForEndOfFrame;
-                    AAAAAAAAAAAA.ApplyStudioData(__instance.transform.GetComponent<CardDataController>());
-                }
+            private static void ChaControlAfterChangeCoordinateType(ChaControl __instance) {
+                __instance.transform.GetComponent<CardDataController>()?.LoadData();
             }
         }
     }

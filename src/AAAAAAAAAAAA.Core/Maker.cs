@@ -46,15 +46,15 @@ namespace AAAAAAAAAAAA {
             if (acsParentWindow.updateWin) return;
             if (IsDebug.Value) Instance.Log("Registering new or updated parent...");
 
-            // Set to ponytail parent to prevent other plugins from interfering
-            HookPatch.Maker.ponytailToggle.isOn = true;
-
             // Check ABMX for selected bone
             Transform selected = KKABMX.GUI.KKABMX_AdvancedGUI._selectedTransform.Value;
             if (selected == null) {
                 Instance.Log("[AAAAAAAAAAAA] Please select a bone in ABMX!", 5);
                 return;
             }
+
+            // Set to ponytail parent to prevent other plugins from interfering
+            HookPatch.Maker.ponytailToggle.isOn = true;
 
             // Lazy building the maker tree
             MakeMakerTree();
@@ -129,6 +129,7 @@ namespace AAAAAAAAAAAA {
             var acc = chaCtrl.objAccessory?[slot]?.transform;
             if (acc == null) return false;
             if (dicMakerTfBones.TryGetValue(acc, out bone)) return true;
+            Instance.Log($"Could not get accessory bone for slot {slot}!", 3);
             return false;
         }
 
@@ -173,10 +174,11 @@ namespace AAAAAAAAAAAA {
             }
         }
 
-        internal static void RemoveParentedChildren(int slot) {
+        internal static List<KeyValuePair<int, string>> RemoveParentedChildren(int slot) {
+            var removed = new List<KeyValuePair<int, string>>();
             if (TryGetMakerAccBone(slot, out Bone accBone) && dicMakerModifiedParents.TryGetValue(coordinateDropdown.value, out var dicCoord)) {
                 // Traverse bone tree down and look for accessories
-                if (IsDebug.Value) Instance.Log($"{accBone.bone.name} is being removed, scanning for children...");
+                if (IsDebug.Value) Instance.Log($"{accBone.bone.name} is being (re)moved, scanning for children...");
                 var rootBone = dicMakerTfBones[chaCtrl.transform.Find("BodyTop/p_cf_body_bone/cf_j_root")];
                 var backupParent = ponyBone ?? rootBone;
                 var accBones = new Dictionary<Bone, int>();
@@ -189,6 +191,7 @@ namespace AAAAAAAAAAAA {
                     var current = bonesToCheck.Pop();
                     if (accBones.ContainsKey(current)) {
                         if (IsDebug.Value) Instance.Log($"#{accBones[current]} was child of {accBone.bone.name}! Reparenting...");
+                        removed.Add(new KeyValuePair<int, string>(accBones[current], dicCoord[accBones[current]]));
                         dicCoord.Remove(accBones[current]);
                         current.SetParent(backupParent);
                         current.PerformBoneUpdate();
@@ -197,6 +200,7 @@ namespace AAAAAAAAAAAA {
                     }
                 }
             }
+            return removed;
         }
     }
 }

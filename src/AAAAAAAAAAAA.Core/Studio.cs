@@ -26,6 +26,7 @@ namespace AAAAAAAAAAAA {
             var acc = controller.ChaControl.objAccessory?[slot]?.transform;
             if (acc == null) return false;
             if (controller.dicTfBones.TryGetValue(acc, out bone)) return true;
+            Instance.Log($"Could not get accessory bone for slot {slot}!", 3);
             return false;
         }
 

@@ -19,6 +19,7 @@ namespace AAAAAAAAAAAA {
         public Dictionary<Transform, Bone> dicTfBones = new Dictionary<Transform, Bone>();
         public Dictionary<string, Bone> dicHashBones = new Dictionary<string, Bone>();
         internal Bone chaRoot = null;
+        internal bool loading = false;
 
         // Only for Studio
         protected override void OnDestroy() {
@@ -52,7 +53,7 @@ namespace AAAAAAAAAAAA {
         protected override void OnCoordinateBeingLoaded(ChaFileCoordinate coordinate, bool maintainState) {
             if (maintainState) {
                 if (KKAPI.Maker.MakerAPI.InsideMaker) AAAAAAAAAAAA.UpdateMakerTree(true);
-                if (KKAPI.Studio.StudioAPI.InsideStudio) AAAAAAAAAAAA.ApplyStudioData(this);
+                if (KKAPI.Studio.StudioAPI.InsideStudio) LoadData();
                 return;
             }
             PluginData data = GetCoordinateExtendedData(coordinate);
@@ -69,7 +70,7 @@ namespace AAAAAAAAAAAA {
         protected override void OnReload(GameMode currentGameMode, bool maintainState) {
             if (maintainState) {
                 if (KKAPI.Maker.MakerAPI.InsideMaker) AAAAAAAAAAAA.UpdateMakerTree(true);
-                if (KKAPI.Studio.StudioAPI.InsideStudio) AAAAAAAAAAAA.ApplyStudioData(this);
+                if (KKAPI.Studio.StudioAPI.InsideStudio) LoadData();
                 return;
             }
             PluginData data = GetExtendedData();
@@ -83,10 +84,12 @@ namespace AAAAAAAAAAAA {
             }
         }
 
-        private void LoadData() {
+        internal void LoadData() {
+            if (loading) return;
+            loading = true;
             AAAAAAAAAAAA.Instance.StartCoroutine(LoadDataCoroutine());
             IEnumerator LoadDataCoroutine() {
-                for (int i = 0; i < 3; i++) yield return KKAPI.Utilities.CoroutineUtils.WaitForEndOfFrame;
+                for (int i = 0; i < 6; i++) yield return KKAPI.Utilities.CoroutineUtils.WaitForEndOfFrame;
                 if (KKAPI.Maker.MakerAPI.InsideMaker) {
                     AAAAAAAAAAAA.MakeMakerTree();
                     AAAAAAAAAAAA.UpdateMakerTree(true);
@@ -95,6 +98,7 @@ namespace AAAAAAAAAAAA {
                     if (AAAAAAAAAAAA.IsDebug.Value) AAAAAAAAAAAA.Instance.Log($"Loading data for {ChaFileControl.parameter.fullname}...");
                     chaRoot = AAAAAAAAAAAA.ApplyStudioData(this);
                 }
+                loading = false;
             }
         }
     }
