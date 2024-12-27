@@ -11,6 +11,10 @@ Configuration Manager is recommended to make changing the settings from these pl
 
 ## Plugins
 
+### Attach All Accessories Anywhere, Anytime, At Any Angle And Artistic Arrangement, Allegedly [KK/KKS]
+This lets you parent accessories to any bone, chosen through ABMX. Especially useful in cases
+where you want to attach a tie to a tail, for example.
+
 #### Axis Unlocker [KK/KKS]
 Makes the manipulation axis speed and size sliders' minimum and maximum values configurable.
 Optionally converts the sliders to logarithmic base.
