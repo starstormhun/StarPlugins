@@ -1,13 +1,9 @@
 using TMPro;
-using Studio;
 using ChaCustom;
 using HarmonyLib;
 using UnityEngine;
 using UnityEngine.UI;
-using System.Collections;
 using System.Collections.Generic;
-using System.Reflection;
-using KKAPI.Maker.UI;
 
 namespace AAAAAAAAAAAA {
     public static class HookPatch {
@@ -158,7 +154,8 @@ namespace AAAAAAAAAAAA {
                 if (isLoading || !AAAAAAAAAAAA.mainMenu || !AAAAAAAAAAAA.customAcsChangeSlot) return true;
                 if (__instance.transform.parent?.name != "ddCategory") return true;
                 if (!int.TryParse(__instance.transform.parent?.parent?.parent?.parent?.parent?.parent?.name.Replace("tglSlot", ""), out int slot)) return true;
-                if (AAAAAAAAAAAA.chaCtrl?.infoAccessory?[slot]?.Category - 120 == value) return true;
+                if (slot >= AAAAAAAAAAAA.chaCtrl?.infoAccessory?.Length || AAAAAAAAAAAA.chaCtrl?.infoAccessory?[slot]?.Category - 120 == value) return true;
+                if (slot >= AAAAAAAAAAAA.customAcsChangeSlot?.cvsAccessory?.Length) return true;
                 var dropDown = AAAAAAAAAAAA.customAcsChangeSlot.cvsAccessory[slot].ddAcsType;
                 if (__instance == dropDown && (value == 0 || dropDown.value != value)) {
                     if (AAAAAAAAAAAA.IsDebug.Value) AAAAAAAAAAAA.Instance.Log($"(T) Acc#{slot} changed type!");
