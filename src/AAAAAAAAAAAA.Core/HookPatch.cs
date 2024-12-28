@@ -194,6 +194,7 @@ namespace AAAAAAAAAAAA {
             [HarmonyPostfix]
             [HarmonyPatch(typeof(CustomAcsParentWindow), "UpdateCustomUI")]
             private static void CustomAcsParentWindowAfterUpdateCustomUI(CustomAcsParentWindow __instance) {
+                if (!makerLoaded) return;
                 if (AAAAAAAAAAAA.dicMakerModifiedParents.TryGetValue(AAAAAAAAAAAA.coordinateDropdown.value, out var dicCoord) && dicCoord.ContainsKey((int)__instance.slotNo)) {
                     __instance.updateWin = true;
                     parentToggle.isOn = true;
