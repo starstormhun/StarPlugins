@@ -1,5 +1,6 @@
 using BepInEx;
 using BepInEx.Configuration;
+using ChaCustom;
 using KKAPI.Utilities;
 using UnityEngine;
 
@@ -17,7 +18,7 @@ namespace AccMover {
 	/// </info>
     public class AccMover : BaseUnityPlugin {
         public const string GUID = "starstorm.accmover";
-        public const string Version = "1.0.0." + BuildNumber.Version;
+        public const string Version = "0.1.0." + BuildNumber.Version;
 
         public static AccMover Instance { get; private set; }
 
@@ -33,7 +34,22 @@ namespace AccMover {
             if (IsDebug.Value) Log("Awoken!");
         }
 
-        private void Update() {
+        private static void DoTransfer() {
+            var transfer = GameObject.Find("CustomScene/CustomRoot/FrontUIGroup/CustomUIGroup/CvsMenuTree/04_AccessoryTop/tglChange/ChangeTop").GetComponent<CvsAccessoryChange>();
+            HookPatch.Hooks.disableTransferFuncs = true;
+            for (int i = 0; i < 3; i++) {
+                transfer.selSrc = i;
+                transfer.selDst = i + 4;
+                transfer.CopyAcs();
+            }
+            HookPatch.Hooks.disableTransferFuncs = false;
+            transfer.chaCtrl.AssignCoordinate((ChaFileDefine.CoordinateType)transfer.chaCtrl.fileStatus.coordinateType);
+            transfer.chaCtrl.Reload(false, true, true, true);
+            transfer.CalculateUI();
+            transfer.cmpAcsChangeSlot.UpdateSlotNames();
+            for (int i = 0; i < 3; i++) {
+                Singleton<CustomBase>.Instance.SetUpdateCvsAccessory(i + 4, true);
+            }
         }
 
         internal void Log(object data, int level = 0) {
