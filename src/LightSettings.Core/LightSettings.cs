@@ -6,7 +6,6 @@ using BepInEx.Configuration;
 using BepInEx.Logging;
 using HarmonyLib;
 using Illusion.Extensions;
-using KK_Plugins;
 using KKAPI.Studio.SaveLoad;
 using KKAPI.Utilities;
 using Studio;
@@ -16,7 +15,7 @@ using UnityEngine;
 
 namespace LightSettings.Koikatu {
     [BepInDependency(KKAPI.KoikatuAPI.GUID)]
-    [BepInDependency(Autosave.PluginGUID, BepInDependency.DependencyFlags.SoftDependency)]
+    [BepInDependency(KK_Plugins.Autosave.PluginGUID, BepInDependency.DependencyFlags.SoftDependency)]
     [BepInProcess(KKAPI.KoikatuAPI.StudioProcessName)]
     [BepInPlugin(GUID, "Light Settings", Version)]
     /// <info>
