@@ -7,6 +7,7 @@ using System.Collections;
 using System.Collections.Generic;
 using Illusion.Extensions;
 using System.Linq;
+using System.Diagnostics;
 
 namespace AAAAAAAAAAAA {
     public partial class AAAAAAAAAAAA : BaseUnityPlugin {
@@ -22,8 +23,14 @@ namespace AAAAAAAAAAAA {
         public static Dictionary<Transform, Bone> dicMakerTfBones = new Dictionary<Transform, Bone>();
         public static Dictionary<string, Bone> dicMakerHashBones = new Dictionary<string, Bone>();
 
+        private static Dictionary<Bone, int> makerAccBones = null;
+
         internal static bool performParenting = false;
         internal static bool clearNullTransforms = false;
+
+        private static void MakerLateUpdate() {
+            makerAccBones = null;
+        }
 
         internal static void InitMaker() {
             makerBoneRoot?.Destroy();
@@ -96,20 +103,44 @@ namespace AAAAAAAAAAAA {
             }
         }
 
-        internal static void UpdateMakerTree(bool _performParenting = false, bool _clearNullTransforms = false) {
+        internal static void MakeMakerAccBones() {
+            if (makerAccBones == null) {
+                Stopwatch sw = null;
+                if (IsDebug.Value) {
+                    Instance.Log("Building maker acc bone list...");
+                    sw = Stopwatch.StartNew();
+                }
+                makerAccBones = new Dictionary<Bone, int>();
+                for (int i = 0; i < chaCtrl.objAccessory.Length; i++) {
+                    if (TryGetMakerAccBone(i, out Bone acc_i)) makerAccBones.Add(acc_i, i);
+                }
+                if (IsDebug.Value) {
+                    Instance.Log($"Acc bone list built in {sw.ElapsedMilliseconds} ms!");
+                }
+            }
+        }
+
+        internal static void UpdateMakerTree(bool _performParenting = false, bool _clearNullTransforms = false, bool forced = false) {
             if (_performParenting) performParenting = true;
             if (_clearNullTransforms) clearNullTransforms = true;
             if (HookPatch.Maker.isLoading) return;
             HookPatch.Maker.isLoading = true;
-            Instance.StartCoroutine(UpdateData());
+            if (forced) {
+                DoUpdateData();
+            } else {
+                Instance.StartCoroutine(UpdateData());
+            }
             IEnumerator UpdateData() {
                 for (int i = 0; i < 6; i++) yield return CoroutineUtils.WaitForEndOfFrame;
+                DoUpdateData();
+            }
+            void DoUpdateData() {
                 if (makerBoneRoot != null) {
                     if (clearNullTransforms) {
                         clearNullTransforms = false;
                         var dicCopy = dicMakerTfBones.ToList();
                         dicMakerTfBones.Clear();
-                        foreach (var kvp in  dicCopy) {
+                        foreach (var kvp in dicCopy) {
                             if (kvp.Key != null) dicMakerTfBones[kvp.Key] = kvp.Value;
                             else kvp.Value.Destroy();
                         }
@@ -141,8 +172,11 @@ namespace AAAAAAAAAAAA {
 
         internal static bool TryGetMakerAccBone(int slot, out Bone bone) {
             bone = null;
-            var acc = chaCtrl.objAccessory?[slot]?.transform;
+            if (slot >= chaCtrl.objAccessory.Length) return false;
+            var acc = chaCtrl.objAccessory[slot]?.transform;
             if (acc == null) return false;
+            if (dicMakerTfBones.TryGetValue(acc, out bone)) return true;
+            UpdateMakerTree(false, true, true);
             if (dicMakerTfBones.TryGetValue(acc, out bone)) return true;
             Instance.Log($"Could not get accessory bone for slot {slot}!", 3);
             return false;
@@ -152,16 +186,12 @@ namespace AAAAAAAAAAAA {
             if (makerBoneRoot == null) return;
             if (TryGetMakerAccBone(slot, out var acc)) {
                 // Update the accessory bone and all children, but NOT other accessories
-                var accBones = new List<Bone>();
-                for (int i = 0; i < customAcsChangeSlot.cvsAccessory.Length; i++) {
-                    if (i == slot) continue;
-                    if (TryGetMakerAccBone(i, out Bone acc_i)) accBones.Add(acc_i);
-                }
+                MakeMakerAccBones();
                 if (IsDebug.Value) Instance.Log($"{acc.bone.name} has changed parent, updating hashes...");
                 var bonesToCheck = new List<Bone> { acc };
                 while (bonesToCheck.Count > 0) {
                     var current = bonesToCheck.Pop();
-                    if (accBones.Contains(current)) {
+                    if (makerAccBones.TryGetValue(current, out var i) && i != slot) {
                         if (IsDebug.Value) Instance.Log($"Skipping {current.bone.name} because it's a different accessory!");
                         continue;
                     }
@@ -196,18 +226,14 @@ namespace AAAAAAAAAAAA {
                 if (IsDebug.Value) Instance.Log($"{accBone.bone.name} is being (re)moved, scanning for children...");
                 var rootBone = dicMakerTfBones[chaCtrl.transform.Find("BodyTop/p_cf_body_bone/cf_j_root")];
                 var backupParent = ponyBone ?? rootBone;
-                var accBones = new Dictionary<Bone, int>();
-                for (int i = 0; i < customAcsChangeSlot.cvsAccessory.Length; i++) {
-                    if (i == slot) continue;
-                    if (TryGetMakerAccBone(i, out Bone acc_i)) accBones.Add(acc_i, i);
-                }
+                MakeMakerAccBones();
                 var bonesToCheck = new List<Bone>{accBone};
                 while (bonesToCheck.Count > 0) {
                     var current = bonesToCheck.Pop();
-                    if (accBones.ContainsKey(current)) {
-                        if (IsDebug.Value) Instance.Log($"#{accBones[current]} was child of {accBone.bone.name}! Reparenting...");
-                        removed.Add(new KeyValuePair<int, string>(accBones[current], dicCoord[accBones[current]]));
-                        dicCoord.Remove(accBones[current]);
+                    if (makerAccBones.TryGetValue(current, out var i) && i != slot) {
+                        if (IsDebug.Value) Instance.Log($"#{makerAccBones[current]} was child of {accBone.bone.name}! Reparenting...");
+                        removed.Add(new KeyValuePair<int, string>(makerAccBones[current], dicCoord[makerAccBones[current]]));
+                        dicCoord.Remove(makerAccBones[current]);
                         current.SetParent(backupParent);
                         current.PerformBoneUpdate();
                     } else {

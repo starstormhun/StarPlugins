@@ -45,6 +45,10 @@ namespace AAAAAAAAAAAA {
             KKAPI.Studio.StudioAPI.StudioLoadedChanged += (x, y) => { InitStudio(); };
         }
 
+        private void LateUpdate() {
+            MakerLateUpdate();
+        }
+
         internal void Log(object data, int level = 0) {
             switch (level) {
                 case 0:
