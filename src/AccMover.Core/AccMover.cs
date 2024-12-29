@@ -124,17 +124,7 @@ namespace AccMover {
                 Instance.Log("[AccMover] Not enough space to copy/move, please add more slots!", 5);
                 return;
             }
-            HookPatch.Conditionals.savedMoveParentage.Clear();
-            // If there's only one item selected, operate like vanilla
-            if (selected.Count == 1) {
-                try {
-                    _cvsAccessoryChange.CopyAcs();
-                } catch {
-                }
-                if (moving && _cvsAccessoryChange.selSrc != _cvsAccessoryChange.selDst)
-                    _cvsAccessoryChange.chaCtrl.ChangeAccessory(_cvsAccessoryChange.selSrc, 0, 0, "");
-                return;
-            }
+            HookPatch.Conditionals.savedA12MoveParentage.Clear();
             // Setup support variables for slot movement
             var dicMovement = new Dictionary<int, int>();
             var movements = new HashSet<KeyValuePair<int, int>>();
@@ -185,11 +175,13 @@ namespace AccMover {
                 } else {
                     _cvsAccessoryChange.selSrc = kvp.Key;
                     _cvsAccessoryChange.selDst = kvp.Value;
+                    if (HookPatch.Conditionals.ObjImp) HookPatch.Conditionals.HandleObjImportBefore(kvp.Key, kvp.Value, moving);
                     try { // This trycatch courtesy of Preggo+ 7.8 or lower
                         copied = true;
                         _cvsAccessoryChange.CopyAcs();
                     } catch {
                     }
+                    if (HookPatch.Conditionals.ObjImp) HookPatch.Conditionals.HandleObjImportAfter(kvp.Value);
                 }
             }
 

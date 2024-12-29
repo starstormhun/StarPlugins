@@ -25,6 +25,9 @@
     <Reference Include="AAAAAAAAAAAA.KoikatsuSunshine">
       <HintPath>..\..\lib\AAAAAAAAAAAA.KoikatsuSunshine.dll</HintPath>
     </Reference>
+    <Reference Include="KKS_ObjImport">
+      <HintPath>..\..\lib\KKS_ObjImport.dll</HintPath>
+    </Reference>
   </ItemGroup>
   <Import Project="..\Common.Core\Common.Core.projitems" Label="Shared" />
   <Import Project="..\AccMover.Core\AccMover.Core.projitems" Label="Shared" />

@@ -1,15 +1,13 @@
 using BepInEx;
 using ChaCustom;
 using HarmonyLib;
-using UnityEngine;
+using MessagePack;
 using System.Linq;
+using UnityEngine;
 using AAAAAAAAAAAA;
-using UnityEngine.UI;
-using Illusion.Extensions;
+using System.Collections;
 using System.Reflection.Emit;
 using System.Collections.Generic;
-using System.Runtime.CompilerServices;
-using MessagePack;
 
 namespace AccMover {
     public static class HookPatch {
@@ -61,15 +59,25 @@ namespace AccMover {
         }
 
         public static class Conditionals {
+            private static Harmony _harmony;
             public static bool A12 { get; private set; } = false;
+            public static bool ObjImp { get; private set; } = false;
+            public static bool AssImp { get; private set; } = false;
 
-            internal static Dictionary<string, List<string>> savedMoveParentage = new Dictionary<string, List<string>>();
+            internal static Dictionary<string, List<string>> savedA12MoveParentage = new Dictionary<string, List<string>>();
+            internal static Dictionary<int, GameObject> savedObjImportReferences = new Dictionary<int, GameObject>();
 
             internal static void Setup() {
                 var plugins = AccMover.Instance.GetComponents<BaseUnityPlugin>();
                 foreach (var plugin in plugins) {
                     switch (plugin.Info.Metadata.GUID) {
                         case "starstorm.aaaaaaaaaaaa": A12 = true; break;
+                        case "org.njaecha.plugins.objimport": 
+                            ObjImp = true;
+                            if (_harmony == null) _harmony = Harmony.CreateAndPatchAll(typeof(ObjImpHooks));
+                            else _harmony.PatchAll(typeof(ObjImpHooks));
+                            break;
+                        case "org.njaecha.plugins.assetimport": AssImp = true; break;
                     }
                 }
             }
@@ -124,15 +132,15 @@ namespace AccMover {
                                 }
                                 // Add as last element the accessory to be parented, and the accessory to be parented to
                                 savedParents.Add($"{dicMovement[slot1]},{dicMovement[idxParent]}");
-                                savedMoveParentage.Add($"{slot1}-c", savedParents);
+                                savedA12MoveParentage.Add($"{slot1}-c", savedParents);
                                 if (AccMover.IsDebug.Value) AccMover.Instance.Log($"Added new data: {string.Join("/", savedParents.ToArray())}");
                             }
                         }
                         if (moving && !dicMovement.Values.Contains(slot1)) {
-                            savedMoveParentage[$"{slot1}-clrSrc"] = null;
+                            savedA12MoveParentage[$"{slot1}-clrSrc"] = null;
                         }
-                        if (!savedMoveParentage.ContainsKey($"{slot1}-c") && !dicCoord.ContainsKey(slot1)) {
-                            savedMoveParentage[$"{slot1}-clrDst"] = null;
+                        if (!savedA12MoveParentage.ContainsKey($"{slot1}-c") && !dicCoord.ContainsKey(slot1)) {
+                            savedA12MoveParentage[$"{slot1}-clrDst"] = null;
                         }
 
                         // In case we're moving instead of copying, check for stationary, non-overwritten children
@@ -169,7 +177,7 @@ namespace AccMover {
                                 }
                                 // Add as last element the accessory to be parented, and the accessory to be parented to
                                 savedParents.Add($"{entry.Value},{dicMovement[slot1]}");
-                                savedMoveParentage.Add($"{slot1}-p", savedParents);
+                                savedA12MoveParentage.Add($"{slot1}-p", savedParents);
                                 if (AccMover.IsDebug.Value) AccMover.Instance.Log($"Added new data: {string.Join("/", savedParents.ToArray())}");
                             }
                         }
@@ -185,7 +193,7 @@ namespace AccMover {
                     if (AccMover.IsDebug.Value) AccMover.Instance.Log($"Applying prepared data for acc #{slot1}!");
                     // Apply parenting based on saved data
                     foreach (string key in new[] { $"{slot1}-c", $"{slot1}-p", $"{slot1}-clrSrc", $"{slot1}-clrDst" }) {
-                        if (savedMoveParentage.TryGetValue(key, out var entry)) {
+                        if (savedA12MoveParentage.TryGetValue(key, out var entry)) {
                             if (entry == null && dicMovement.TryGetValue(slot1, out int slot2)) {
                                 int nowCoord = AAAAAAAAAAAA.AAAAAAAAAAAA.coordinateDropdown.value;
                                 if (AAAAAAAAAAAA.AAAAAAAAAAAA.dicMakerModifiedParents.TryGetValue(nowCoord, out var dicCoord)) {
@@ -225,6 +233,82 @@ namespace AccMover {
                                 }
                             }
                         }
+                    }
+                }
+            }
+
+            internal static void HandleObjImportBefore(int source, int destination, bool moving) {
+                if (!ObjImp) return;
+                DoHandleObjImportBefore();
+                void DoHandleObjImportBefore() {
+                    var objImportCtrl = AccMover._cvsAccessoryChange.chaCtrl.gameObject.GetComponent<ObjImport.CharacterController>();
+                    int type = objImportCtrl.ChaControl.fileStatus.coordinateType;
+                    if (objImportCtrl.remeshData.ContainsKey(type)) {
+                        if (objImportCtrl.remeshData[type].ContainsKey(source)) {
+                            if (AccMover.IsDebug.Value) AccMover.Instance.Log($"Transfered ObjImport data from #{source} to #{destination}!");
+                            objImportCtrl.remeshData[type][destination] = objImportCtrl.remeshData[type][source];
+                            if (moving) objImportCtrl.remeshData[type].Remove(source);
+                            var newGO = Object.Instantiate(objImportCtrl.ChaControl.GetAccessoryComponent(source).gameObject, null);
+                            savedObjImportReferences.Add(destination, newGO);
+                        } else {
+                            if (objImportCtrl.remeshData[type].ContainsKey(destination)) {
+                                objImportCtrl.remeshData[type].Remove(destination);
+                            }
+                        }
+                    }
+                }
+            }
+
+            internal static void HandleObjImportAfter(int slot2) {
+                if (!ObjImp) return;
+                DoHandleObjImportAfter();
+                void DoHandleObjImportAfter() {
+                    var objImportCtrl = AccMover._cvsAccessoryChange.chaCtrl.gameObject.GetComponent<ObjImport.CharacterController>();
+                    if (objImportCtrl != null) {
+                        if (
+                            objImportCtrl.remeshData.TryGetValue(objImportCtrl.ChaControl.fileStatus.coordinateType, out var dicCoord) &&
+                            dicCoord.ContainsKey(slot2)
+                        ) {
+                            if (AccMover.IsDebug.Value) AccMover.Instance.Log($"Updated ObjImport meshes for #{slot2}!");
+                            AccMover.Instance.StartCoroutine(LoadRemoveDelayed());
+                            IEnumerator LoadRemoveDelayed() {
+                                yield return new WaitForSeconds(0.25f);
+                                objImportCtrl.updateMeshes();
+                                yield return new WaitForSeconds(0.25f);
+                                Object.DestroyImmediate(savedObjImportReferences[slot2]);
+                                savedObjImportReferences.Remove(slot2);
+                            }
+                        }
+                    }
+                }
+            }
+
+            public static class ObjImpHooks {
+                private static bool updatingMeshes = false;
+
+                [HarmonyPrefix]
+                [HarmonyPatch(typeof(ObjImport.CharacterController), "accessoryTransferedEvent")]
+                private static bool ObjImportCharacterControllerBeforeAccessoryTransferedEvent() {
+                    return !Hooks.disableTransferFuncs;
+                }
+
+                [HarmonyPrefix]
+                [HarmonyPatch(typeof(ObjImport.CharacterController), "updateMeshes")]
+                private static void ObjImportCharacterControllerBeforeUpdateMeshes() {
+                    updatingMeshes = true;
+                }
+                [HarmonyPostfix]
+                [HarmonyPatch(typeof(ObjImport.CharacterController), "updateMeshes")]
+                private static void ObjImportCharacterControllerAfterUpdateMeshes() {
+                    updatingMeshes = false;
+                }
+
+                [HarmonyPostfix]
+                [HarmonyPatch(typeof(ChaInfo), "GetAccessoryComponent")]
+                private static void ChaControlAfterGetAccessoryComponent(int parts, ref ChaAccessoryComponent __result) {
+                    if (!updatingMeshes || !Hooks.disableTransferFuncs) return;
+                    if (savedObjImportReferences.TryGetValue(parts, out var dicVal)) {
+                        __result = dicVal.GetComponent<ChaAccessoryComponent>();
                     }
                 }
             }
