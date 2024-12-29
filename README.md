@@ -11,7 +11,7 @@ Configuration Manager is recommended to make changing the settings from these pl
 
 ## Plugins
 
-### Attach All Accessories Anywhere, Anytime, At Any Angle And Artistic Arrangement, Allegedly [KK/KKS]
+#### Attach All Accessories Anywhere, Anytime, At Any Angle And Artistic Arrangement, Allegedly [KK/KKS]
 This lets you parent accessories to any bone, chosen through ABMX. Especially useful in cases
 where you want to attach a tie to a tail, for example.
 
