@@ -6,7 +6,10 @@ using System.Linq;
 using AAAAAAAAAAAA;
 using UnityEngine.UI;
 using Illusion.Extensions;
+using System.Reflection.Emit;
 using System.Collections.Generic;
+using System.Runtime.CompilerServices;
+using MessagePack;
 
 namespace AccMover {
     public static class HookPatch {
@@ -30,31 +33,30 @@ namespace AccMover {
                 _harmony.UnpatchSelf();
             }
 
-            // Disable a bunch of functions for batch accessory transfers
-            [HarmonyPrefix]
-            [HarmonyPatch(typeof(ChaControl), "AssignCoordinate", new[] { typeof(ChaFileDefine.CoordinateType) })]
-            private static bool ChaControlBeforeAssignCoordinate() {
-                return !disableTransferFuncs;
+            // Disable vanilla CopyAcs() in favor of self-made one
+            [HarmonyTranspiler]
+            [HarmonyPatch(typeof(CvsAccessoryChange), "CopyAcs")]
+            private static IEnumerable<CodeInstruction> CvsAccessoryChangeCopyAcsTranspiler(IEnumerable<CodeInstruction> instructions) {
+                yield return new CodeInstruction(OpCodes.Call, AccessTools.Method(typeof(Hooks), "CvsAccessoryChangeCopyAcsReplacement"));
+                yield return new CodeInstruction(OpCodes.Ret);
             }
-            [HarmonyPrefix]
-            [HarmonyPatch(typeof(ChaControl), "Reload")]
-            private static bool ChaControlBeforeReload() {
-                return !disableTransferFuncs;
-            }
-            [HarmonyPrefix]
-            [HarmonyPatch(typeof(CvsAccessoryChange), "CalculateUI")]
-            private static bool CvsAccessoryChangeBeforeCalculateUI() {
-                return !disableTransferFuncs;
-            }
-            [HarmonyPrefix]
-            [HarmonyPatch(typeof(CustomAcsChangeSlot), "UpdateSlotNames")]
-            private static bool CustomAcsChangeSlotBeforeUpdateSlotNames() {
-                return !disableTransferFuncs;
-            }
-            [HarmonyPrefix]
-            [HarmonyPatch(typeof(CustomBase), "SetUpdateCvsAccessory")]
-            private static bool CustomBaseBeforeSetUpdateCvsAccessory() {
-                return !disableTransferFuncs;
+            private static void CvsAccessoryChangeCopyAcsReplacement() {
+                CvsAccessoryChange __instance = AccMover._cvsAccessoryChange;
+                var bytes = MessagePackSerializer.Serialize<ChaFileAccessory.PartsInfo>(__instance.accessory.parts[__instance.selSrc]);
+                __instance.accessory.parts[__instance.selDst] = MessagePackSerializer.Deserialize<ChaFileAccessory.PartsInfo>(bytes);
+                if (!disableTransferFuncs) {
+                    if (__instance.tglReverse.isOn) {
+                        string reverseParent = ChaAccessoryDefine.GetReverseParent(__instance.accessory.parts[__instance.selDst].parentKey);
+                        if (string.Empty != reverseParent) {
+                            __instance.accessory.parts[__instance.selDst].parentKey = reverseParent;
+                        }
+                    }
+                    __instance.chaCtrl.AssignCoordinate((ChaFileDefine.CoordinateType)__instance.chaCtrl.fileStatus.coordinateType);
+                    __instance.chaCtrl.Reload(false, true, true, true);
+                    __instance.CalculateUI();
+                    __instance.cmpAcsChangeSlot.UpdateSlotNames();
+                    Singleton<CustomBase>.Instance.SetUpdateCvsAccessory(__instance.selDst, true);
+                }
             }
         }
 
@@ -74,7 +76,7 @@ namespace AccMover {
 
             internal static void HandleA12Before(int slot1, Dictionary<int, int> dicMovement, bool moving) {
                 if (!A12) return;
-                if (AccMover.IsDebug.Value) AccMover.Instance.Log($"Preparing data for slot {slot1}...");
+                if (AccMover.IsDebug.Value) AccMover.Instance.Log($"Preparing data for acc #{slot1}...");
                 if (!dicMovement.ContainsKey(slot1)) {
                     if (AccMover.IsDebug.Value) AccMover.Instance.Log("This slot was not found in the movement dictionary!", 2);
                     return;
@@ -180,7 +182,7 @@ namespace AccMover {
                 DoHandleA12After();
                 void DoHandleA12After() {
                     if (AAAAAAAAAAAA.AAAAAAAAAAAA.makerBoneRoot == null) return;
-                    if (AccMover.IsDebug.Value) AccMover.Instance.Log($"Applying prepared data for slot {slot1}!");
+                    if (AccMover.IsDebug.Value) AccMover.Instance.Log($"Applying prepared data for acc #{slot1}!");
                     // Apply parenting based on saved data
                     foreach (string key in new[] { $"{slot1}-c", $"{slot1}-p", $"{slot1}-clrSrc", $"{slot1}-clrDst" }) {
                         if (savedMoveParentage.TryGetValue(key, out var entry)) {
@@ -206,10 +208,12 @@ namespace AccMover {
                                     entryCopy.Reverse();
                                     tfParent = tfParent.Find(string.Join("/", entryCopy.ToArray()));
                                     if (AAAAAAAAAAAA.AAAAAAAAAAAA.dicMakerTfBones.ContainsKey(tfParent)) {
+                                        AccMover.Instance.Log($"Getting hash from existing bone for slot #{idxChild}...");
                                         hash = AAAAAAAAAAAA.AAAAAAAAAAAA.dicMakerTfBones[tfParent].MakeHash(true);
                                     } else {
+                                        AccMover.Instance.Log($"Making new bone for slot #{idxChild}...");
                                         var boneParent = new Bone(tfParent);
-                                        hash = boneParent.Hash;
+                                        hash = boneParent.Hash.Replace("/1", "");
                                         boneParent.Destroy();
                                     }
                                     int nowCoord = AAAAAAAAAAAA.AAAAAAAAAAAA.coordinateDropdown.value;
@@ -217,7 +221,7 @@ namespace AccMover {
                                         AAAAAAAAAAAA.AAAAAAAAAAAA.dicMakerModifiedParents[nowCoord] = new Dictionary<int, string>();
                                     }
                                     AAAAAAAAAAAA.AAAAAAAAAAAA.dicMakerModifiedParents[nowCoord][idxChild] = hash;
-                                    if (AccMover.IsDebug.Value) AccMover.Instance.Log($"Set new parent of {idxChild} to {hash}!");
+                                    if (AccMover.IsDebug.Value) AccMover.Instance.Log($"Set new parent of #{idxChild} to {hash}!");
                                 }
                             }
                         }

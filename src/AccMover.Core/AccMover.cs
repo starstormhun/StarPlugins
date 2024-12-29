@@ -7,6 +7,7 @@ using KKAPI.Utilities;
 using BepInEx.Configuration;
 using System.Collections.Generic;
 using TMPro;
+using HarmonyLib;
 
 [assembly: System.Reflection.AssemblyFileVersion(AccMover.AccMover.Version)]
 
@@ -37,6 +38,7 @@ namespace AccMover {
         private static bool moving = false;
 
         private void Awake() {
+            var asd = (int) AccessTools.Field(typeof(CvsAccessoryChange), "selDst").GetValue(new CvsAccessoryChange());
             Instance = this;
 
             IsDebug = Config.Bind("General", "Debug", false, new ConfigDescription("Log debug messages", null, new ConfigurationManagerAttributes { IsAdvanced = true }));
@@ -72,19 +74,22 @@ namespace AccMover {
 
             // Setup UI buttons
             GameObject originalButton = accRoot.transform.Find("tglChange/ChangeTop/rect/btnCopySlot").gameObject;
+            var originalTf = originalButton.GetComponent<RectTransform>();
+            float width = (originalTf.sizeDelta.x - 14) / 3;
+
             GameObject copy = Instantiate(originalButton, originalButton.transform.parent);
             DestroyImmediate(copy.GetComponent<Button>());
             copy.GetComponentInChildren<TextMeshProUGUI>().text = "Copy";
             var copyTf = copy.GetComponent<RectTransform>();
-            copyTf.sizeDelta = new Vector2(70, copyTf.sizeDelta.y);
+            copyTf.sizeDelta = new Vector2(width, copyTf.sizeDelta.y);
             GameObject move = Instantiate(copy, copy.transform.parent);
             move.GetComponentInChildren<TextMeshProUGUI>().text = "Move";
             var moveTf = move.GetComponent<RectTransform>();
-            moveTf.localPosition = new Vector3(moveTf.localPosition.x + 77, moveTf.localPosition.y, 0);
+            moveTf.localPosition = new Vector3(moveTf.localPosition.x + width + 7, moveTf.localPosition.y, 0);
             GameObject compact = Instantiate(copy, copy.transform.parent);
             compact.GetComponentInChildren<TextMeshProUGUI>().text = "Compact";
             var compactTf = compact.GetComponent<RectTransform>();
-            compactTf.localPosition = new Vector3(compactTf.localPosition.x + 154, compactTf.localPosition.y, 0);
+            compactTf.localPosition = new Vector3(compactTf.localPosition.x + 2 * (width + 7), compactTf.localPosition.y, 0);
             originalButton.SetActive(false);
 
             var btnCopy = copy.AddComponent<Button>();
@@ -99,7 +104,8 @@ namespace AccMover {
             selected.Clear();
             int bufferedDst = _cvsAccessoryChange.selDst;
             _cvsAccessoryChange.selDst = 0;
-            for (int i = 0; i < _cvsAccessoryChange.chaCtrl.infoAccessory.Length; i++) {
+            var accNum = _cvsAccessoryChange.tglDstKind.Where(x => x.isActiveAndEnabled).Count();
+            for (int i = 0; i < accNum; i++) {
                 if (_cvsAccessoryChange.chaCtrl.infoAccessory[i] != null) {
                     selected.Add(i);
                 }
@@ -112,43 +118,92 @@ namespace AccMover {
         }
 
         private static void DoTransfer() {
-            if (_cvsAccessoryChange.tglDstKind.Length < _cvsAccessoryChange.selDst + selected.Count) {
+            // Prepare
+            var accNum = _cvsAccessoryChange.tglDstKind.Where(x => x.isActiveAndEnabled).Count();
+            if (accNum < _cvsAccessoryChange.selDst + selected.Count) {
                 Instance.Log("[AccMover] Not enough space to copy/move, please add more slots!", 5);
                 return;
             }
-            // Prepare
-            var transfer = GameObject.Find("CustomScene/CustomRoot/FrontUIGroup/CustomUIGroup/CvsMenuTree/04_AccessoryTop/tglChange/ChangeTop").GetComponent<CvsAccessoryChange>();
             HookPatch.Conditionals.savedMoveParentage.Clear();
-            // Disable heavy functions on acc copying
-            HookPatch.Hooks.disableTransferFuncs = true;
-            // Setup dictionary of slot movement
+            // If there's only one item selected, operate like vanilla
+            if (selected.Count == 1) {
+                try {
+                    _cvsAccessoryChange.CopyAcs();
+                } catch {
+                }
+                if (moving && _cvsAccessoryChange.selSrc != _cvsAccessoryChange.selDst)
+                    _cvsAccessoryChange.chaCtrl.ChangeAccessory(_cvsAccessoryChange.selSrc, 0, 0, "");
+                return;
+            }
+            // Setup support variables for slot movement
             var dicMovement = new Dictionary<int, int>();
+            var movements = new HashSet<KeyValuePair<int, int>>();
+            var safeSlots = new HashSet<int>();
             int next = _cvsAccessoryChange.selDst;
-            var sortedSelections = selected.ToList();
-            sortedSelections.Sort();
-            foreach (int idx in sortedSelections) dicMovement[idx] = next++;
+            for (int idx = 0; idx < accNum; idx++) {
+                if (selected.Contains(idx)) {
+                    if (idx != next) {
+                        dicMovement[idx] = next;
+                        movements.Add(new KeyValuePair<int, int>(idx, next));
+                    }
+                    next++;
+                } else {
+                    if (idx >= _cvsAccessoryChange.selDst && idx < _cvsAccessoryChange.selDst + selected.Count) safeSlots.Add(idx);
+                }
+            }
+            // Check if there's nothing to do
+            if (dicMovement.Count == 0) {
+                Instance.Log("[AccMover] Nothing to do!", 5);
+                return;
+            }
             // Prepare data for handling after accessory copy / movement
             foreach (int i in dicMovement.Keys) {
                 if (HookPatch.Conditionals.A12) HookPatch.Conditionals.HandleA12Before(i, dicMovement, moving);
             }
+            // Disable heavy functions when copying
+            HookPatch.Hooks.disableTransferFuncs = true;
             // Copy accessories
-            int bufferedSrc = transfer.selSrc;
-            int bufferedDst = transfer.selDst;
-            foreach (var kvp in dicMovement) {
+            bool copied = false;
+            int bufferedSrc = _cvsAccessoryChange.selSrc;
+            int bufferedDst = _cvsAccessoryChange.selDst;
+
+            while (movements.Count > 0) {
+                // Select next movement
+                var available = movements.Where(x => safeSlots.Contains(x.Value) && !safeSlots.Contains(x.Key)).ToList();
+                if (available.Count == 0) {
+                    available = movements.Where(x => safeSlots.Contains(x.Value)).ToList();
+                }
+                available.Sort((kvp1, kvp2) => kvp2.Value - kvp1.Value);
+                var kvp = available[0];
                 if (kvp.Key == kvp.Value) continue;
+                movements.Remove(kvp);
+                if ((kvp.Key < bufferedDst + selected.Count) && !safeSlots.Contains(kvp.Key)) safeSlots.Add(kvp.Key);
+
+                // Perform movement
                 if (_cvsAccessoryChange.chaCtrl.infoAccessory[kvp.Key] == null) {
                     _cvsAccessoryChange.chaCtrl.ChangeAccessory(kvp.Value, 0, 0, "");
                 } else {
-                    transfer.selSrc = kvp.Key;
-                    transfer.selDst = kvp.Value;
-                    try { // This trycatch is here thanks to Preggo+ 7.8 or lower
-                        transfer.CopyAcs();
+                    _cvsAccessoryChange.selSrc = kvp.Key;
+                    _cvsAccessoryChange.selDst = kvp.Value;
+                    try { // This trycatch courtesy of Preggo+ 7.8 or lower
+                        copied = true;
+                        _cvsAccessoryChange.CopyAcs();
                     } catch {
                     }
                 }
             }
-            transfer.selSrc = bufferedSrc;
-            transfer.selDst = bufferedDst;
+
+            if (!copied) {
+                try {
+                    var kvp = dicMovement.ToList()[0];
+                    _cvsAccessoryChange.selSrc = kvp.Key;
+                    _cvsAccessoryChange.selDst = kvp.Value;
+                    _cvsAccessoryChange.CopyAcs();
+                } catch {
+                }
+            }
+            _cvsAccessoryChange.selSrc = bufferedSrc;
+            _cvsAccessoryChange.selDst = bufferedDst;
             // If moving, remove appropriate accessories
             if (moving) {
                 foreach (var idx in dicMovement.Keys.Where(x => !dicMovement.Values.Contains(x))) {
@@ -158,10 +213,10 @@ namespace AccMover {
             // Reenable heavy functions
             HookPatch.Hooks.disableTransferFuncs = false;
             // Perform copying post-work
-            transfer.chaCtrl.AssignCoordinate((ChaFileDefine.CoordinateType)transfer.chaCtrl.fileStatus.coordinateType);
-            transfer.chaCtrl.Reload(false, true, true, true);
-            transfer.CalculateUI();
-            transfer.cmpAcsChangeSlot.UpdateSlotNames();
+            _cvsAccessoryChange.chaCtrl.AssignCoordinate((ChaFileDefine.CoordinateType)_cvsAccessoryChange.chaCtrl.fileStatus.coordinateType);
+            _cvsAccessoryChange.chaCtrl.Reload(false, true, true, true);
+            _cvsAccessoryChange.CalculateUI();
+            _cvsAccessoryChange.cmpAcsChangeSlot.UpdateSlotNames();
             if (moving) {
                 foreach (int i in dicMovement.Keys) {
                     Singleton<CustomBase>.Instance.SetUpdateCvsAccessory(i, true);
