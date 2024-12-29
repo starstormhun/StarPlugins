@@ -4,6 +4,7 @@ using UnityEngine;
 using KKAPI.Utilities;
 using BepInEx.Configuration;
 using System.Collections.Generic;
+using System.Linq;
 
 [assembly: System.Reflection.AssemblyFileVersion(AccMover.AccMover.Version)]
 
@@ -28,7 +29,9 @@ namespace AccMover {
 
         internal static CvsAccessoryChange _cvsAccessoryChange;
 
-        internal static HashSet<int> selected = new HashSet<int>();
+        internal static HashSet<int> selected = new HashSet<int> { 0 };
+
+        private int prevAccLength = 0;
 
         private void Awake() {
             Instance = this;
@@ -37,7 +40,11 @@ namespace AccMover {
             IsTest = Config.Bind("General", "Test", false, new ConfigDescription("This shouldn't be here, please report", null, new ConfigurationManagerAttributes { IsAdvanced = true }));
 
             KKAPI.Maker.MakerAPI.MakerFinishedLoading += (x, y) => {
+                selected = new HashSet<int> { 0 };
                 _cvsAccessoryChange = GameObject.Find("04_AccessoryTop").GetComponentInChildren<CvsAccessoryChange>(true);
+                foreach (var toggle in _cvsAccessoryChange.tglSrcKind) {
+                    toggle.transform.GetChild(0).gameObject.AddComponent<Selector>();
+                }
             };
 
             HookPatch.Init();
@@ -45,27 +52,53 @@ namespace AccMover {
             if (IsDebug.Value) Log("Awoken!");
         }
 
-        // TODO modify for loops with custom slot selection
+        private void Update() {
+            if (_cvsAccessoryChange != null && _cvsAccessoryChange.tglDstKind.Length != prevAccLength) {
+                prevAccLength = _cvsAccessoryChange.tglDstKind.Length;
+                selected.Clear();
+                selected.Add(_cvsAccessoryChange.selSrc);
+            }
+        }
+
         private static void DoTransfer() {
+            if (_cvsAccessoryChange.tglDstKind.Length < _cvsAccessoryChange.selDst + selected.Count) {
+                Instance.Log("[AccMover] Not enough space to copy/move, please add more slots!", 5);
+                return;
+            }
+            // Prepare
+            // TODO moving!!!
+            bool moving = IsTest.Value;
             var transfer = GameObject.Find("CustomScene/CustomRoot/FrontUIGroup/CustomUIGroup/CvsMenuTree/04_AccessoryTop/tglChange/ChangeTop").GetComponent<CvsAccessoryChange>();
             HookPatch.Conditionals.savedMoveParentage.Clear();
             // Disable heavy functions on acc copying
             HookPatch.Hooks.disableTransferFuncs = true;
             // Setup dictionary of slot movement
-            // TODO
             var dicMovement = new Dictionary<int, int>();
-            for (int i = 0; i <= 3; i++) {
-                dicMovement[i] = i + 5;
-            }
+            int next = _cvsAccessoryChange.selDst;
+            var sortedSelections = selected.ToList();
+            sortedSelections.Sort();
+            foreach (int idx in sortedSelections) dicMovement[idx] = next++;
             // Prepare data for handling after accessory copy / movement
             foreach (int i in dicMovement.Keys) {
-                if (HookPatch.Conditionals.A12) HookPatch.Conditionals.HandleA12Before(i, dicMovement, IsTest.Value);
+                if (HookPatch.Conditionals.A12) HookPatch.Conditionals.HandleA12Before(i, dicMovement, moving);
             }
-            // Move accessories
+            // Copy accessories
+            int bufferedSrc = transfer.selSrc;
             foreach (var kvp in dicMovement) {
-                transfer.selSrc = kvp.Key;
-                transfer.selDst = kvp.Value;
-                transfer.CopyAcs();
+                if (_cvsAccessoryChange.chaCtrl.infoAccessory[kvp.Key] == null) {
+                    _cvsAccessoryChange.chaCtrl.ChangeAccessory(kvp.Value, 0, 0, "");
+                } else {
+                    transfer.selSrc = kvp.Key;
+                    transfer.selDst = kvp.Value;
+                    transfer.CopyAcs();
+                }
+            }
+            transfer.selSrc = bufferedSrc;
+            // If moving, remove appropriate accessories
+            if (moving) {
+                foreach (var idx in dicMovement.Keys.Where(x => !dicMovement.Values.Contains(x))) {
+                    _cvsAccessoryChange.chaCtrl.ChangeAccessory(idx, 0, 0, "");
+                }
             }
             // Reenable heavy functions
             HookPatch.Hooks.disableTransferFuncs = false;
@@ -74,10 +107,15 @@ namespace AccMover {
             transfer.chaCtrl.Reload(false, true, true, true);
             transfer.CalculateUI();
             transfer.cmpAcsChangeSlot.UpdateSlotNames();
-            // Handle prepared data
-            foreach (int i in dicMovement.Keys) {
-                Singleton<CustomBase>.Instance.SetUpdateCvsAccessory(i + 5, true);
+            if (moving) {
+                foreach (int i in dicMovement.Keys) {
+                    Singleton<CustomBase>.Instance.SetUpdateCvsAccessory(i, true);
+                }
             }
+            foreach (int i in dicMovement.Values) {
+                Singleton<CustomBase>.Instance.SetUpdateCvsAccessory(i, true);
+            }
+            // Apply prepared data
             foreach (int i in dicMovement.Keys) {
                 if (HookPatch.Conditionals.A12) HookPatch.Conditionals.HandleA12After(i);
             }
