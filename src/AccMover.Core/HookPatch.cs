@@ -61,7 +61,7 @@ namespace AccMover {
         public static class Conditionals {
             public static bool A12 { get; private set; } = false;
 
-            internal static Dictionary<int, List<string>> savedMoveParentage = new Dictionary<int, List<string>>();
+            internal static Dictionary<string, List<string>> savedMoveParentage = new Dictionary<string, List<string>>();
 
             internal static void Setup() {
                 var plugins = AccMover.Instance.GetComponents<BaseUnityPlugin>();
@@ -81,6 +81,7 @@ namespace AccMover {
                 }
                 DoHandleA12Before();
                 void DoHandleA12Before() {
+                    if (AAAAAAAAAAAA.AAAAAAAAAAAA.makerBoneRoot == null) return;
                     // If we're copying / moving an accessory AND also its parent
                     if (
                         AAAAAAAAAAAA.AAAAAAAAAAAA.TryGetMakerAccBone(slot1, out var currentBone) &&
@@ -121,9 +122,15 @@ namespace AccMover {
                                 }
                                 // Add as last element the accessory to be parented, and the accessory to be parented to
                                 savedParents.Add($"{dicMovement[slot1]},{dicMovement[idxParent]}");
-                                savedMoveParentage.Add(slot1, savedParents);
+                                savedMoveParentage.Add($"{slot1}-c", savedParents);
                                 if (AccMover.IsDebug.Value) AccMover.Instance.Log($"Added new data: {string.Join("/", savedParents.ToArray())}");
                             }
+                        }
+                        if (moving && !dicMovement.Values.Contains(slot1)) {
+                            savedMoveParentage[$"{slot1}-clrSrc"] = null;
+                        }
+                        if (!savedMoveParentage.ContainsKey($"{slot1}-c") && !dicCoord.ContainsKey(slot1)) {
+                            savedMoveParentage[$"{slot1}-clrDst"] = null;
                         }
 
                         // In case we're moving instead of copying, check for stationary, non-overwritten children
@@ -160,7 +167,7 @@ namespace AccMover {
                                 }
                                 // Add as last element the accessory to be parented, and the accessory to be parented to
                                 savedParents.Add($"{entry.Value},{dicMovement[slot1]}");
-                                savedMoveParentage.Add(slot1, savedParents);
+                                savedMoveParentage.Add($"{slot1}-p", savedParents);
                                 if (AccMover.IsDebug.Value) AccMover.Instance.Log($"Added new data: {string.Join("/", savedParents.ToArray())}");
                             }
                         }
@@ -168,36 +175,50 @@ namespace AccMover {
                 }
             }
 
-            internal static void HandleA12After(int slot1) {
+            internal static void HandleA12After(int slot1, Dictionary<int, int> dicMovement) {
                 if (!A12) return;
                 DoHandleA12After();
                 void DoHandleA12After() {
+                    if (AAAAAAAAAAAA.AAAAAAAAAAAA.makerBoneRoot == null) return;
                     if (AccMover.IsDebug.Value) AccMover.Instance.Log($"Applying prepared data for slot {slot1}!");
                     // Apply parenting based on saved data
-                    if (savedMoveParentage.TryGetValue(slot1, out var entry)) {
-                        var entryCopy = new List<string>();
-                        entryCopy.AddRange(entry);
-                        var parentStrings = entryCopy[entryCopy.Count - 1].Split(',');
-                        entryCopy.RemoveAt(entryCopy.Count - 1);
-                        if (parentStrings.Length == 2 && int.TryParse(parentStrings[0], out int idxChild) && int.TryParse(parentStrings[1], out int idxParent)) {
-                            var tfParent = AAAAAAAAAAAA.AAAAAAAAAAAA.chaCtrl.objAccessory?[idxParent]?.transform;
-                            if (tfParent != null) {
-                                string hash;
-                                entryCopy.Reverse();
-                                tfParent = tfParent.Find(string.Join("/", entryCopy.ToArray()));
-                                if (AAAAAAAAAAAA.AAAAAAAAAAAA.dicMakerTfBones.ContainsKey(tfParent)) {
-                                    hash = AAAAAAAAAAAA.AAAAAAAAAAAA.dicMakerTfBones[tfParent].MakeHash(true);
-                                } else {
-                                    var boneParent = new Bone(tfParent);
-                                    hash = boneParent.Hash;
-                                    boneParent.Destroy();
-                                }
+                    foreach (string key in new[] { $"{slot1}-c", $"{slot1}-p", $"{slot1}-clrSrc", $"{slot1}-clrDst" }) {
+                        if (savedMoveParentage.TryGetValue(key, out var entry)) {
+                            if (entry == null && dicMovement.TryGetValue(slot1, out int slot2)) {
                                 int nowCoord = AAAAAAAAAAAA.AAAAAAAAAAAA.coordinateDropdown.value;
-                                if (!AAAAAAAAAAAA.AAAAAAAAAAAA.dicMakerModifiedParents.ContainsKey(nowCoord)) {
-                                    AAAAAAAAAAAA.AAAAAAAAAAAA.dicMakerModifiedParents[nowCoord] = new Dictionary<int, string>();
+                                if (AAAAAAAAAAAA.AAAAAAAAAAAA.dicMakerModifiedParents.TryGetValue(nowCoord, out var dicCoord)) {
+                                    if (key.EndsWith("clrSrc")) dicCoord.Remove(slot1);
+                                    if (key.EndsWith("clrDst")) dicCoord.Remove(slot2);
+                                    if (dicCoord.Count == 0) {
+                                        AAAAAAAAAAAA.AAAAAAAAAAAA.dicMakerModifiedParents.Remove(nowCoord);
+                                    }
                                 }
-                                AAAAAAAAAAAA.AAAAAAAAAAAA.dicMakerModifiedParents[nowCoord][idxChild] = hash;
-                                if (AccMover.IsDebug.Value) AccMover.Instance.Log($"Set new parent of {idxChild} to {hash}!");
+                                continue;
+                            }
+                            var entryCopy = new List<string>();
+                            entryCopy.AddRange(entry);
+                            var parentStrings = entryCopy[entryCopy.Count - 1].Split(',');
+                            entryCopy.RemoveAt(entryCopy.Count - 1);
+                            if (parentStrings.Length == 2 && int.TryParse(parentStrings[0], out int idxChild) && int.TryParse(parentStrings[1], out int idxParent)) {
+                                var tfParent = AAAAAAAAAAAA.AAAAAAAAAAAA.chaCtrl.objAccessory?[idxParent]?.transform;
+                                if (tfParent != null) {
+                                    string hash;
+                                    entryCopy.Reverse();
+                                    tfParent = tfParent.Find(string.Join("/", entryCopy.ToArray()));
+                                    if (AAAAAAAAAAAA.AAAAAAAAAAAA.dicMakerTfBones.ContainsKey(tfParent)) {
+                                        hash = AAAAAAAAAAAA.AAAAAAAAAAAA.dicMakerTfBones[tfParent].MakeHash(true);
+                                    } else {
+                                        var boneParent = new Bone(tfParent);
+                                        hash = boneParent.Hash;
+                                        boneParent.Destroy();
+                                    }
+                                    int nowCoord = AAAAAAAAAAAA.AAAAAAAAAAAA.coordinateDropdown.value;
+                                    if (!AAAAAAAAAAAA.AAAAAAAAAAAA.dicMakerModifiedParents.ContainsKey(nowCoord)) {
+                                        AAAAAAAAAAAA.AAAAAAAAAAAA.dicMakerModifiedParents[nowCoord] = new Dictionary<int, string>();
+                                    }
+                                    AAAAAAAAAAAA.AAAAAAAAAAAA.dicMakerModifiedParents[nowCoord][idxChild] = hash;
+                                    if (AccMover.IsDebug.Value) AccMover.Instance.Log($"Set new parent of {idxChild} to {hash}!");
+                                }
                             }
                         }
                     }
