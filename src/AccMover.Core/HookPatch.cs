@@ -62,7 +62,6 @@ namespace AccMover {
             private static Harmony _harmony;
             public static bool A12 { get; private set; } = false;
             public static bool ObjImp { get; private set; } = false;
-            public static bool AssImp { get; private set; } = false;
 
             internal static Dictionary<string, List<string>> savedA12MoveParentage = new Dictionary<string, List<string>>();
             internal static Dictionary<int, GameObject> savedObjImportReferences = new Dictionary<int, GameObject>();
@@ -77,7 +76,6 @@ namespace AccMover {
                             if (_harmony == null) _harmony = Harmony.CreateAndPatchAll(typeof(ObjImpHooks));
                             else _harmony.PatchAll(typeof(ObjImpHooks));
                             break;
-                        case "org.njaecha.plugins.assetimport": AssImp = true; break;
                     }
                 }
             }
