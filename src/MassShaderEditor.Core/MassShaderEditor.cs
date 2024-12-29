@@ -9,9 +9,7 @@ using System;
 using System.Linq;
 using System.Collections.Generic;
 using UnityEngine;
-using MaterialEditorAPI;
 using KKAPI.Utilities;
-using KK_Plugins;
 using Illusion.Extensions;
 
 [assembly: System.Reflection.AssemblyFileVersion(MassShaderEditor.Koikatu.MassShaderEditor.Version)]
@@ -402,7 +400,7 @@ namespace MassShaderEditor.Koikatu {
                         for (int i = 0; i < chaCtrl.objAccessory.Length; i++)
                             SetCharaProperties(chaCtrl.GetController(), null, i, ObjectType.Accessory, _value, (Material x) => x.shader.NameFormatted().ToLower().Contains("hair"));
 
-                    if (MaterialEditorUI.MaterialEditorWindow.gameObject.activeSelf) MEMaker.Instance.RefreshUI();
+                    if (MaterialEditorAPI.MaterialEditorUI.MaterialEditorWindow.gameObject.activeSelf) MEMaker.Instance.RefreshUI();
                 } else ShowMessage("Please select a valid item category.");
             }
             HistoryAppend(_value);
@@ -413,7 +411,7 @@ namespace MassShaderEditor.Koikatu {
         private bool SetSelectedProperties<T>(T _value) {
             if (!(_value is float) && !(_value is Color) && !(_value is string) && !(_value is ScaledTex)) return false;
             if (KKAPI.Studio.StudioAPI.InsideStudio) {
-                if (setReset && _value is ScaledTex) MaterialEditorPluginBase.Logger.LogMessage("Save and reload scene to refresh textures.");
+                if (setReset && _value is ScaledTex) MaterialEditorAPI.MaterialEditorPluginBase.Logger.LogMessage("Save and reload scene to refresh textures.");
                 if (IsDebug.Value) Log($"{(setReset ? "Res" : "S")}etting selected items' properties!");
                 var ociList = KKAPI.Studio.StudioAPI.GetSelectedObjects().ToList();
                 if (ociList.Count > 0) {
@@ -446,7 +444,7 @@ namespace MassShaderEditor.Koikatu {
                 } else ShowMessage("Please select at least one item!");
             } else if (KKAPI.Maker.MakerAPI.InsideMaker) {
                 if (MakerGetType(out ObjectType type)) {
-                    if (setReset && _value is ScaledTex) MaterialEditorPluginBase.Logger.LogMessage("Save and reload character or change outfits to refresh textures.");
+                    if (setReset && _value is ScaledTex) MaterialEditorAPI.MaterialEditorPluginBase.Logger.LogMessage("Save and reload character or change outfits to refresh textures.");
                     var chaCtrl = KKAPI.Maker.MakerAPI.GetCharacterControl();
                     int slot = 0;
                     if (type == ObjectType.Hair) slot = makerMenu.ccHairMenu.GetSelectIndex();
@@ -464,7 +462,7 @@ namespace MassShaderEditor.Koikatu {
                     
                     bool result = SetCharaProperties(chaCtrl.GetController(), null, slot, type, _value, matFilter, rendFilter);
 
-                    if (MaterialEditorUI.MaterialEditorWindow.gameObject.activeSelf) MEMaker.Instance.RefreshUI();
+                    if (MaterialEditorAPI.MaterialEditorUI.MaterialEditorWindow.gameObject.activeSelf) MEMaker.Instance.RefreshUI();
 
                     if (fetchValue) return result;
                 } else ShowMessage("Please select a valid item category.");
@@ -526,7 +524,7 @@ namespace MassShaderEditor.Koikatu {
                         }
                     }
                 }
-                if (MaterialEditorUI.MaterialEditorWindow.gameObject.activeSelf && !fetchValue) MEStudio.Instance.RefreshUI();
+                if (MaterialEditorAPI.MaterialEditorUI.MaterialEditorWindow.gameObject.activeSelf && !fetchValue) MEStudio.Instance.RefreshUI();
             } else if (KKAPI.Maker.MakerAPI.InsideMaker) {
                 Log("SetStudioProperties should not be called inside Maker!", 3);
             }
@@ -888,7 +886,7 @@ namespace MassShaderEditor.Koikatu {
                     var textureProperty = matPropList.FirstOrDefault(x => x.ID == id && x.MaterialName == mat.NameFormatted() && x.Property == propName);
                     if (textureProperty?.TexID != null)
                         if (typeof(SceneController).GetPrivateProperty("TextureDictionary", null, out object value2)) {
-                            var texDict = (value2 as Dictionary<int, TextureContainer>);
+                            var texDict = (value2 as Dictionary<int, KK_Plugins.TextureContainer>);
 
                             if (IsDebug.Value) Log("ME item texture data found!");
                             if (setTexAffectTex) {
@@ -939,7 +937,7 @@ namespace MassShaderEditor.Koikatu {
                                         var textureProperty = matPropList.FirstOrDefault(x => x.ObjectType == type && x.CoordinateIndex == GetCoordinateIndex() && x.Slot == slot && x.Property == setName && x.MaterialName == mat.NameFormatted());
                                         if (textureProperty?.TexID != null)
                                             if (typeof(MaterialEditorCharaController).GetPrivateProperty("TextureDictionary", ctrl, out object value2)) {
-                                                var texDict = (value2 as Dictionary<int, TextureContainer>);
+                                                var texDict = (value2 as Dictionary<int, KK_Plugins.TextureContainer>);
                                                 var texBytes = texDict[(int)textureProperty.TexID].Data;
                                                 var newTex = new Texture2D(1, 1);
                                                 newTex.LoadImage(texBytes);
