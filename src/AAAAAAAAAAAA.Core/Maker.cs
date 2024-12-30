@@ -123,13 +123,13 @@ namespace AAAAAAAAAAAA {
         internal static void UpdateMakerTree(bool _performParenting = false, bool _clearNullTransforms = false, bool forced = false) {
             if (_performParenting) performParenting = true;
             if (_clearNullTransforms) clearNullTransforms = true;
-            if (HookPatch.Maker.isLoading) return;
-            HookPatch.Maker.isLoading = true;
             if (forced) {
                 DoUpdateData();
-            } else {
-                Instance.StartCoroutine(UpdateData());
+                return;
             }
+            if (HookPatch.Maker.isLoading) return;
+            HookPatch.Maker.isLoading = true;
+            Instance.StartCoroutine(UpdateData());
             IEnumerator UpdateData() {
                 for (int i = 0; i < 6; i++) yield return CoroutineUtils.WaitForEndOfFrame;
                 DoUpdateData();

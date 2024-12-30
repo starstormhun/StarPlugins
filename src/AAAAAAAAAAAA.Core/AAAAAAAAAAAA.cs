@@ -7,6 +7,7 @@ using KKAPI.Chara;
 [assembly: System.Reflection.AssemblyFileVersion(AAAAAAAAAAAA.AAAAAAAAAAAA.Version)]
 
 namespace AAAAAAAAAAAA {
+    [BepInIncompatibility("madevil.kk.AAAPK")]
     [BepInDependency(KKAPI.KoikatuAPI.GUID)]
     [BepInDependency(KK_MoreAccessoryParents.MoreAccParents.GUID, KK_MoreAccessoryParents.MoreAccParents.Version)]
     [BepInDependency(KKABMX.Core.KKABMX_Core.GUID, KKABMX.Core.KKABMX_Core.Version)]
@@ -34,6 +35,7 @@ namespace AAAAAAAAAAAA {
             IsDebug = Config.Bind("General", "Debug", false, new ConfigDescription("Log debug messages", null, new ConfigurationManagerAttributes { IsAdvanced = true }));
 
             CharacterApi.RegisterExtraBehaviour<CardDataController>(CardDataController.SaveID);
+            CharacterApi.RegisterExtraBehaviour<CardDataController.A12AAAPKLoader>(CardDataController.aaapkID);
 
             if (KKAPI.KoikatuAPI.GetCurrentGameMode() != KKAPI.GameMode.Studio) {
                 HookPatch.InitMaker();

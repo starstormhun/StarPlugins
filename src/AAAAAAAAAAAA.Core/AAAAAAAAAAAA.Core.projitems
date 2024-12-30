@@ -9,6 +9,7 @@
     <Import_RootNamespace>AAAAAAAAAAAA</Import_RootNamespace>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="$(MSBuildThisFileDirectory)AAAPKParentRule.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Bone.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)CardDataController.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Common.cs" />
