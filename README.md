@@ -15,7 +15,7 @@ Configuration Manager is recommended to make changing the settings from these pl
 This lets you parent accessories to any bone, chosen through ABMX. Especially useful in cases
 where you want to attach a tie to a tail, for example.
 
-### Acc Mover [KK/KKS]
+#### Acc Mover [KK/KKS]
 This plugin revamps the "Transfer" tab of the accessories panel, letting you copy, move, or
 compact accessories. Useful for dealing with heavy cards.
 
