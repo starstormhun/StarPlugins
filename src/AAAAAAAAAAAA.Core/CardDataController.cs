@@ -118,6 +118,7 @@ namespace AAAAAAAAAAAA {
                             listSaveValues.Add(rule);
                             continue;
                         }
+                        Bone parentBone = null;
                         switch (rule.ParentType) {
                             case ParentType.Unknown: break;
                             case ParentType.Clothing: break;
@@ -131,21 +132,26 @@ namespace AAAAAAAAAAAA {
                                 Transform parent = accBone.bone.Find(rule.ParentPath);
                                 if (parent == null) { if (AAAAAAAAAAAA.IsDebug.Value) AAAAAAAAAAAA.Instance.Log($"No parent for {accBone.bone.name}, '{rule.ParentPath}'..."); continue; }
                                 if (AAAAAAAAAAAA.IsDebug.Value) AAAAAAAAAAAA.Instance.Log($"Parent found! ({parent.name})");
-                                Bone parentBone = null;
                                 if (KKAPI.Maker.MakerAPI.InsideMaker) AAAAAAAAAAAA.dicMakerTfBones.TryGetValue(parent, out parentBone); 
                                 if (KKAPI.Studio.StudioAPI.InsideStudio) dicTfBones.TryGetValue(parent, out parentBone);
                                 if (parentBone == null) { if (AAAAAAAAAAAA.IsDebug.Value) AAAAAAAAAAAA.Instance.Log($"No parent bone for {parent.name}..."); continue; }
-                                if (AAAAAAAAAAAA.IsDebug.Value) AAAAAAAAAAAA.Instance.Log($"Parent bone found!");
-                                if (KKAPI.Maker.MakerAPI.InsideMaker) {
-                                    if (!AAAAAAAAAAAA.dicMakerModifiedParents.ContainsKey(rule.Coordinate))
-                                        AAAAAAAAAAAA.dicMakerModifiedParents.Add(rule.Coordinate, new Dictionary<int, string>());
-                                    AAAAAAAAAAAA.dicMakerModifiedParents[rule.Coordinate][rule.Slot] = parentBone.Hash;
-                                    if (AAAAAAAAAAAA.IsDebug.Value)
-                                        AAAAAAAAAAAA.Instance.Log($"Added new parent from AAAPK on coord {rule.Coordinate} for acc #{rule.Slot} with hash {parentBone.Hash}!");
-                                }
                                 break;
                             case ParentType.Hair: break;
                             case ParentType.Character: break;
+                        }
+                        if (AAAAAAAAAAAA.IsDebug.Value) AAAAAAAAAAAA.Instance.Log($"Parent bone found!");
+                        if (KKAPI.Maker.MakerAPI.InsideMaker) {
+                            if (!AAAAAAAAAAAA.dicMakerModifiedParents.ContainsKey(rule.Coordinate))
+                                AAAAAAAAAAAA.dicMakerModifiedParents.Add(rule.Coordinate, new Dictionary<int, string>());
+                            AAAAAAAAAAAA.dicMakerModifiedParents[rule.Coordinate][rule.Slot] = parentBone.Hash;
+                            if (AAAAAAAAAAAA.IsDebug.Value)
+                                AAAAAAAAAAAA.Instance.Log($"Added new parent from AAAPK on coord {rule.Coordinate} for acc #{rule.Slot} with hash {parentBone.Hash}!");
+                        }
+                        if (KKAPI.Studio.StudioAPI.InsideStudio) {
+                            if (!customAccParents.ContainsKey(rule.Coordinate)) customAccParents.Add(rule.Coordinate, new Dictionary<int, string>());
+                            customAccParents[rule.Coordinate][rule.Slot] = parentBone.Hash;
+                            if (AAAAAAAAAAAA.IsDebug.Value)
+                                AAAAAAAAAAAA.Instance.Log($"Added new parent from AAAPK on coord {rule.Coordinate} for acc #{rule.Slot} with hash {parentBone.Hash}!");
                         }
                     }
                     if (listSaveValues.Count > 0) listAAAPKData = listSaveValues;
