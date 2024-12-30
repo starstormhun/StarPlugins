@@ -152,7 +152,7 @@ namespace AccMover {
             }
             // Disable heavy functions when copying
             HookPatch.Hooks.disableTransferFuncs = true;
-            HookPatch.Conditionals.objImpUpdated = false;
+            HookPatch.Conditionals.ObjImpHooks.objImpUpdated = false;
             // Copy accessories
             bool copied = false;
             int bufferedSrc = _cvsAccessoryChange.selSrc;
@@ -186,7 +186,7 @@ namespace AccMover {
                 }
             }
 
-            if (HookPatch.Conditionals.ObjImp && !HookPatch.Conditionals.objImpUpdated) {
+            if (HookPatch.Conditionals.ObjImp && !HookPatch.Conditionals.ObjImpHooks.objImpUpdated) {
                 HookPatch.Conditionals.ObjImportUpdateMeshes(_cvsAccessoryChange.chaCtrl);
             }
             if (!copied) {

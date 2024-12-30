@@ -8,6 +8,7 @@ using AAAAAAAAAAAA;
 using System.Collections;
 using System.Reflection.Emit;
 using System.Collections.Generic;
+using DynamicBoneDistributionEditor;
 
 namespace AccMover {
     public static class HookPatch {
@@ -62,11 +63,9 @@ namespace AccMover {
             private static Harmony _harmony;
             public static bool A12 { get; private set; } = false;
             public static bool ObjImp { get; private set; } = false;
-
-            internal static bool objImpUpdated = false;
+            public static bool DBDE { get; private set; } = false;
 
             internal static Dictionary<string, List<string>> savedA12MoveParentage = new Dictionary<string, List<string>>();
-            internal static Dictionary<int, GameObject> savedObjImportReferences = new Dictionary<int, GameObject>();
 
             internal static void Setup() {
                 var plugins = AccMover.Instance.GetComponents<BaseUnityPlugin>();
@@ -77,6 +76,11 @@ namespace AccMover {
                             ObjImp = true;
                             if (_harmony == null) _harmony = Harmony.CreateAndPatchAll(typeof(ObjImpHooks));
                             else _harmony.PatchAll(typeof(ObjImpHooks));
+                            break;
+                        case "org.njaecha.plugins.dbde":
+                            DBDE = true;
+                            if (_harmony == null) _harmony = Harmony.CreateAndPatchAll(typeof(DBDEHooks));
+                            else _harmony.PatchAll(typeof(DBDEHooks));
                             break;
                     }
                 }
@@ -249,7 +253,7 @@ namespace AccMover {
                             objImportCtrl.remeshData[type][destination] = objImportCtrl.remeshData[type][source];
                             if (moving) objImportCtrl.remeshData[type].Remove(source);
                             var newGO = Object.Instantiate(objImportCtrl.ChaControl.GetAccessoryComponent(source).gameObject, null);
-                            savedObjImportReferences.Add(destination, newGO);
+                            ObjImpHooks.savedAccReferences.Add(destination, newGO);
                         } else {
                             if (objImportCtrl.remeshData[type].ContainsKey(destination)) {
                                 objImportCtrl.remeshData[type].Remove(destination);
@@ -272,12 +276,12 @@ namespace AccMover {
                             if (AccMover.IsDebug.Value) AccMover.Instance.Log($"Updated ObjImport meshes for #{slot2}!");
                             AccMover.Instance.StartCoroutine(LoadRemoveDelayed());
                             IEnumerator LoadRemoveDelayed() {
-                                objImpUpdated = true;
+                                ObjImpHooks.objImpUpdated = true;
                                 yield return new WaitForSeconds(0.25f);
                                 objImportCtrl.updateMeshes();
                                 yield return new WaitForSeconds(0.25f);
-                                Object.DestroyImmediate(savedObjImportReferences[slot2]);
-                                savedObjImportReferences.Remove(slot2);
+                                Object.DestroyImmediate(ObjImpHooks.savedAccReferences[slot2]);
+                                ObjImpHooks.savedAccReferences.Remove(slot2);
                             }
                         }
                     }
@@ -300,7 +304,9 @@ namespace AccMover {
             }
 
             public static class ObjImpHooks {
-                private static bool updatingMeshes = false;
+                internal static Dictionary<int, GameObject> savedAccReferences = new Dictionary<int, GameObject>();
+                internal static bool getAccFromDic = false;
+                internal static bool objImpUpdated = false;
 
                 [HarmonyPrefix]
                 [HarmonyPatch(typeof(ObjImport.CharacterController), "accessoryTransferedEvent")]
@@ -311,20 +317,67 @@ namespace AccMover {
                 [HarmonyPrefix]
                 [HarmonyPatch(typeof(ObjImport.CharacterController), "updateMeshes")]
                 private static void ObjImportCharacterControllerBeforeUpdateMeshes() {
-                    updatingMeshes = true;
+                    ObjImpHooks.getAccFromDic = true;
                 }
                 [HarmonyPostfix]
                 [HarmonyPatch(typeof(ObjImport.CharacterController), "updateMeshes")]
                 private static void ObjImportCharacterControllerAfterUpdateMeshes() {
-                    updatingMeshes = false;
+                    ObjImpHooks.getAccFromDic = false;
                 }
 
                 [HarmonyPostfix]
                 [HarmonyPatch(typeof(ChaInfo), "GetAccessoryComponent")]
                 private static void ChaControlAfterGetAccessoryComponent(int parts, ref ChaAccessoryComponent __result) {
-                    if (!updatingMeshes || !Hooks.disableTransferFuncs) return;
-                    if (savedObjImportReferences.TryGetValue(parts, out var dicVal)) {
+                    if (!getAccFromDic || !Hooks.disableTransferFuncs) return;
+                    if (savedAccReferences.TryGetValue(parts, out var dicVal)) {
                         __result = dicVal.GetComponent<ChaAccessoryComponent>();
+                    }
+                }
+            }
+
+            public static class DBDEHooks {
+                [HarmonyPrefix]
+                [HarmonyPatch(typeof(DBDECharaController), "AccessoryTransferedEvent")]
+                private static bool DBDECharaControllerBeforeAccessoryTransferedEvent(DBDECharaController __instance, int source, int destination) {
+                    DynamicBoneDistributionEditor.DBDE.UI.UpdateUIWhileOpen = false;
+                    if (Hooks.disableTransferFuncs) {
+                        var acc = __instance.ChaControl.GetAccessoryComponent(source);
+                        if (acc == null) return false;
+                        GameObject newGOSource = Object.Instantiate(acc.gameObject, null);
+                        __instance.StartCoroutine(DelayedTransferEvent(newGOSource));
+                        return false;
+                    }
+                    return true;
+
+                    // Modified form of original method from DBDE
+                    IEnumerator DelayedTransferEvent(GameObject newGOSource) {
+                        if (newGOSource == null) yield break;
+                        DynamicBoneDistributionEditor.DBDE.UI.UpdateUIWhileOpen = false;
+                        DynamicBone[] sourcDBs = newGOSource.GetComponentsInChildren<DynamicBone>();
+                        List<DBDEDynamicBoneEdit> sourceEdits = __instance.DistributionEdits[__instance.ChaControl.fileStatus.coordinateType].FindAll(
+                            dbde => dbde.ReidentificationData is KeyValuePair<int, string> kvp && kvp.Key == source
+                        );
+                        List<DBDEDynamicBoneEdit> sourceEditsOriginal = new List<DBDEDynamicBoneEdit>(sourceEdits);
+                        for (int i = 0; i < sourceEdits.Count; i++) {
+                            sourceEdits[i] = new DBDEDynamicBoneEdit(() => sourceEdits[i].DynamicBones, sourceEdits[i]) {
+                                ReidentificationData = sourceEdits[i].ReidentificationData
+                            };
+                        }
+                        yield return new WaitForSeconds(0.25f);
+                        DynamicBone[] destDBs = __instance.ChaControl.GetAccessoryComponent(destination).GetComponentsInChildren<DynamicBone>();
+                        for (int i = 0; i < destDBs.Length; i++) {
+                            sourcDBs[i].TryGetAccessoryQualifiedName(out string name);
+                            int newSlot = destination;
+                            DBDEDynamicBoneEdit sourceEdit = sourceEdits.Find(dbde => dbde.ReidentificationData is KeyValuePair<int, string> kvp && kvp.Value == name);
+                            __instance.DistributionEdits[__instance.ChaControl.fileStatus.coordinateType].Add(new DBDEDynamicBoneEdit(() => __instance.WouldYouBeSoKindTohandMeTheDynamicBonePlease(name, newSlot), sourceEdit) { ReidentificationData = new KeyValuePair<int, string>(newSlot, name) });
+                        }
+                        foreach (var edit in sourceEditsOriginal) {
+                            if (edit.PrimaryDynamicBone != null) edit.ApplyAll();
+                        }
+                        __instance.StartCoroutine(__instance.RefreshBoneListDelayed());
+                        DynamicBoneDistributionEditor.DBDE.UI.UpdateUIWhileOpen = true;
+                        yield return new WaitForSeconds(0.25f);
+                        Object.DestroyImmediate(newGOSource);
                     }
                 }
             }

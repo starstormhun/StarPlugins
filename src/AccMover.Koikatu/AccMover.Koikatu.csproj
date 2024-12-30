@@ -25,6 +25,9 @@
     <Reference Include="AAAAAAAAAAAA.Koikatu">
       <HintPath>..\..\lib\AAAAAAAAAAAA.Koikatu.dll</HintPath>
     </Reference>
+    <Reference Include="KK.DynamicBoneDistributionEditor">
+      <HintPath>..\..\lib\KK_DynamicBoneDistributionEditor.dll</HintPath>
+    </Reference>
     <Reference Include="KK_ObjImport">
       <HintPath>..\..\lib\KK_ObjImport.dll</HintPath>
     </Reference>
