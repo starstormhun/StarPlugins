@@ -63,6 +63,8 @@ namespace AccMover {
             public static bool A12 { get; private set; } = false;
             public static bool ObjImp { get; private set; } = false;
 
+            internal static bool objImpUpdated = false;
+
             internal static Dictionary<string, List<string>> savedA12MoveParentage = new Dictionary<string, List<string>>();
             internal static Dictionary<int, GameObject> savedObjImportReferences = new Dictionary<int, GameObject>();
 
@@ -270,12 +272,28 @@ namespace AccMover {
                             if (AccMover.IsDebug.Value) AccMover.Instance.Log($"Updated ObjImport meshes for #{slot2}!");
                             AccMover.Instance.StartCoroutine(LoadRemoveDelayed());
                             IEnumerator LoadRemoveDelayed() {
+                                objImpUpdated = true;
                                 yield return new WaitForSeconds(0.25f);
                                 objImportCtrl.updateMeshes();
                                 yield return new WaitForSeconds(0.25f);
                                 Object.DestroyImmediate(savedObjImportReferences[slot2]);
                                 savedObjImportReferences.Remove(slot2);
                             }
+                        }
+                    }
+                }
+            }
+
+            internal static void ObjImportUpdateMeshes(ChaControl chaCtrl) {
+                if (!ObjImp) return;
+                DoObjImportUpdateMeshes();
+                void DoObjImportUpdateMeshes() {
+                    var objImportCtrl = chaCtrl.gameObject.GetComponent<ObjImport.CharacterController>();
+                    if (objImportCtrl != null) {
+                        objImportCtrl.StartCoroutine(LoadDelayed());
+                        IEnumerator LoadDelayed() {
+                            yield return new WaitForSeconds(0.25f);
+                            objImportCtrl.updateMeshes();
                         }
                     }
                 }

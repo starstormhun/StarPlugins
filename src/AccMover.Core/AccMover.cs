@@ -152,6 +152,7 @@ namespace AccMover {
             }
             // Disable heavy functions when copying
             HookPatch.Hooks.disableTransferFuncs = true;
+            HookPatch.Conditionals.objImpUpdated = false;
             // Copy accessories
             bool copied = false;
             int bufferedSrc = _cvsAccessoryChange.selSrc;
@@ -185,6 +186,9 @@ namespace AccMover {
                 }
             }
 
+            if (HookPatch.Conditionals.ObjImp && !HookPatch.Conditionals.objImpUpdated) {
+                HookPatch.Conditionals.ObjImportUpdateMeshes(_cvsAccessoryChange.chaCtrl);
+            }
             if (!copied) {
                 try {
                     var kvp = dicMovement.ToList()[0];
