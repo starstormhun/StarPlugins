@@ -23,12 +23,11 @@ namespace AccMover {
 	/// </info>
     public class AccMover : BaseUnityPlugin {
         public const string GUID = "starstorm.accmover";
-        public const string Version = "1.0.0." + BuildNumber.Version;
+        public const string Version = "1.0.1." + BuildNumber.Version;
 
         public static AccMover Instance { get; private set; }
 
         public static ConfigEntry<bool> IsDebug { get; private set; }
-        public static ConfigEntry<bool> IsTest { get; private set; }
 
         internal static CvsAccessoryChange _cvsAccessoryChange;
 
@@ -42,7 +41,6 @@ namespace AccMover {
             Instance = this;
 
             IsDebug = Config.Bind("General", "Debug", false, new ConfigDescription("Log debug messages", null, new ConfigurationManagerAttributes { IsAdvanced = true }));
-            IsTest = Config.Bind("General", "Test", false, new ConfigDescription("This shouldn't be here, please report", null, new ConfigurationManagerAttributes { IsAdvanced = true }));
 
             KKAPI.Maker.MakerAPI.MakerStartedLoading += (x, y) => { Setup(); };
 
