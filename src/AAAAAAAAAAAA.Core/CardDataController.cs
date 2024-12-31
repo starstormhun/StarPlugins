@@ -6,6 +6,7 @@ using ExtensibleSaveFormat;
 using System.Collections.Generic;
 using UnityEngine;
 using System.Linq;
+using ADV.Commands.Object;
 
 namespace AAAAAAAAAAAA {
     public class CardDataController : CharaCustomFunctionController {
@@ -25,6 +26,7 @@ namespace AAAAAAAAAAAA {
         internal bool loading = false;
 
         // AAAPK compatibility
+        public List<AAAPKParentRule> allParentRules;
         public List<AAAPKParentRule> listAAAPKData = null;
 
         // Only for Studio
@@ -106,6 +108,7 @@ namespace AAAAAAAAAAAA {
                 if (announce) AAAAAAAAAAAA.Instance.Log("[AAAAAAAAAAAA] AAAPK data found! Converting...", 5);
                 if (data.data.TryGetValue(aaapkKey, out object pluginData) && pluginData != null) {
                     var listParentRules = MessagePackSerializer.Deserialize<List<AAAPKParentRule>>((byte[])pluginData);
+                    allParentRules = listParentRules;
                     if (listParentRules == null) yield break;
                     if (KKAPI.Maker.MakerAPI.InsideMaker) {
                         if (AAAAAAAAAAAA.makerBoneRoot == null) AAAAAAAAAAAA.MakeMakerTree();
@@ -113,32 +116,62 @@ namespace AAAAAAAAAAAA {
                     }
                     if (KKAPI.Studio.StudioAPI.InsideStudio) AAAAAAAAAAAA.BuildStudioTree(this);
                     var listSaveValues = new List<AAAPKParentRule>();
+                    Transform hairsRoot = ChaControl.transform.Find("BodyTop/p_cf_body_bone/cf_j_root/cf_n_height/cf_j_hips/cf_j_spine01/cf_j_spine02/cf_j_spine03/cf_j_neck/cf_j_head/cf_s_head/p_cf_head_bone/cf_J_N_FaceRoot/cf_J_FaceRoot/cf_J_FaceBase/cf_J_FaceUp_ty");
+                    Transform[] hairRoots = new[] {
+                        hairsRoot.Find("ct_hairB"),
+                        hairsRoot.Find("ct_hairF"),
+                        hairsRoot.Find("ct_hairS"),
+                        hairsRoot.Find("ct_hairO_01"),
+                    };
                     foreach (var rule in  listParentRules) {
                         if (!loadingCoord && rule.Coordinate != (int)CurrentCoordinate.Value) {
                             listSaveValues.Add(rule);
                             continue;
                         }
                         Bone parentBone = null;
+                        string parentName = "";
                         switch (rule.ParentType) {
-                            case ParentType.Unknown: break;
-                            case ParentType.Clothing: break;
-                            case ParentType.Accessory:
-                                if (AAAAAAAAAAAA.IsDebug.Value) AAAAAAAAAAAA.Instance.Log($"Converting accessory parent...");
-                                Bone accBone = null;
-                                if (KKAPI.Maker.MakerAPI.InsideMaker) AAAAAAAAAAAA.TryGetMakerAccBone(rule.ParentSlot, out accBone);
-                                if (KKAPI.Studio.StudioAPI.InsideStudio) AAAAAAAAAAAA.TryGetStudioAccBone(this, rule.ParentSlot, out accBone);
-                                if (accBone == null) { if (AAAAAAAAAAAA.IsDebug.Value) AAAAAAAAAAAA.Instance.Log($"No acc bone for acc #{rule.ParentSlot}..."); continue; }
-                                if (AAAAAAAAAAAA.IsDebug.Value) AAAAAAAAAAAA.Instance.Log($"Acc bone found! ({accBone.bone.name})");
-                                Transform parent = accBone.bone.Find(rule.ParentPath);
-                                if (parent == null) { if (AAAAAAAAAAAA.IsDebug.Value) AAAAAAAAAAAA.Instance.Log($"No parent for {accBone.bone.name}, '{rule.ParentPath}'..."); continue; }
-                                if (AAAAAAAAAAAA.IsDebug.Value) AAAAAAAAAAAA.Instance.Log($"Parent found! ({parent.name})");
-                                if (KKAPI.Maker.MakerAPI.InsideMaker) AAAAAAAAAAAA.dicMakerTfBones.TryGetValue(parent, out parentBone); 
-                                if (KKAPI.Studio.StudioAPI.InsideStudio) dicTfBones.TryGetValue(parent, out parentBone);
-                                if (parentBone == null) { if (AAAAAAAAAAAA.IsDebug.Value) AAAAAAAAAAAA.Instance.Log($"No parent bone for {parent.name}..."); continue; }
-                                break;
-                            case ParentType.Hair: break;
-                            case ParentType.Character: break;
+                            case ParentType.Unknown: {
+                                    AAAAAAAAAAAA.Instance.Log("Unknown AAAPK parent type detected!", 2);
+                                    AAAAAAAAAAAA.Instance.Log("[AAAAAAAAAAAA] Unknown AAAPK parent type detected!", 5);
+                                    break;
+                                }
+                            case ParentType.Clothing: {
+                                    AAAAAAAAAAAA.Instance.Log("AAAPK Clothing parents are not currently supported.", 2);
+                                    AAAAAAAAAAAA.Instance.Log("[AAAAAAAAAAAA] AAAPK Clothing parents are not currently supported.", 5);
+                                    break;
+                                }
+                            case ParentType.Accessory: {
+                                    if (AAAAAAAAAAAA.IsDebug.Value) AAAAAAAAAAAA.Instance.Log($"Converting accessory parent...");
+                                    Bone accBone = null;
+                                    if (KKAPI.Maker.MakerAPI.InsideMaker) AAAAAAAAAAAA.TryGetMakerAccBone(rule.ParentSlot, out accBone);
+                                    if (KKAPI.Studio.StudioAPI.InsideStudio) AAAAAAAAAAAA.TryGetStudioAccBone(this, rule.ParentSlot, out accBone);
+                                    if (accBone == null) { if (AAAAAAAAAAAA.IsDebug.Value) AAAAAAAAAAAA.Instance.Log($"No acc bone for acc #{rule.ParentSlot}..."); continue; }
+                                    if (AAAAAAAAAAAA.IsDebug.Value) AAAAAAAAAAAA.Instance.Log($"Acc bone found! ({accBone.bone.name})");
+                                    Transform parent = accBone.bone.Find(rule.ParentPath);
+                                    if (parent == null) { if (AAAAAAAAAAAA.IsDebug.Value) AAAAAAAAAAAA.Instance.Log($"No parent for {accBone.bone.name}, '{rule.ParentPath}'..."); continue; }
+                                    if (AAAAAAAAAAAA.IsDebug.Value) AAAAAAAAAAAA.Instance.Log($"Parent found! ({parent.name})");
+                                    if (KKAPI.Maker.MakerAPI.InsideMaker) AAAAAAAAAAAA.dicMakerTfBones.TryGetValue(parent, out parentBone);
+                                    if (KKAPI.Studio.StudioAPI.InsideStudio) dicTfBones.TryGetValue(parent, out parentBone);
+                                    parentName = parent.name;
+                                    break;
+                                }
+                            case ParentType.Hair: {
+                                    if (AAAAAAAAAAAA.IsDebug.Value) AAAAAAAAAAAA.Instance.Log($"Converting hair parent...");
+                                    Transform parent = hairRoots[rule.ParentSlot].Find(rule.ParentPath);
+                                    if (parent == null) { if (AAAAAAAAAAAA.IsDebug.Value) AAAAAAAAAAAA.Instance.Log($"No parent for {hairRoots[rule.ParentSlot].name}, '{rule.ParentPath}'..."); continue; }
+                                    if (KKAPI.Maker.MakerAPI.InsideMaker) AAAAAAAAAAAA.dicMakerTfBones.TryGetValue(parent, out parentBone);
+                                    if (KKAPI.Studio.StudioAPI.InsideStudio) dicTfBones.TryGetValue(parent, out parentBone);
+                                    parentName = parent.name;
+                                    break;
+                                }
+                            case ParentType.Character: {
+                                    AAAAAAAAAAAA.Instance.Log("AAAPK Character parents are not currently supported.", 2);
+                                    AAAAAAAAAAAA.Instance.Log("[AAAAAAAAAAAA] AAAPK Character parents are not currently supported.", 5);
+                                    break;
+                                }
                         }
+                        if (parentBone == null) { if (AAAAAAAAAAAA.IsDebug.Value) AAAAAAAAAAAA.Instance.Log($"No parent bone for \"{parentName}\" found..."); continue; }
                         if (AAAAAAAAAAAA.IsDebug.Value) AAAAAAAAAAAA.Instance.Log($"Parent bone found!");
                         if (KKAPI.Maker.MakerAPI.InsideMaker) {
                             if (!AAAAAAAAAAAA.dicMakerModifiedParents.ContainsKey(rule.Coordinate))
