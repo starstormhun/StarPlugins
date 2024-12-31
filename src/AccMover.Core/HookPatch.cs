@@ -369,6 +369,7 @@ namespace AccMover {
                             sourcDBs[i].TryGetAccessoryQualifiedName(out string name);
                             int newSlot = destination;
                             DBDEDynamicBoneEdit sourceEdit = sourceEdits.Find(dbde => dbde.ReidentificationData is KeyValuePair<int, string> kvp && kvp.Value == name);
+                            if (sourceEdit == null) continue;
                             __instance.DistributionEdits[__instance.ChaControl.fileStatus.coordinateType].Add(new DBDEDynamicBoneEdit(() => __instance.WouldYouBeSoKindTohandMeTheDynamicBonePlease(name, newSlot), sourceEdit) { ReidentificationData = new KeyValuePair<int, string>(newSlot, name) });
                         }
                         foreach (var edit in sourceEditsOriginal) {
