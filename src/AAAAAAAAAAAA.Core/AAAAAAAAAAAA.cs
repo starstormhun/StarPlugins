@@ -23,7 +23,7 @@ namespace AAAAAAAAAAAA {
     public partial class AAAAAAAAAAAA : BaseUnityPlugin {
         // Actual plugin name: Attach All Accessories Anywhere, Anytime, At Any Angle And Artistic Arrangement, Allegedly
         public const string GUID = "starstorm.aaaaaaaaaaaa";
-        public const string Version = "1.0.1." + BuildNumber.Version;
+        public const string Version = "1.1.0." + BuildNumber.Version;
 
         public static AAAAAAAAAAAA Instance {  get; private set; }
 
