@@ -4,6 +4,8 @@ using HarmonyLib;
 using UnityEngine;
 using UnityEngine.UI;
 using System.Collections.Generic;
+using ExtensibleSaveFormat;
+using MessagePack;
 
 namespace AAAAAAAAAAAA {
     public static class HookPatch {
@@ -109,9 +111,15 @@ namespace AAAAAAAAAAAA {
             }
             [HarmonyPostfix]
             [HarmonyPatch(typeof(ChaControl), "ChangeCoordinateTypeAndReload", new[] { typeof(ChaFileDefine.CoordinateType), typeof(bool) })]
-            private static void ChaControlAfterChangeCoordinateTypeAndReload() {
+            private static void ChaControlAfterChangeCoordinateTypeAndReload(ChaControl __instance) {
                 if (!makerLoaded) return;
                 isLoading = false;
+                var ctrl = __instance.gameObject.GetComponent<CardDataController>();
+                if (ctrl?.listAAAPKData?.Count > 0) {
+                    var data = new PluginData();
+                    data.data.Add(CardDataController.aaapkKey, MessagePackSerializer.Serialize(ctrl.listAAAPKData));
+                    ctrl.AddAAAPKData(data);
+                }
                 AAAAAAAAAAAA.UpdateMakerTree(true, true);
             }
 
@@ -306,7 +314,13 @@ namespace AAAAAAAAAAAA {
             [HarmonyPostfix]
             [HarmonyPatch(typeof(ChaControl), "ChangeCoordinateType", new[] { typeof(ChaFileDefine.CoordinateType), typeof(bool) })]
             private static void ChaControlAfterChangeCoordinateType(ChaControl __instance) {
-                __instance.transform.GetComponent<CardDataController>()?.LoadData();
+                var ctrl = __instance.gameObject.GetComponent<CardDataController>();
+                if (ctrl?.listAAAPKData?.Count > 0) {
+                    var data = new PluginData();
+                    data.data.Add(CardDataController.aaapkKey, MessagePackSerializer.Serialize(ctrl.listAAAPKData));
+                    ctrl.AddAAAPKData(data);
+                }
+                ctrl?.LoadData();
             }
         }
     }

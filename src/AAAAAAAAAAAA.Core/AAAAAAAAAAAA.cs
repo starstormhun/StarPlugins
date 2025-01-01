@@ -7,6 +7,7 @@ using KKAPI.Chara;
 [assembly: System.Reflection.AssemblyFileVersion(AAAAAAAAAAAA.AAAAAAAAAAAA.Version)]
 
 namespace AAAAAAAAAAAA {
+    [BepInIncompatibility("madevil.kk.AAAPK")]
     [BepInDependency(KKAPI.KoikatuAPI.GUID)]
     [BepInDependency(KK_MoreAccessoryParents.MoreAccParents.GUID, KK_MoreAccessoryParents.MoreAccParents.Version)]
     [BepInDependency(KKABMX.Core.KKABMX_Core.GUID, KKABMX.Core.KKABMX_Core.Version)]
@@ -22,7 +23,7 @@ namespace AAAAAAAAAAAA {
     public partial class AAAAAAAAAAAA : BaseUnityPlugin {
         // Actual plugin name: Attach All Accessories Anywhere, Anytime, At Any Angle And Artistic Arrangement, Allegedly
         public const string GUID = "starstorm.aaaaaaaaaaaa";
-        public const string Version = "1.0.1." + BuildNumber.Version;
+        public const string Version = "1.1.0." + BuildNumber.Version;
 
         public static AAAAAAAAAAAA Instance {  get; private set; }
 
@@ -34,6 +35,7 @@ namespace AAAAAAAAAAAA {
             IsDebug = Config.Bind("General", "Debug", false, new ConfigDescription("Log debug messages", null, new ConfigurationManagerAttributes { IsAdvanced = true }));
 
             CharacterApi.RegisterExtraBehaviour<CardDataController>(CardDataController.SaveID);
+            CharacterApi.RegisterExtraBehaviour<CardDataController.A12AAAPKLoader>(CardDataController.aaapkID);
 
             if (KKAPI.KoikatuAPI.GetCurrentGameMode() != KKAPI.GameMode.Studio) {
                 HookPatch.InitMaker();

@@ -30,8 +30,12 @@ namespace AAAAAAAAAAAA {
             return false;
         }
 
+        internal static Bone BuildStudioTree(CardDataController controller) {
+            return BuildBoneTree(controller.transform, controller.dicTfBones, controller);
+        }
+
         internal static Bone ApplyStudioData(CardDataController controller) {
-            Bone result = BuildBoneTree(controller.transform, controller.dicTfBones, controller);
+            Bone result = BuildStudioTree(controller);
             if (controller.customAccParents.TryGetValue((int)controller.CurrentCoordinate.Value, out var dicChanges)) {
                 foreach (var kvp in dicChanges) {
                     if (TryGetStudioAccBone(controller, kvp.Key, out var accBone) && controller.dicHashBones.TryGetValue(kvp.Value, out var parentBone)) {
