@@ -80,16 +80,35 @@ namespace AAAAAAAAAAAA {
 
         internal void PerformBoneUpdate() {
             if (parent != null && bone.parent != parent.bone) {
-                var oldScale = bone.localScale;
-                if (parent.bone.childCount == 0) {
+                var parentDB0 = GetAncestralComponent<DynamicBone>(parent.bone);
+                parentDB0?.m_Exclusions.Add(bone);
+                var parentDB1 = GetAncestralComponent<DynamicBone_Ver01>(parent.bone);
+                var parentDB2 = GetAncestralComponent<DynamicBone_Ver02>(parent.bone);
+                if (parent.bone.childCount == 0 && (parentDB1 != null || parentDB2 != null)) {
                     var dummy = new GameObject("dummy");
                     dummy.transform.SetParent(parent.bone);
                     dummy.transform.localPosition = Vector3.zero;
+                    parentDB0?.m_Exclusions.Add(dummy.transform);
                 }
+                var oldScale = bone.localScale;
                 bone.SetParent(parent.bone);
                 bone.localPosition = Vector3.zero;
                 bone.localRotation = Quaternion.identity;
                 bone.localScale = oldScale;
+            }
+
+            T GetAncestralComponent<T>(Transform root) where T : Component {
+                while (root.parent != null) {
+                    T comp = root.parent.GetComponent<T>();
+                    if (comp != null) {
+                        return comp;
+                    }
+                    if (root.parent.GetComponent<ChaControl>() || root.parent.GetComponent<ChaAccessoryComponent>()) {
+                        break;
+                    }
+                    root = root.parent;
+                }
+                return null;
             }
         }
 

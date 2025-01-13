@@ -131,7 +131,7 @@ namespace AAAAAAAAAAAA {
             HookPatch.Maker.isLoading = true;
             Instance.StartCoroutine(UpdateData());
             IEnumerator UpdateData() {
-                for (int i = 0; i < 6; i++) yield return CoroutineUtils.WaitForEndOfFrame;
+                for (int i = 0; i < 3; i++) yield return CoroutineUtils.WaitForEndOfFrame;
                 DoUpdateData();
             }
             void DoUpdateData() {
@@ -172,6 +172,7 @@ namespace AAAAAAAAAAAA {
 
         internal static bool TryGetMakerAccBone(int slot, out Bone bone) {
             bone = null;
+            if (makerBoneRoot == null) return false;
             if (slot >= chaCtrl.objAccessory.Length) return false;
             var acc = chaCtrl.objAccessory[slot]?.transform;
             if (acc == null) return false;

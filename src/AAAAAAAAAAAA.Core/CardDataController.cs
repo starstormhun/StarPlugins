@@ -103,7 +103,7 @@ namespace AAAAAAAAAAAA {
             if (data == null || data.data == null) return;
             StartCoroutine(DoAddAAAPKData());
             IEnumerator DoAddAAAPKData() {
-                for (int i = 0; i < 2; i++) yield return KKAPI.Utilities.CoroutineUtils.WaitForEndOfFrame;
+                for (int i = 0; i < 3; i++) yield return KKAPI.Utilities.CoroutineUtils.WaitForEndOfFrame;
                 if (announce) AAAAAAAAAAAA.Instance.Log("[AAAAAAAAAAAA] AAAPK data found! Converting...", 5);
                 if (data.data.TryGetValue(aaapkKey, out object pluginData) && pluginData != null) {
                     var listParentRules = MessagePackSerializer.Deserialize<List<AAAPKParentRule>>((byte[])pluginData);
@@ -202,7 +202,7 @@ namespace AAAAAAAAAAAA {
             loading = true;
             AAAAAAAAAAAA.Instance.StartCoroutine(LoadDataCoroutine());
             IEnumerator LoadDataCoroutine() {
-                for (int i = 0; i < 6; i++) yield return KKAPI.Utilities.CoroutineUtils.WaitForEndOfFrame;
+                for (int i = 0; i < 3; i++) yield return KKAPI.Utilities.CoroutineUtils.WaitForEndOfFrame;
                 if (KKAPI.Maker.MakerAPI.InsideMaker) {
                     AAAAAAAAAAAA.MakeMakerTree();
                     AAAAAAAAAAAA.UpdateMakerTree(true);

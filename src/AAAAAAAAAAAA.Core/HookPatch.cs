@@ -3,6 +3,7 @@ using ChaCustom;
 using HarmonyLib;
 using UnityEngine;
 using UnityEngine.UI;
+using System.Collections;
 using System.Collections.Generic;
 using ExtensibleSaveFormat;
 using MessagePack;
@@ -121,6 +122,17 @@ namespace AAAAAAAAAAAA {
                     ctrl.AddAAAPKData(data);
                 }
                 AAAAAAAAAAAA.UpdateMakerTree(true, true);
+                AAAAAAAAAAAA.Instance.StartCoroutine(UpdateTextLater());
+                IEnumerator UpdateTextLater() {
+                    for (int i = 0; i < 3; i++) yield return KKAPI.Utilities.CoroutineUtils.WaitForEndOfFrame;
+                    if (
+                        AAAAAAAAAAAA.dicMakerModifiedParents.TryGetValue(AAAAAAAAAAAA.chaCtrl.fileStatus.coordinateType, out var dicCoord) &&
+                        dicCoord.TryGetValue(AAAAAAAAAAAA.mainMenu.ccAcsMenu.GetSelectIndex(), out string hash) &&
+                        AAAAAAAAAAAA.dicMakerHashBones.TryGetValue(hash, out var parentBone)
+                    ) {
+                        AAAAAAAAAAAA.acsParentWindow.cvsAccessory[AAAAAAAAAAAA.mainMenu.ccAcsMenu.GetSelectIndex()].textAcsParent.text = $"A12: {parentBone.bone.name}";
+                    }
+                }
             }
 
             // Handling removing / changing accessories
