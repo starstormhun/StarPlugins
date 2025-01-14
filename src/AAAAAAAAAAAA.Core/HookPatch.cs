@@ -162,8 +162,13 @@ namespace AAAAAAAAAAAA {
                     AAAAAAAAAAAA.dicMakerModifiedParents.TryGetValue(AAAAAAAAAAAA.coordinateDropdown.value, out var dicCoord) &&
                     dicCoord.ContainsKey(__instance.nSlotNo) && __instance.ddAcsType.value != 0
                 ) {
-                    if (AAAAAAAAAAAA.IsDebug.Value) AAAAAAAAAAAA.Instance.Log($"Acc#{__instance.nSlotNo} had custom parent! Removing...");
-                    DoRemoveSaveBoneParentageFromDict(__instance.nSlotNo);
+                    if (__instance.tglTakeOverParent.isOn) {
+                        if (AAAAAAAAAAAA.IsDebug.Value) AAAAAAAAAAAA.Instance.Log($"Acc#{__instance.nSlotNo} has custom parent! Keeping parent due to toggle value.");
+                        AAAAAAAAAAAA.UpdateMakerTree(true);
+                    } else {
+                        if (AAAAAAAAAAAA.IsDebug.Value) AAAAAAAAAAAA.Instance.Log($"Acc#{__instance.nSlotNo} had custom parent! Removing...");
+                        DoRemoveSaveBoneParentageFromDict(__instance.nSlotNo);
+                    }
                 }
                 return true;
             }
@@ -181,8 +186,13 @@ namespace AAAAAAAAAAAA {
                     if (AAAAAAAAAAAA.IsDebug.Value) AAAAAAAAAAAA.Instance.Log($"(T) Acc#{slot} changed type!");
                     AAAAAAAAAAAA.RemoveParentedChildren(slot);
                     if (AAAAAAAAAAAA.dicMakerModifiedParents.TryGetValue(AAAAAAAAAAAA.coordinateDropdown.value, out var dicCoord) && dicCoord.ContainsKey(slot)) {
-                        if (AAAAAAAAAAAA.IsDebug.Value) AAAAAAAAAAAA.Instance.Log($"Acc#{slot} had custom parent! Removing...");
-                        DoRemoveSaveBoneParentageFromDict(slot);
+                        if (AAAAAAAAAAAA.acsParentWindow.cvsAccessory[slot].tglTakeOverParent.isOn) {
+                            if (AAAAAAAAAAAA.IsDebug.Value) AAAAAAAAAAAA.Instance.Log($"Acc#{slot} has custom parent! Keeping parent due to toggle value.");
+                            AAAAAAAAAAAA.UpdateMakerTree(true);
+                        } else {
+                            if (AAAAAAAAAAAA.IsDebug.Value) AAAAAAAAAAAA.Instance.Log($"Acc#{slot} had custom parent! Removing...");
+                            DoRemoveSaveBoneParentageFromDict(slot);
+                        }
                     }
                 }
                 return true;
@@ -195,8 +205,13 @@ namespace AAAAAAAAAAAA {
                     if (AAAAAAAAAAAA.IsDebug.Value) AAAAAAAAAAAA.Instance.Log($"Acc#{slotNo} changed to different type ({type}) or kind ({id})!");
                     AAAAAAAAAAAA.RemoveParentedChildren(slotNo);
                     if (AAAAAAAAAAAA.dicMakerModifiedParents.TryGetValue(AAAAAAAAAAAA.coordinateDropdown.value, out var dicCoord) && dicCoord.ContainsKey(slotNo)) {
-                        if (AAAAAAAAAAAA.IsDebug.Value) AAAAAAAAAAAA.Instance.Log($"Acc#{slotNo} had custom parent! Removing...");
-                        DoRemoveSaveBoneParentageFromDict(slotNo);
+                        if (AAAAAAAAAAAA.acsParentWindow.cvsAccessory[slotNo].tglTakeOverParent.isOn) {
+                            if (AAAAAAAAAAAA.IsDebug.Value) AAAAAAAAAAAA.Instance.Log($"Acc#{slotNo} has custom parent! Keeping parent due to toggle value.");
+                            AAAAAAAAAAAA.UpdateMakerTree(true);
+                        } else {
+                            if (AAAAAAAAAAAA.IsDebug.Value) AAAAAAAAAAAA.Instance.Log($"Acc#{slotNo} had custom parent! Removing...");
+                            DoRemoveSaveBoneParentageFromDict(slotNo);
+                        }
                     }
                 }
                 return true;

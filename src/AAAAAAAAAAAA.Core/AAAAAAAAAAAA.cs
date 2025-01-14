@@ -10,6 +10,7 @@ namespace AAAAAAAAAAAA {
     [BepInIncompatibility("madevil.kk.AAAPK")]
     [BepInDependency(KKAPI.KoikatuAPI.GUID)]
     [BepInDependency(KK_MoreAccessoryParents.MoreAccParents.GUID, KK_MoreAccessoryParents.MoreAccParents.Version)]
+    [BepInDependency(IllusionFixes.DynamicBonesFix.GUID, "22.0.2")]
     [BepInDependency(KKABMX.Core.KKABMX_Core.GUID, KKABMX.Core.KKABMX_Core.Version)]
 	[BepInProcess(KKAPI.KoikatuAPI.StudioProcessName)]
 	[BepInProcess(KKAPI.KoikatuAPI.GameProcessName)]

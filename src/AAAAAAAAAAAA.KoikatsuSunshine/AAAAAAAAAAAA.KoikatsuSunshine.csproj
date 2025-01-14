@@ -25,6 +25,9 @@
     <Reference Include="KKSABMX">
       <HintPath>..\..\lib\KKSABMX.dll</HintPath>
     </Reference>
+    <Reference Include="KK_Fix_DynamicBones">
+      <HintPath>..\..\lib\KKS_Fix_DynamicBones.dll</HintPath>
+    </Reference>
     <Reference Include="KKS_MoreAccessoryParents">
       <HintPath>..\..\lib\KKS_MoreAccessoryParents.dll</HintPath>
     </Reference>
