@@ -36,6 +36,7 @@ namespace LightSettings.Koikatu {
             [HarmonyPostfix]
             [HarmonyPatch(typeof(TreeNodeCtrl), "SelectSingle")]
             private static void AfterTreeNodeCtrlSelectSingle(TreeNodeObject _node, bool _deselect = true) {
+                if (LightSettings.Instance.IsDebug.Value) LightSettings.logger.LogInfo("Item(s) selected, trying to sync GUI...");
                 if (_deselect && (_node != null) && Studio.Studio.Instance.dicInfo.TryGetValue(_node, out ObjectCtrlInfo _info)) {
                     if (_info is OCILight _ociLight) {
                         switch (_ociLight.lightType) {

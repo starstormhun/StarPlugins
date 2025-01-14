@@ -211,7 +211,7 @@ namespace LightSettings.Koikatu {
             var toggleShadow = parent.Find("Toggle Shadow");
             UnityAction<int> typeCallback = (x) => {
                 toggleShadow.GetComponent<Toggle>().isOn = x != 0;
-                LightSettings.SetLightSetting(LightSettings.SettingType.Type, typeOptions[x]);
+                LightSettings.SetLightSetting(LightSettings.SettingType.ShadowType, typeOptions[x]);
             };
             Transform dropType = MakeDropDown(container, "Shadow Type", new Vector2(0, -185f), typeOptions, typeCallback);
             toggleShadow.GetComponent<Toggle>().onValueChanged.AddListener((state) => {

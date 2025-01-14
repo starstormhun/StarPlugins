@@ -25,7 +25,7 @@ namespace LightSettings.Koikatu {
         public static LightSettings Instance { get; private set; }
 
         public const string GUID = "starstorm.lightsettings";
-        public const string Version = "1.1.1." + BuildNumber.Version;
+        public const string Version = "1.2.0." + BuildNumber.Version;
 
         internal static Dictionary<string, byte[]> cookieDict = new Dictionary<string, byte[]>();
         internal static Dictionary<string, Texture> cookieDirectionalDict = new Dictionary<string, Texture>();
@@ -139,6 +139,7 @@ namespace LightSettings.Koikatu {
         }
 
         internal static void SetLightSetting<T>(SettingType _type, T _value, Light lightToModify = null) {
+            if (Studio.Studio.Instance.manipulatePanelCtrl.lightPanelInfo.mpLightCtrl.isUpdateInfo) return;
             if (UIHandler.syncing) return;
 
             bool isChaLight;
@@ -153,7 +154,7 @@ namespace LightSettings.Koikatu {
 
             foreach (Light light in lights) {
                 switch (_type) {
-                    case SettingType.Type:
+                    case SettingType.ShadowType:
                         if (Instance.IsDebug.Value) logger.LogInfo($"Shadow type set to {_value}");
                         light.shadows = EnumParser<LightShadows>((_value as string));
                         if (isChaLight) SceneDataController.charaLightData.shadows = light.shadows;
@@ -420,7 +421,7 @@ namespace LightSettings.Koikatu {
 
         internal enum SettingType {
             None,
-            Type,
+            ShadowType,
             Resolution,
             CustomResolution,
             ShadowStrength,
