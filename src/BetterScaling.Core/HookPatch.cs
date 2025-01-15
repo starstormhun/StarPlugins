@@ -63,6 +63,26 @@ namespace BetterScaling {
                     return false;
                 } else return true;
             }
+
+            // Prevent objects being able to be scaled to 0
+            [HarmonyPrefix]
+            [HarmonyPatch(typeof(GuideObject), "LateUpdate")]
+            private static void GuideObjectBeforeLateUpdate(GuideObject __instance) {
+                if (BetterScaling.Enabled.Value && BetterScaling.PreventZeroScale.Value) {
+                    if (__instance.changeAmount == null) return;
+                    var nowScale = __instance.changeAmount.scale;
+                    if (Math.Abs(nowScale.x) < 1E-06f) {
+                        nowScale.x = 1E-06f;
+                    }
+                    if (Math.Abs(nowScale.y) < 1E-06f) {
+                        nowScale.y = 1E-06f;
+                    }
+                    if (Math.Abs(nowScale.z) < 1E-06f) {
+                        nowScale.z = 1E-06f;
+                    }
+                    __instance.changeAmount.scale = nowScale;
+                }
+            }
         }
 
         internal static class Hierarchy {
