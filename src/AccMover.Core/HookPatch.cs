@@ -32,7 +32,7 @@ namespace AccMover {
                 _harmony.UnpatchSelf();
             }
 
-            // Disable vanilla CopyAcs() in favor of self-made one
+            // Disable vanilla CopyAcs() of Transfer in favor of adjusted one
             [HarmonyTranspiler]
             [HarmonyPatch(typeof(CvsAccessoryChange), "CopyAcs")]
             private static IEnumerable<CodeInstruction> CvsAccessoryChangeCopyAcsTranspiler(IEnumerable<CodeInstruction> instructions) {
@@ -43,19 +43,128 @@ namespace AccMover {
                 CvsAccessoryChange __instance = AccMover._cvsAccessoryChange;
                 var bytes = MessagePackSerializer.Serialize<ChaFileAccessory.PartsInfo>(__instance.accessory.parts[__instance.selSrc]);
                 __instance.accessory.parts[__instance.selDst] = MessagePackSerializer.Deserialize<ChaFileAccessory.PartsInfo>(bytes);
-                if (!disableTransferFuncs) {
-                    if (__instance.tglReverse.isOn) {
-                        string reverseParent = ChaAccessoryDefine.GetReverseParent(__instance.accessory.parts[__instance.selDst].parentKey);
-                        if (string.Empty != reverseParent) {
-                            __instance.accessory.parts[__instance.selDst].parentKey = reverseParent;
-                        }
+                if (__instance.tglReverse.isOn && !AccMover.moving) {
+                    string reverseParent = ChaAccessoryDefine.GetReverseParent(__instance.accessory.parts[__instance.selDst].parentKey);
+                    if (string.Empty != reverseParent) {
+                        __instance.accessory.parts[__instance.selDst].parentKey = reverseParent;
                     }
+                }
+                if (!disableTransferFuncs) {
                     __instance.chaCtrl.AssignCoordinate((ChaFileDefine.CoordinateType)__instance.chaCtrl.fileStatus.coordinateType);
                     __instance.chaCtrl.Reload(false, true, true, true);
                     __instance.CalculateUI();
                     __instance.cmpAcsChangeSlot.UpdateSlotNames();
                     Singleton<CustomBase>.Instance.SetUpdateCvsAccessory(__instance.selDst, true);
                 }
+            }
+
+            // Disable vanilla CopyAcs() of Copy in favor of adjusted one
+            [HarmonyTranspiler]
+            [HarmonyPatch(typeof(CvsAccessoryCopy), "CopyAcs")]
+            private static IEnumerable<CodeInstruction> CvsAccessoryCopyCopyAcsTranspiler(IEnumerable<CodeInstruction> instructions) {
+                yield return new CodeInstruction(OpCodes.Call, AccessTools.Method(typeof(Hooks), "CvsAccessoryCopyCopyAcsReplacement"));
+                yield return new CodeInstruction(OpCodes.Ret);
+            }
+            private static void CvsAccessoryCopyCopyAcsReplacement() {
+                CvsAccessoryCopy __instance = AccMover._cvsAccessoryCopy;
+                ChaFileAccessory accessory = __instance.chaCtrl.chaFile.coordinate[__instance.ddCoordeType[0].value].accessory;
+                ChaFileAccessory accessory2 = __instance.chaCtrl.chaFile.coordinate[__instance.ddCoordeType[1].value].accessory;
+                for (int i = 0; i < __instance.tglKind.Length; i++) {
+                    if (__instance.tglKind[i].isOn) {
+                        byte[] bytes = MessagePackSerializer.Serialize<ChaFileAccessory.PartsInfo>(accessory2.parts[i]);
+                        accessory.parts[i] = MessagePackSerializer.Deserialize<ChaFileAccessory.PartsInfo>(bytes);
+                    }
+                }
+                if (!disableTransferFuncs) {
+                    __instance.chaCtrl.ChangeCoordinateType(true);
+                    __instance.chaCtrl.Reload(false, true, true, true);
+                    __instance.CalculateUI();
+                }
+                Singleton<CustomBase>.Instance.updateCustomUI = true;
+            }
+
+            // Disable vanilla CopyClothes() of Copy in favor of adjusted one
+            [HarmonyTranspiler]
+            [HarmonyPatch(typeof(CvsClothesCopy), "CopyClothes")]
+            private static IEnumerable<CodeInstruction> CvsClothesCopyCopyAcsTranspiler(IEnumerable<CodeInstruction> instructions) {
+                yield return new CodeInstruction(OpCodes.Call, AccessTools.Method(typeof(Hooks), "CvsClothesCopyCopyClothesReplacement"));
+                yield return new CodeInstruction(OpCodes.Ret);
+            }
+            private static void CvsClothesCopyCopyClothesReplacement() {
+                CvsClothesCopy __instance = AccMover._cvsClothesCopy;
+                int num = System.Enum.GetNames(typeof(ChaFileDefine.ClothesKind)).Length;
+                ChaFileClothes clothes = __instance.chaCtrl.chaFile.coordinate[__instance.ddCoordeType[0].value].clothes;
+                ChaFileClothes clothes2 = __instance.chaCtrl.chaFile.coordinate[__instance.ddCoordeType[1].value].clothes;
+                ListInfoBase listInfo = __instance.chaCtrl.lstCtrl.GetListInfo(__instance.cateNo[0], clothes.parts[0].id);
+                if (listInfo == null) {
+                    listInfo = __instance.chaCtrl.lstCtrl.GetListInfo(__instance.cateNo[0], __instance.defClothesID[0]);
+                }
+                ListInfoBase listInfo2 = __instance.chaCtrl.lstCtrl.GetListInfo(__instance.cateNo[0], clothes2.parts[0].id);
+                if (listInfo2 == null) {
+                    listInfo2 = __instance.chaCtrl.lstCtrl.GetListInfo(__instance.cateNo[0], __instance.defClothesID[0]);
+                }
+                for (int i = 0; i < num; i++) {
+                    if (__instance.tglKind[i].isOn) {
+                        byte[] bytes = MessagePackSerializer.Serialize<ChaFileClothes.PartsInfo>(clothes2.parts[i]);
+                        clothes.parts[i] = MessagePackSerializer.Deserialize<ChaFileClothes.PartsInfo>(bytes);
+                        if (i == 0) {
+                            if ((listInfo2.Kind == 1 && listInfo.Kind == 1) || (listInfo2.Kind == 2 && listInfo.Kind == 2)) {
+                                for (int j = 0; j < clothes.subPartsId.Length; j++) {
+                                    clothes.subPartsId[j] = clothes2.subPartsId[j];
+                                }
+                            } else if (listInfo2.Kind == 1 || listInfo2.Kind == 2) {
+                                for (int k = 0; k < clothes.subPartsId.Length; k++) {
+                                    clothes.subPartsId[k] = clothes2.subPartsId[k];
+                                }
+                            } else {
+                                for (int l = 0; l < clothes.subPartsId.Length; l++) {
+                                    clothes.subPartsId[l] = 0;
+                                }
+                            }
+                        } else if (i == 2) {
+                            clothes.hideBraOpt[0] = clothes2.hideBraOpt[0];
+                            clothes.hideBraOpt[1] = clothes2.hideBraOpt[1];
+                        } else if (i == 3) {
+                            clothes.hideShortsOpt[0] = clothes2.hideShortsOpt[0];
+                            clothes.hideShortsOpt[1] = clothes2.hideShortsOpt[1];
+                        }
+                    }
+                }
+                if (!disableTransferFuncs) {
+                    __instance.chaCtrl.ChangeCoordinateType(true);
+                    __instance.chaCtrl.Reload(false, true, true, true);
+                    __instance.CalculateUI();
+                }
+                Singleton<CustomBase>.Instance.updateCustomUI = true;
+            }
+
+            // Fix MoreOutfits setting the value to 0 when it shouldn't
+            [HarmonyTranspiler]
+            [HarmonyPatch(typeof(KK_Plugins.MoreOutfits.Hooks), "CvsAccessoryCopy_ChangeDstDD")]
+            [HarmonyPatch(typeof(KK_Plugins.MoreOutfits.Hooks), "CvsClothesCopy_ChangeDstDD")]
+            private static IEnumerable<CodeInstruction> KKMoreOutfitsHooksCvsAccessoryClothesCopyChangeDstDDTranspiler(IEnumerable<CodeInstruction> instructions) {
+                foreach (CodeInstruction instruction in instructions) {
+                    yield return instruction;
+                    if (instruction.opcode == OpCodes.Ldlen) {
+                        yield return new CodeInstruction(OpCodes.Conv_I4);
+                        yield return new CodeInstruction(OpCodes.Ldc_I4_1);
+                        yield return new CodeInstruction(OpCodes.Add);
+                    }
+                }
+            }
+
+            // Disable updating the UI when switching to the All option
+            [HarmonyPrefix]
+            [HarmonyPatch(typeof(CvsAccessoryCopy), "ChangeDstDD")]
+            private static bool CvsAccessoryCopyBeforeChangeDstDD(CvsAccessoryCopy __instance) {
+                var dd = __instance.ddCoordeType[0];
+                return !(dd.value == dd.options.Count - 1) && !disableTransferFuncs;
+            }
+            [HarmonyPrefix]
+            [HarmonyPatch(typeof(CvsClothesCopy), "ChangeDstDD")]
+            private static bool CvsClothesCopyBeforeChangeDstDD(CvsClothesCopy __instance) {
+                var dd = __instance.ddCoordeType[0];
+                return !(dd.value == dd.options.Count - 1) && !disableTransferFuncs;
             }
         }
 

@@ -1,13 +1,15 @@
+using TMPro;
 using BepInEx;
 using ChaCustom;
+using HarmonyLib;
 using System.Linq;
 using UnityEngine;
 using UnityEngine.UI;
 using KKAPI.Utilities;
+using System.Collections;
 using BepInEx.Configuration;
 using System.Collections.Generic;
-using TMPro;
-using HarmonyLib;
+using System.Runtime.Serialization;
 
 [assembly: System.Reflection.AssemblyFileVersion(AccMover.AccMover.Version)]
 
@@ -23,18 +25,20 @@ namespace AccMover {
 	/// </info>
     public class AccMover : BaseUnityPlugin {
         public const string GUID = "starstorm.accmover";
-        public const string Version = "1.0.1." + BuildNumber.Version;
+        public const string Version = "1.1.0." + BuildNumber.Version;
 
         public static AccMover Instance { get; private set; }
 
         public static ConfigEntry<bool> IsDebug { get; private set; }
 
         internal static CvsAccessoryChange _cvsAccessoryChange;
+        internal static CvsAccessoryCopy _cvsAccessoryCopy;
+        internal static CvsClothesCopy _cvsClothesCopy;
 
         internal static HashSet<int> selected = new HashSet<int> { 0 };
 
         private static int prevAccLength = 0;
-        private static bool moving = false;
+        internal static bool moving = false;
 
         private void Awake() {
             var asd = (int) AccessTools.Field(typeof(CvsAccessoryChange), "selDst").GetValue(new CvsAccessoryChange());
@@ -64,38 +68,140 @@ namespace AccMover {
             // Setup variables
             selected = new HashSet<int> { 0 };
             _cvsAccessoryChange = accRoot.GetComponentInChildren<CvsAccessoryChange>(true);
+            _cvsAccessoryCopy = accRoot.GetComponentInChildren<CvsAccessoryCopy>(true);
+            _cvsClothesCopy = accRoot.transform.parent.GetComponentInChildren<CvsClothesCopy>(true);
 
-            // Setup selection
+            // Setup transfer selection
             foreach (var toggle in _cvsAccessoryChange.tglSrcKind) {
                 toggle.transform.GetChild(0).gameObject.AddComponent<Selector>();
             }
 
-            // Setup UI buttons
-            GameObject originalButton = accRoot.transform.Find("tglChange/ChangeTop/rect/btnCopySlot").gameObject;
-            var originalTf = originalButton.GetComponent<RectTransform>();
-            float width = (originalTf.sizeDelta.x - 14) / 3;
+            // Setup transfer UI buttons
+            {
+                GameObject originalButton = accRoot.transform.Find("tglChange/ChangeTop/rect/btnCopySlot").gameObject;
+                var originalTf = originalButton.GetComponent<RectTransform>();
+                float width = (originalTf.sizeDelta.x - 14) / 3;
 
-            GameObject copy = Instantiate(originalButton, originalButton.transform.parent);
-            DestroyImmediate(copy.GetComponent<Button>());
-            copy.GetComponentInChildren<TextMeshProUGUI>().text = "Copy";
-            var copyTf = copy.GetComponent<RectTransform>();
-            copyTf.sizeDelta = new Vector2(width, copyTf.sizeDelta.y);
-            GameObject move = Instantiate(copy, copy.transform.parent);
-            move.GetComponentInChildren<TextMeshProUGUI>().text = "Move";
-            var moveTf = move.GetComponent<RectTransform>();
-            moveTf.localPosition = new Vector3(moveTf.localPosition.x + width + 7, moveTf.localPosition.y, 0);
-            GameObject compact = Instantiate(copy, copy.transform.parent);
-            compact.GetComponentInChildren<TextMeshProUGUI>().text = "Compact";
-            var compactTf = compact.GetComponent<RectTransform>();
-            compactTf.localPosition = new Vector3(compactTf.localPosition.x + 2 * (width + 7), compactTf.localPosition.y, 0);
-            originalButton.SetActive(false);
+                GameObject copy = Instantiate(originalButton, originalButton.transform.parent);
+                DestroyImmediate(copy.GetComponent<Button>());
+                copy.GetComponentInChildren<TextMeshProUGUI>().text = "Copy";
+                var copyTf = copy.GetComponent<RectTransform>();
+                copyTf.sizeDelta = new Vector2(width, copyTf.sizeDelta.y);
+                GameObject move = Instantiate(copy, copy.transform.parent);
+                move.GetComponentInChildren<TextMeshProUGUI>().text = "Move";
+                var moveTf = move.GetComponent<RectTransform>();
+                moveTf.localPosition = new Vector3(moveTf.localPosition.x + width + 7, moveTf.localPosition.y, 0);
+                GameObject compact = Instantiate(copy, copy.transform.parent);
+                compact.GetComponentInChildren<TextMeshProUGUI>().text = "Compact";
+                var compactTf = compact.GetComponent<RectTransform>();
+                compactTf.localPosition = new Vector3(compactTf.localPosition.x + 2 * (width + 7), compactTf.localPosition.y, 0);
+                originalButton.SetActive(false);
 
-            var btnCopy = copy.AddComponent<Button>();
-            btnCopy.onClick.AddListener(() => { moving = false; DoTransfer(); });
-            var btnMove = move.AddComponent<Button>();
-            btnMove.onClick.AddListener(() => { moving = true; DoTransfer(); });
-            var btnCompact = compact.AddComponent<Button>();
-            btnCompact.onClick.AddListener(() => { moving = true; DoCompact(); });
+                var btnCopy = copy.AddComponent<Button>();
+                btnCopy.onClick.AddListener(() => { moving = false; DoTransfer(); });
+                var btnMove = move.AddComponent<Button>();
+                btnMove.onClick.AddListener(() => { moving = true; DoTransfer(); });
+                var btnCompact = compact.AddComponent<Button>();
+                btnCompact.onClick.AddListener(() => { moving = true; DoCompact(); });
+            }
+
+            // Setup copy dropdown
+            { // Accs
+                var ddDst = _cvsAccessoryCopy.ddCoordeType[0];
+                var allOpt = new TMP_Dropdown.OptionData("All");
+                ddDst.options.Add(allOpt);
+                var tglCopy = _cvsAccessoryCopy.transform.parent.GetComponent<Toggle>();
+                tglCopy.onValueChanged.AddListener(FixAllOption);
+                var tglAccs = accRoot.transform.parent.parent.Find("CvsMainMenu/BaseTop/tglAccessories").GetComponent<Toggle>();
+                tglAccs.onValueChanged.AddListener(FixAllOption);
+
+                void FixAllOption(bool active) {
+                    if (active && ddDst.options.IndexOf(allOpt) != ddDst.options.Count - 1) {
+                        ddDst.options.Remove(allOpt);
+                        ddDst.options.Add(allOpt);
+                    }
+                }
+            }
+            { // Clothes
+                var ddDst = _cvsClothesCopy.ddCoordeType[0];
+                var allOpt = new TMP_Dropdown.OptionData("All");
+                ddDst.options.Add(allOpt);
+                var tglCopy = _cvsClothesCopy.transform.parent.GetComponent<Toggle>();
+                tglCopy.onValueChanged.AddListener(FixAllOption);
+                var tglClothes = accRoot.transform.parent.parent.Find("CvsMainMenu/BaseTop/tglCoordinate").GetComponent<Toggle>();
+                tglClothes.onValueChanged.AddListener(FixAllOption);
+
+                void FixAllOption(bool active) {
+                    if (active && ddDst.options.IndexOf(allOpt) != ddDst.options.Count - 1) {
+                        ddDst.options.Remove(allOpt);
+                        ddDst.options.Add(allOpt);
+                    }
+                }
+            }
+
+            // Setup copy button
+            { // Accs
+                var btnCopyGO = _cvsAccessoryCopy.btnCopy.gameObject;
+                DestroyImmediate(_cvsAccessoryCopy.btnCopy);
+                _cvsAccessoryCopy.btnCopy = btnCopyGO.AddComponent<Button>();
+                _cvsAccessoryCopy.btnCopy.onClick.AddListener(() => {
+                    var ddDst = _cvsAccessoryCopy.ddCoordeType[0];
+                    if (ddDst.value == ddDst.options.Count - 1) {
+                        StartCoroutine(DoAllCopy());
+                    } else {
+                        _cvsAccessoryCopy.CopyAcs();
+                    }
+                });
+
+                IEnumerator DoAllCopy() {
+                    var ddSrc = _cvsAccessoryCopy.ddCoordeType[1];
+                    var ddDst = _cvsAccessoryCopy.ddCoordeType[0];
+                    HookPatch.Hooks.disableTransferFuncs = true;
+                    for (int i = 0; i < ddDst.options.Count - 1; i++) {
+                        if (i == ddSrc.value) continue;
+                        ddDst.value = i;
+                        _cvsAccessoryCopy.CopyAcs();
+                        yield return null;
+                    }
+                    ddDst.value = ddSrc.value;
+                    HookPatch.Hooks.disableTransferFuncs = false;
+                    _cvsAccessoryCopy.chaCtrl.ChangeCoordinateType(true);
+                    _cvsAccessoryCopy.chaCtrl.Reload(false, true, true, true);
+                    _cvsAccessoryCopy.CalculateUI();
+                    ddDst.value = ddDst.options.Count - 1;
+                }
+            }
+            { // Clothes
+                var btnCopyGO = _cvsClothesCopy.btnCopy.gameObject;
+                DestroyImmediate(_cvsClothesCopy.btnCopy);
+                _cvsClothesCopy.btnCopy = btnCopyGO.AddComponent<Button>();
+                _cvsClothesCopy.btnCopy.onClick.AddListener(() => {
+                    var ddDst = _cvsClothesCopy.ddCoordeType[0];
+                    if (ddDst.value == ddDst.options.Count - 1) {
+                        StartCoroutine(DoAllCopy());
+                    } else {
+                        _cvsClothesCopy.CopyClothes();
+                    }
+                });
+
+                IEnumerator DoAllCopy() {
+                    var ddSrc = _cvsClothesCopy.ddCoordeType[1];
+                    var ddDst = _cvsClothesCopy.ddCoordeType[0];
+                    HookPatch.Hooks.disableTransferFuncs = true;
+                    for (int i = 0; i < ddDst.options.Count - 1; i++) {
+                        if (i == ddSrc.value) continue;
+                        ddDst.value = i;
+                        _cvsClothesCopy.CopyClothes();
+                        yield return null;
+                    }
+                    ddDst.value = ddSrc.value;
+                    HookPatch.Hooks.disableTransferFuncs = false;
+                    _cvsClothesCopy.chaCtrl.ChangeCoordinateType(true);
+                    _cvsClothesCopy.chaCtrl.Reload(false, true, true, true);
+                    _cvsClothesCopy.CalculateUI();
+                    ddDst.value = ddDst.options.Count - 1;
+                }
+            }
         }
 
         private static void DoCompact() {
@@ -223,6 +329,10 @@ namespace AccMover {
             foreach (int i in dicMovement.Keys) {
                 if (HookPatch.Conditionals.A12) HookPatch.Conditionals.HandleA12After(i, dicMovement);
             }
+        }
+
+        private static void DoCopy() {
+
         }
 
         internal void Log(object data, int level = 0) {
