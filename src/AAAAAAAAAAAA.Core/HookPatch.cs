@@ -282,6 +282,9 @@ namespace AAAAAAAAAAAA {
                             if (!AAAAAAAAAAAA.dicMakerModifiedParents.ContainsKey(coord2))
                                 AAAAAAAAAAAA.dicMakerModifiedParents[coord2] = new Dictionary<int, string>();
                             AAAAAAAAAAAA.dicMakerModifiedParents[coord2][i] = hash;
+                        } else if (AAAAAAAAAAAA.dicMakerModifiedParents.TryGetValue(coord2, out var dicCoord2) && dicCoord2.ContainsKey(i)) {
+                            if (AAAAAAAAAAAA.IsDebug.Value) AAAAAAAAAAAA.Instance.Log($"Copy: Overwriting A12-parented acc#{i} in [{coord2}] with non-A12 accessory! Removing parent entry...");
+                            dicCoord2.Remove(i);
                         }
                     }
                 }
