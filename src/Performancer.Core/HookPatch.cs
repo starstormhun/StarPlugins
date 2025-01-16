@@ -37,6 +37,8 @@ namespace Performancer {
 
             private static List<Transform> iterateList = new List<Transform>();
 
+            private static bool enableAllGuideObjects = false;
+
             // Setup Harmony and patch methods
             public static void SetupHooks() {
                 _harmony = Harmony.CreateAndPatchAll(typeof(HookPatch.Hooks), null);
@@ -69,6 +71,18 @@ namespace Performancer {
                     oci.GetObject() is GameObject go && go.GetComponent<PoseController>() == val;
             }
 
+            [HarmonyPostfix]
+            [HarmonyPatch(typeof(Studio.Studio), "Duplicate")]
+            private static void StudioAfterDuplicate() {
+                // After duplicating an item, briefly enable all guideobjects to fix scaling issues
+                enableAllGuideObjects = true;
+                Performancer.Instance.StartCoroutine(DisableLater());
+                IEnumerator DisableLater() {
+                    yield return new WaitForSeconds(1);
+                    enableAllGuideObjects = false;
+                }
+            }
+
             [HarmonyPrefix]
             [HarmonyPatch(typeof(GuideObject), "LateUpdate")]
             private static bool GuideObjectBeforeLateUpdate(ref GuideObject __instance) {
@@ -90,7 +104,11 @@ namespace Performancer {
                 // Second check is whether we want to optimise the LateUpdate or not
                 } else if (!Performancer.OptimiseGuideObjectLate.Value) {
                     result = true;
-                // Third, we check if we're supposed to update this GO (because a parent object was changed)
+                // Whether we have decided it's time to update all guide objects
+                } else if (enableAllGuideObjects) {
+                    result = true;
+                    skipChildren = true;
+                // We check if we're supposed to update this GO (because a parent object was changed)
                 } else if (dicGuideObjectsToUpdate.TryGetValue(__instance, out int dicVal) && dicVal > 0) {
                     result = true;
                     // If skipChildren is left false too many times it will slow down the game considerably
