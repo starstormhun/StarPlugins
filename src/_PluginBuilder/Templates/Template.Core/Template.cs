@@ -20,9 +20,7 @@ namespace $nsname$ {
         public const string Version = "1.0.0." + BuildNumber.Version;
 
         private void Awake() {
-#if DEBUG
-            Logger.LogInfo($"Plugin {GUID} is loaded!");
-#endif
+			
         }
 
         private void Update() {
