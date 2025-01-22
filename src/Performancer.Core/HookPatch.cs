@@ -7,6 +7,8 @@ using System.Collections;
 using Illusion.Extensions;
 using System.Collections.Generic;
 using DynamicBoneDistributionEditor;
+using UniRx.Triggers;
+using System.Linq;
 
 namespace Performancer {
     public static class HookPatch {
@@ -251,10 +253,10 @@ namespace Performancer {
                 // If we don't optimise, then always run the Update scripts
                 if (!Performancer.OptimiseGuideObjectLate.Value || !Performancer.OptimiseDynamicBones.Value) {
                     result = true;
-                // If there's leeway time left, continue
+                    // If there's leeway time left, continue
                 } else if (dicDynBonesToUpdate.TryGetValue(__instance, out int framesLeft) && framesLeft > 0) {
                     result = true;
-                // If there are no particles, stop running altogether
+                    // If there are no particles, stop running altogether
                 } else if (
                     (__instance is DynamicBone db_00 && (db_00.m_Particles.Count == 0)) ||
                     (__instance is DynamicBone_Ver01 db_01 && (db_01.m_Particles.Count == 0)) ||
@@ -262,40 +264,48 @@ namespace Performancer {
                 ) {
                     result = false;
                     skip = true;
-                // If the weight is zero, then continue
+                    // If the weight is zero, then continue
                 } else if (
                     (__instance is DynamicBone db_10 && (db_10.m_Weight == 0)) ||
                     (__instance is DynamicBone_Ver01 db_11 && (db_11.m_Weight == 0)) ||
                     (__instance is DynamicBone_Ver02 db_12 && (db_12.Weight == 0))
                 ) {
                     result = true;
-                // If the item / character is edited by KKPE / DBDE, always run
+                    // If the item / character is edited by KKPE / DBDE, always run
                 } else if (
                     (ConditionalHooks.DBDEUI != null && IsThisDBDE(__instance)) ||
                     (ConditionalHooks.isKKPE && IsThisKKPE(__instance))
                 ) {
                     dicDynBonesToUpdate[__instance] = frameAllowance;
                     result = true;
-                // If some value has changed, start running
+                    // If a relevant collider has changed, start running
+                } else if (
+                    (__instance is DynamicBone db_20 && db_20.m_Colliders.Any(x => Performancer.dicColliderVals.TryGetValue(x, out var dicColls) && dicColls["moved"] is bool moved && moved)) ||
+                    (__instance is DynamicBone_Ver01 db_21 && db_21.m_Colliders.Any(x => Performancer.dicColliderVals.TryGetValue(x, out var dicColls) && dicColls["moved"] is bool moved && moved)) ||
+                    (__instance is DynamicBone_Ver02 db_22 && db_22.Colliders.Any(x => Performancer.dicColliderVals.TryGetValue(x, out var dicColls) && dicColls["moved"] is bool moved && moved))
+                ) {
+                    dicDynBonesToUpdate[__instance] = frameAllowance;
+                    result = true;
+                    // If some value has changed, start running
                 } else if (
                     __instance.GetDBPos() is Vector3[] positions && (
-                        (__instance is DynamicBone db_20 && (
+                        (__instance is DynamicBone db_30 && (
                             (dicVal["tfPos"] is Vector3 tfPos0 && !tfPos0.IsSame(positions[1])) ||
-                            (dicVal["force"] is Vector3 force0 && !force0.IsSame(db_20.m_Force)) ||
-                            (dicVal["gravity"] is Vector3 gravity0 && !gravity0.IsSame(db_20.m_Gravity)) ||
-                            (dicVal["weight"] is float weight0 && weight0 != db_20.m_Weight)
+                            (dicVal["force"] is Vector3 force0 && !force0.IsSame(db_30.m_Force)) ||
+                            (dicVal["gravity"] is Vector3 gravity0 && !gravity0.IsSame(db_30.m_Gravity)) ||
+                            (dicVal["weight"] is float weight0 && weight0 != db_30.m_Weight)
                         )) ||
-                        (__instance is DynamicBone_Ver01 db_21 && (
+                        (__instance is DynamicBone_Ver01 db_31 && (
                             (dicVal["tfPos"] is Vector3 tfPos1 && !tfPos1.IsSame(positions[1])) ||
-                            (dicVal["force"] is Vector3 force1 && !force1.IsSame(db_21.m_Force)) ||
-                            (dicVal["gravity"] is Vector3 gravity1 && !gravity1.IsSame(db_21.m_Gravity)) ||
-                            (dicVal["weight"] is float weight1 && weight1 != db_21.m_Weight)
+                            (dicVal["force"] is Vector3 force1 && !force1.IsSame(db_31.m_Force)) ||
+                            (dicVal["gravity"] is Vector3 gravity1 && !gravity1.IsSame(db_31.m_Gravity)) ||
+                            (dicVal["weight"] is float weight1 && weight1 != db_31.m_Weight)
                         )) ||
-                        (__instance is DynamicBone_Ver02 db_22 && (
+                        (__instance is DynamicBone_Ver02 db_32 && (
                             (dicVal["tfPos"] is Vector3 tfPos2 && !tfPos2.IsSame(positions[1])) ||
-                            (dicVal["force"] is Vector3 force2 && !force2.IsSame(db_22.Force)) ||
-                            (dicVal["gravity"] is Vector3 gravity2 && !gravity2.IsSame(db_22.Gravity)) ||
-                            (dicVal["weight"] is float weight2 && weight2 != db_22.Weight)
+                            (dicVal["force"] is Vector3 force2 && !force2.IsSame(db_32.Force)) ||
+                            (dicVal["gravity"] is Vector3 gravity2 && !gravity2.IsSame(db_32.Gravity)) ||
+                            (dicVal["weight"] is float weight2 && weight2 != db_32.Weight)
                         ))
                     )
                 ) {
@@ -390,6 +400,22 @@ namespace Performancer {
                 // Else allow the bone to update
                 dicDynBonesToUpdate[__instance] = frameAllowance;
             }
+
+            [HarmonyPostfix]
+            [HarmonyPatch(typeof(DynamicBoneCollider), "", MethodType.Constructor)]
+            private static void DynamicBoneColliderAfterCreated(ref DynamicBoneCollider __instance) {
+                Performancer.dicColliderVals.Add(__instance, new Dictionary<string, object> {
+                    { "moved", false },
+                    { "pos", Vector3.zero },
+                    { "rot", Quaternion.identity },
+                    { "scale", Vector3.zero },
+                    { "center", Vector3.zero },
+                    { "radius", 0f },
+                    { "height", 0f },
+                    { "bound", DynamicBoneCollider.Bound.Inside },
+                    { "direction", DynamicBoneCollider.Direction.X },
+                });
+            }
         }
 
         internal static class ConditionalHooks {
@@ -417,6 +443,14 @@ namespace Performancer {
             // Disable conditional patches
             public static void UnregisterHooks() {
                 _harmony.UnpatchSelf();
+            }
+
+            public static bool IsKKPEOpen() {
+                if (!isKKPE) return false;
+                return doIsKKPEOpen();
+                bool doIsKKPEOpen() {
+                    return PoseController._drawAdvancedMode;
+                }
             }
         }
     }
