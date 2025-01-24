@@ -21,7 +21,7 @@ namespace Performancer {
 	/// </info>
     public class Performancer : BaseUnityPlugin {
         public const string GUID = "starstorm.performancer";
-        public const string Version = "1.2.4." + BuildNumber.Version;
+        public const string Version = "1.2.5." + BuildNumber.Version;
 
         public static Performancer Instance { get; private set; }
 
@@ -162,6 +162,8 @@ namespace Performancer {
                     Logger.LogError(data); return;
                 case 4:
                     Logger.LogFatal(data); return;
+                case 5:
+                    Logger.LogMessage(data); return;
                 default: return;
             }
         }

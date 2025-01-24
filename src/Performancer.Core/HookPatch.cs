@@ -31,8 +31,8 @@ namespace Performancer {
 
             private static Dictionary<GuideObject, Dictionary<string, Vector3>> dicGuideObjectVals = new Dictionary<GuideObject, Dictionary<string, Vector3>>();
             internal static Dictionary<MonoBehaviour, Dictionary<string, object>> dicDynBoneVals = new Dictionary<MonoBehaviour, Dictionary<string, object>>();
-            private static Dictionary<MonoBehaviour, ChaControl> dicDynBoneCharas = new Dictionary<MonoBehaviour, ChaControl>();
-            private static Dictionary<MonoBehaviour, MonoBehaviour> dicDynBonePoseCtrls = new Dictionary<MonoBehaviour, MonoBehaviour>();
+            internal static Dictionary<MonoBehaviour, ChaControl> dicDynBoneCharas = new Dictionary<MonoBehaviour, ChaControl>();
+            internal static Dictionary<MonoBehaviour, MonoBehaviour> dicDynBonePoseCtrls = new Dictionary<MonoBehaviour, MonoBehaviour>();
 
             internal static Dictionary<GuideObject, int> dicGuideObjectsToUpdate = new Dictionary<GuideObject, int>();
             internal static Dictionary<MonoBehaviour, int> dicDynBonesToUpdate = new Dictionary<MonoBehaviour, int>();
@@ -49,28 +49,6 @@ namespace Performancer {
             // Disable Harmony patches of this plugin
             public static void UnregisterHooks() {
                 _harmony.UnpatchSelf();
-            }
-
-            internal static void ClearDynBoneDics() {
-                dicDynBoneVals.Clear();
-                dicDynBonesToUpdate.Clear();
-            }
-
-            private static bool IsThisDBDE(MonoBehaviour mb) {
-                return
-                    (ConditionalHooks.DBDEUI as DBDEUI).referencedChara != null &&
-                    dicDynBoneCharas.TryGetValue(mb, out var val) &&
-                    val == (ConditionalHooks.DBDEUI as DBDEUI).referencedChara.ChaControl;
-            }
-
-            private static MonoBehaviour GetPoseControl(Transform tf) {
-                return tf.GetComponent<PoseController>();
-            }
-
-            private static bool IsThisKKPE(MonoBehaviour mb) {
-                return dicDynBonePoseCtrls.TryGetValue(mb, out var val) && val.enabled && Studio.Studio.Instance.treeNodeCtrl.selectNode != null &&
-                    Studio.Studio.Instance.dicInfo.TryGetValue(Studio.Studio.Instance.treeNodeCtrl.selectNode, out var oci) &&
-                    oci.GetObject() is GameObject go && go.GetComponent<PoseController>() == val;
             }
 
             [HarmonyPostfix]
@@ -217,7 +195,8 @@ namespace Performancer {
                 dicDynBonesToUpdate[__instance] = frameAllowance;
 
                 IEnumerator GetRefs(MonoBehaviour _instance) {
-                    yield return KKAPI.Utilities.CoroutineUtils.WaitForEndOfFrame;
+                    yield return null;
+                    yield return null;
                     Transform go = _instance.transform;
                     ChaControl chaCtrl = null;
                     MonoBehaviour poseCtrl = null;
@@ -229,7 +208,7 @@ namespace Performancer {
                             }
                         }
                         if (ConditionalHooks.isKKPE && poseCtrl == null) {
-                            poseCtrl = GetPoseControl(go);
+                            poseCtrl = ConditionalHooks.GetPoseControl(go);
                             if (poseCtrl != null) {
                                 dicDynBonePoseCtrls.Add(_instance, poseCtrl);
                             }
@@ -237,7 +216,7 @@ namespace Performancer {
                         go = go.parent;
                     }
                     if (ConditionalHooks.isKKPE && poseCtrl == null) {
-                        Performancer.Instance.Log($"No PoseController found for {_instance.name}!", 2);
+                        Performancer.Instance.Log($"No PoseController found for {_instance.name}!", 1);
                     }
                 }
             }
@@ -272,10 +251,7 @@ namespace Performancer {
                 ) {
                     result = true;
                     // If the item / character is edited by KKPE / DBDE, always run
-                } else if (
-                    (ConditionalHooks.DBDEUI != null && IsThisDBDE(__instance)) ||
-                    (ConditionalHooks.isKKPE && IsThisKKPE(__instance))
-                ) {
+                } else if (ConditionalHooks.IsThisDBDE(__instance) || ConditionalHooks.IsThisKKPE(__instance)) {
                     dicDynBonesToUpdate[__instance] = frameAllowance;
                     result = true;
                     // If a relevant collider has changed, start running
@@ -421,20 +397,29 @@ namespace Performancer {
         internal static class ConditionalHooks {
             private static Harmony _harmony;
 
-            internal static MonoBehaviour DBDEUI = null;
             internal static bool isKKPE = false;
+            internal static bool isDBDE = false;
+
+            internal static MonoBehaviour DBDEUI = null;
 
             // Enable conditional patches
             public static void SetupHooks() {
                 // Not really a patch here but oh well, we need to get the DBDEUI reference and KKPE existence verified
-                var plugins = Performancer.Instance.gameObject.GetComponents<MonoBehaviour>();
-                foreach (var plugin in plugins) {
-                    if (plugin == null) continue;
-                    if (plugin.GetType().ToString() == "DynamicBoneDistributionEditor.DBDEUI") {
-                        _harmony = Harmony.CreateAndPatchAll(typeof(ConditionalHooks), null);
-                        DBDEUI = plugin;
+                var mbs = Performancer.Instance.gameObject.GetComponents<MonoBehaviour>();
+                foreach (var mb in mbs) {
+                    if (mb == null) continue;
+                    if (mb.GetType().ToString() == "DynamicBoneDistributionEditor.DBDE" && mb is BaseUnityPlugin dbde) {
+                        var ver = dbde.Info.Metadata.Version;
+                        if (ver.Major > 1 || ver.Minor >= 5) {
+                            isDBDE = true;
+                        } else {
+                            Performancer.Instance.Log("[Performancer] You have an outdated version of DynamicBoneDistributionEditor! Please update to v1.5.0 or later.", 5);
+                        }
                     }
-                    if (plugin.GetType().ToString() == "HSPE.HSPE") {
+                    if (mb.GetType().ToString() == "DynamicBoneDistributionEditor.DBDEUI") {
+                        DBDEUI = mb;
+                    }
+                    if (mb.GetType().ToString() == "HSPE.HSPE") {
                         isKKPE = true;
                     }
                 }
@@ -443,6 +428,35 @@ namespace Performancer {
             // Disable conditional patches
             public static void UnregisterHooks() {
                 _harmony.UnpatchSelf();
+            }
+
+            public static bool IsThisDBDE(MonoBehaviour mb) {
+                if (!isDBDE) return false;
+                return DoIsThisDBDE();
+                bool DoIsThisDBDE() {
+                    return
+                        (DBDEUI as DBDEUI).referencedChara != null &&
+                        Hooks.dicDynBoneCharas.TryGetValue(mb, out var val) &&
+                        val == (DBDEUI as DBDEUI).referencedChara.ChaControl;
+                }
+            }
+
+            public static MonoBehaviour GetPoseControl(Transform tf) {
+                if (!isKKPE) return null;
+                return DoGetPoseControl();
+                MonoBehaviour DoGetPoseControl() {
+                    return tf.GetComponent<PoseController>();
+                }
+            }
+
+            public static bool IsThisKKPE(MonoBehaviour mb) {
+                if (!isKKPE) return false;
+                return DoIsThisKKPE();
+                bool DoIsThisKKPE() {
+                    return Hooks.dicDynBonePoseCtrls.TryGetValue(mb, out var val) && val.enabled && Studio.Studio.Instance.treeNodeCtrl.selectNode != null &&
+                        Studio.Studio.Instance.dicInfo.TryGetValue(Studio.Studio.Instance.treeNodeCtrl.selectNode, out var oci) &&
+                        oci.GetObject() is GameObject go && go.GetComponent<PoseController>() == val;
+                }
             }
 
             public static bool IsKKPEOpen() {
