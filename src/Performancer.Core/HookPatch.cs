@@ -65,7 +65,7 @@ namespace Performancer {
 
             [HarmonyPrefix]
             [HarmonyPatch(typeof(GuideObject), "LateUpdate")]
-            private static bool GuideObjectBeforeLateUpdate(ref GuideObject __instance) {
+            private static bool GuideObjectBeforeLateUpdate(GuideObject __instance) {
                 if (!dicGuideObjects.ContainsKey(__instance.transformTarget)) {
                     dicGuideObjects[__instance.transformTarget] = __instance;
                 }
@@ -160,7 +160,7 @@ namespace Performancer {
 
             [HarmonyPostfix]
             [HarmonyPatch(typeof(GuideObject), "OnDestroy")]
-            private static void GuideObjectAfterOnDestroy(ref GuideObject __instance) {
+            private static void GuideObjectAfterOnDestroy(GuideObject __instance) {
                 dicGuideObjectVals.Remove(__instance);
                 dicGuideObjectsToUpdate.Remove(__instance);
                 Transform key = null;
@@ -179,7 +179,7 @@ namespace Performancer {
             [HarmonyPatch(typeof(DynamicBone), "Start")]
             [HarmonyPatch(typeof(DynamicBone_Ver01), "Start")]
             [HarmonyPatch(typeof(DynamicBone_Ver02), "Awake")]
-            private static void DynamicBonesAfterCreate(ref MonoBehaviour __instance) {
+            private static void DynamicBonesAfterCreate(MonoBehaviour __instance) {
                 // Register bones when spawned
                 dicDynBoneVals[__instance] = new Dictionary<string, object> {
                     { "pos", Vector3.zero },
@@ -189,34 +189,35 @@ namespace Performancer {
                     { "weight", 0f },
                 };
 
-                Performancer.Instance.StartCoroutine(GetRefs(__instance));
+                Performancer.Instance.StartCoroutine(GetRefs());
 
                 // Allow bones to settle when spawned
                 dicDynBonesToUpdate[__instance] = frameAllowance;
 
-                IEnumerator GetRefs(MonoBehaviour _instance) {
+                IEnumerator GetRefs() {
                     yield return null;
                     yield return null;
-                    Transform go = _instance.transform;
+                    if (__instance == null) yield break;
+                    Transform go = __instance.transform;
                     ChaControl chaCtrl = null;
                     MonoBehaviour poseCtrl = null;
                     while (go != null && (chaCtrl == null || (ConditionalHooks.isKKPE && poseCtrl == null))) {
                         if (chaCtrl == null) {
                             chaCtrl = go.GetComponent<ChaControl>();
                             if (chaCtrl != null) {
-                                dicDynBoneCharas.Add(_instance, chaCtrl);
+                                dicDynBoneCharas.Add(__instance, chaCtrl);
                             }
                         }
                         if (ConditionalHooks.isKKPE && poseCtrl == null) {
                             poseCtrl = ConditionalHooks.GetPoseControl(go);
                             if (poseCtrl != null) {
-                                dicDynBonePoseCtrls.Add(_instance, poseCtrl);
+                                dicDynBonePoseCtrls.Add(__instance, poseCtrl);
                             }
                         }
                         go = go.parent;
                     }
                     if (ConditionalHooks.isKKPE && poseCtrl == null) {
-                        Performancer.Instance.Log($"No PoseController found for {_instance.name}!", 1);
+                        Performancer.Instance.Log($"No PoseController found for {__instance.name}!", 1);
                     }
                 }
             }
@@ -225,7 +226,7 @@ namespace Performancer {
             [HarmonyPatch(typeof(DynamicBone), "LateUpdate")]
             [HarmonyPatch(typeof(DynamicBone_Ver01), "LateUpdate")]
             [HarmonyPatch(typeof(DynamicBone_Ver02), "LateUpdate")]
-            private static bool DynamicBonesBeforeLateUpdate(ref MonoBehaviour __instance) {
+            private static bool DynamicBonesBeforeLateUpdate(MonoBehaviour __instance) {
                 var dicVal = dicDynBoneVals[__instance];
                 bool result;
                 bool skip = false;
@@ -344,7 +345,7 @@ namespace Performancer {
             [HarmonyPatch(typeof(DynamicBone), "LateUpdate")]
             [HarmonyPatch(typeof(DynamicBone_Ver01), "LateUpdate")]
             [HarmonyPatch(typeof(DynamicBone_Ver02), "LateUpdate")]
-            private static void DynamicBonesAfterUpdate(ref MonoBehaviour __instance) {
+            private static void DynamicBonesAfterUpdate(MonoBehaviour __instance) {
                 // If we don't optimise, then skip the postfix
                 if (!Performancer.OptimiseGuideObjectLate.Value || !Performancer.OptimiseDynamicBones.Value) {
                     return;
@@ -367,7 +368,7 @@ namespace Performancer {
             [HarmonyPatch(typeof(DynamicBone), "OnEnable")]
             [HarmonyPatch(typeof(DynamicBone_Ver01), "OnEnable")]
             [HarmonyPatch(typeof(DynamicBone_Ver02), "OnEnable")]
-            private static void DynamicBonesAfterOnEnable(ref MonoBehaviour __instance) {
+            private static void DynamicBonesAfterOnEnable(MonoBehaviour __instance) {
                 // If we don't optimise, then skip the postfix
                 if (!Performancer.OptimiseGuideObjectLate.Value || !Performancer.OptimiseDynamicBones.Value) {
                     return;
@@ -379,7 +380,7 @@ namespace Performancer {
 
             [HarmonyPostfix]
             [HarmonyPatch(typeof(DynamicBoneCollider), "", MethodType.Constructor)]
-            private static void DynamicBoneColliderAfterCreated(ref DynamicBoneCollider __instance) {
+            private static void DynamicBoneColliderAfterCreated(DynamicBoneCollider __instance) {
                 Performancer.dicColliderVals.Add(__instance, new Dictionary<string, object> {
                     { "moved", false },
                     { "pos", Vector3.zero },
@@ -395,7 +396,7 @@ namespace Performancer {
         }
 
         internal static class ConditionalHooks {
-            private static Harmony _harmony;
+            private static Harmony _harmony = null;
 
             internal static bool isKKPE = false;
             internal static bool isDBDE = false;
