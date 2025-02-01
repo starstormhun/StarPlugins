@@ -446,7 +446,7 @@ namespace AccMover {
 
             public static class DBDEHooks {
                 [HarmonyPrefix]
-                [HarmonyPatch(typeof(DBDECharaController), "AccessoryTransferedEvent")]
+                [HarmonyPatch(typeof(DBDECharaController), "AccessoryTransferredEvent")]
                 private static bool DBDECharaControllerBeforeAccessoryTransferedEvent(DBDECharaController __instance, int source, int destination) {
                     DynamicBoneDistributionEditor.DBDE.UI.UpdateUIWhileOpen = false;
                     if (Hooks.disableTransferFuncs) {

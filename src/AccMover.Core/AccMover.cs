@@ -25,7 +25,7 @@ namespace AccMover {
 	/// </info>
     public class AccMover : BaseUnityPlugin {
         public const string GUID = "starstorm.accmover";
-        public const string Version = "1.1.0." + BuildNumber.Version;
+        public const string Version = "1.1.1." + BuildNumber.Version;
 
         public static AccMover Instance { get; private set; }
 
