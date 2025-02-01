@@ -9,12 +9,13 @@ using KKAPI.Utilities;
 using System.Collections;
 using BepInEx.Configuration;
 using System.Collections.Generic;
-using System.Runtime.Serialization;
 
 [assembly: System.Reflection.AssemblyFileVersion(AccMover.AccMover.Version)]
 
 namespace AccMover {
     [BepInDependency(KKAPI.KoikatuAPI.GUID)]
+    [BepInDependency(ObjImport.ObjImport.GUID, BepInDependency.DependencyFlags.SoftDependency)]
+    [BepInDependency(DynamicBoneDistributionEditor.DBDE.GUID, BepInDependency.DependencyFlags.SoftDependency)]
 	[BepInProcess(KKAPI.KoikatuAPI.GameProcessName)]
 #if KK
 	[BepInProcess(KKAPI.KoikatuAPI.GameProcessNameSteam)]

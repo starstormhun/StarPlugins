@@ -187,9 +187,14 @@ namespace AccMover {
                             else _harmony.PatchAll(typeof(ObjImpHooks));
                             break;
                         case "org.njaecha.plugins.dbde":
-                            DBDE = true;
-                            if (_harmony == null) _harmony = Harmony.CreateAndPatchAll(typeof(DBDEHooks));
-                            else _harmony.PatchAll(typeof(DBDEHooks));
+                            var v = plugin.Info.Metadata.Version;
+                            if (v.Major <= 1 && v.Minor <= 5 && v.Build < 1) {
+                                AccMover.Instance.Log("[AccMover] Outdated DBDE detected, please update to v1.5.1 or later! AccMover won't be compatible with it until you do.", 5);
+                            } else {
+                                DBDE = true;
+                                if (_harmony == null) _harmony = Harmony.CreateAndPatchAll(typeof(DBDEHooks));
+                                else _harmony.PatchAll(typeof(DBDEHooks));
+                            }
                             break;
                     }
                 }
