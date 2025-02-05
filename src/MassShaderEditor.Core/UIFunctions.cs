@@ -124,14 +124,14 @@ namespace MassShaderEditor.Koikatu {
         private Vector2 historyScrollPos;
         private Vector2 shadowModeScrollPos;
         private Vector2 filterScrollPos;
-        private MassShaderEditor.OnShaderSelectFunc onShaderSelect;
-        private MassShaderEditor.OnHistorySelectFunc onHistorySelect;
-        private MassShaderEditor.OnShadowCastingModeSelect onShadowModeSelect;
-        private MassShaderEditor.OnFilterSelect onFilterSelect;
+        private OnShaderSelectFunc onShaderSelect;
+        private OnHistorySelectFunc onHistorySelect;
+        private OnShadowCastingModeSelectFunc onShadowModeSelect;
+        private OnFilterSelectFunc onFilterSelect;
         private delegate void OnShaderSelectFunc(string s);
         private delegate void OnHistorySelectFunc(int i);
-        private delegate void OnShadowCastingModeSelect(string s);
-        private delegate void OnFilterSelect(string s);
+        private delegate void OnShadowCastingModeSelectFunc(string s);
+        private delegate void OnFilterSelectFunc(string s);
         private int shaderDrop = 0;
         private bool historyDrop = false;
         private bool shadowModeDrop = false;
@@ -227,6 +227,7 @@ namespace MassShaderEditor.Koikatu {
         private readonly string affectChaItemsText = AffectChaPartsText("held items (items parented to characters)");
 
         private const string hairAccIsHairText = "Whether 'Modify ALL' will affect hair accessories while editing hair and skip them while editing accessories.";
+        private const string useStudioSelectionsText = "Makes the selection process use the same logic as it does in Studio, disregarding whichever maker tab you're currently on. This assumes that the currently edited character is selected at all times.";
         private const string affectMiscBodyPartsText = "Whether the miscellaneous body parts like eyes/tongue/noseline/penis/etc should be affected. In Maker and if enabled, only 'Modify ALL' will affect them.";
 
         private void WindowFunction(int WindowID) {
@@ -701,38 +702,42 @@ namespace MassShaderEditor.Koikatu {
                 GUIStyle allStyle = new GUIStyle(newSkin.button);
                 allStyle.normal.textColor = Color.red;
                 allStyle.hover.textColor = Color.red;
-                if (GUILayout.Button(new GUIContent("Modify ALL", "Right click to reset ALL"), allStyle, GUILayout.MaxWidth(halfWidth))) {
-                    if (new List<SettingType> { SettingType.Float, SettingType.Color, SettingType.Texture }.Contains(tab))
-                        if (setName != "") {
-                            if (!DisableWarning.Value) {
-                                showWarning = true;
-                            } else {
-                                if (tab == SettingType.Color)
-                                    SetAllProperties(setCol);
-                                else if (tab == SettingType.Float)
-                                    SetAllProperties(setVal);
-                                else if (tab == SettingType.Texture)
-                                    TrySetTexture(SetAllProperties);
-                            }
-                        } else ShowMessage(missingPropertyMessage);
-                    else if (tab == SettingType.Shader)
-                        if (shaders.Contains(setShader) || favShaders.Contains(setShader) || setReset) {
-                            if (!DisableWarning.Value) {
-                                showWarning = true;
-                            } else {
-                                SetAllProperties(setShader);
-                            }
-                        } else ShowMessage(shaderNameWrongMessage);
-                    else if (tab == SettingType.Renderer)
-                        if (rendererAffectMap > 0) {
-                            if (!DisableWarning.Value) {
-                                showWarning = true;
-                            } else {
-                                SetAllProperties(0f);
-                            }
-                        } else ShowMessage(rendererNoAffectsMessage);
+                if (!KKAPI.Maker.MakerAPI.InsideMaker || !UseStudioSelections.Value) {
+                    if (GUILayout.Button(new GUIContent("Modify ALL", "Right click to reset ALL"), allStyle, GUILayout.MaxWidth(halfWidth))) {
+                        if (new List<SettingType> { SettingType.Float, SettingType.Color, SettingType.Texture }.Contains(tab))
+                            if (setName != "") {
+                                if (!DisableWarning.Value) {
+                                    showWarning = true;
+                                } else {
+                                    if (tab == SettingType.Color)
+                                        SetAllProperties(setCol);
+                                    else if (tab == SettingType.Float)
+                                        SetAllProperties(setVal);
+                                    else if (tab == SettingType.Texture)
+                                        TrySetTexture(SetAllProperties);
+                                }
+                            } else ShowMessage(missingPropertyMessage);
+                        else if (tab == SettingType.Shader)
+                            if (shaders.Contains(setShader) || favShaders.Contains(setShader) || setReset) {
+                                if (!DisableWarning.Value) {
+                                    showWarning = true;
+                                } else {
+                                    SetAllProperties(setShader);
+                                }
+                            } else ShowMessage(shaderNameWrongMessage);
+                        else if (tab == SettingType.Renderer)
+                            if (rendererAffectMap > 0) {
+                                if (!DisableWarning.Value) {
+                                    showWarning = true;
+                                } else {
+                                    SetAllProperties(0f);
+                                }
+                            } else ShowMessage(rendererNoAffectsMessage);
+                    }
                 }
-                if (GUILayout.Button(new GUIContent("Modify Selected", "Right click to reset selected"), newSkin.button, GUILayout.MaxWidth(halfWidth))) {
+                string modifyWhat = !KKAPI.Maker.MakerAPI.InsideMaker || !UseStudioSelections.Value ? "Selected" : "Character";
+                var options = !KKAPI.Maker.MakerAPI.InsideMaker || !UseStudioSelections.Value ? new[] { GUILayout.MaxWidth(halfWidth) } : new GUILayoutOption[] { };
+                if (GUILayout.Button(new GUIContent($"Modify {modifyWhat}", "Right click to reset selected"), newSkin.button, options)) {
                     if (new List<SettingType> { SettingType.Float, SettingType.Color, SettingType.Texture }.Contains(tab))
                         if (setName != "") {
                             if (tab == SettingType.Color)
@@ -897,18 +902,21 @@ namespace MassShaderEditor.Koikatu {
             Spacer();
 
             // Studio settings
-            if (KKAPI.Studio.StudioAPI.InsideStudio) {
-                GUILayout.BeginHorizontal();
-                if (GUILayout.Button(new GUIContent($"Dive folders: {(DiveFolders.Value ? "Yes" : "No")}", diveFoldersText), newSkin.button, GUILayout.MaxWidth(halfWidth)))
-                    DiveFolders.Value = !DiveFolders.Value;
-                if (GUILayout.Button(new GUIContent($"Dive items: {(DiveItems.Value ? "Yes" : "No")}", diveItemsText), newSkin.button, GUILayout.MaxWidth(halfWidth)))
-                    DiveItems.Value = !DiveItems.Value;
-                GUILayout.EndHorizontal(); Spacer();
-                if (GUILayout.Button(new GUIContent($"Affect characters: {(AffectCharacters.Value ? "Yes" : "No")}", affectCharactersText), newSkin.button)) {
-                    AffectCharacters.Value = !AffectCharacters.Value;
-                    CalcSizes();
+            if (KKAPI.Studio.StudioAPI.InsideStudio || (KKAPI.Maker.MakerAPI.InsideMaker && UseStudioSelections.Value)) {
+                bool inMaker = KKAPI.Maker.MakerAPI.InsideMaker;
+                if (!inMaker) {
+                    GUILayout.BeginHorizontal();
+                    if (GUILayout.Button(new GUIContent($"Dive folders: {(DiveFolders.Value ? "Yes" : "No")}", diveFoldersText), newSkin.button, GUILayout.MaxWidth(halfWidth)))
+                        DiveFolders.Value = !DiveFolders.Value;
+                    if (GUILayout.Button(new GUIContent($"Dive items: {(DiveItems.Value ? "Yes" : "No")}", diveItemsText), newSkin.button, GUILayout.MaxWidth(halfWidth)))
+                        DiveItems.Value = !DiveItems.Value;
+                    GUILayout.EndHorizontal(); Spacer();
+                    if (GUILayout.Button(new GUIContent($"Affect characters: {(AffectCharacters.Value ? "Yes" : "No")}", affectCharactersText), newSkin.button)) {
+                        AffectCharacters.Value = !AffectCharacters.Value;
+                        CalcSizes();
+                    }
                 }
-                if (AffectCharacters.Value) {
+                if (AffectCharacters.Value || inMaker) {
                     GUILayout.BeginHorizontal();
                     if (GUILayout.Button(new GUIContent($"Body: {(AffectChaBody.Value ? "Yes" : "No")}", affectChaBodyText), newSkin.button, GUILayout.MaxWidth(halfWidth)))
                         AffectChaBody.Value = !AffectChaBody.Value;
@@ -924,14 +932,16 @@ namespace MassShaderEditor.Koikatu {
                     GUILayout.BeginHorizontal();
                     if (GUILayout.Button(new GUIContent($"Misc parts: {(AffectMiscBodyParts.Value ? "Yes" : "No")}", affectMiscBodyPartsText), newSkin.button, GUILayout.MaxWidth(halfWidth)))
                         AffectMiscBodyParts.Value = !AffectMiscBodyParts.Value;
-                    if (GUILayout.Button(new GUIContent($"Items: {(AffectChaItems.Value ? "Yes" : "No")}", affectChaItemsText), newSkin.button, GUILayout.MaxWidth(halfWidth)))
-                        AffectChaItems.Value = !AffectChaItems.Value;
+                    if (!inMaker) {
+                        if (GUILayout.Button(new GUIContent($"Items: {(AffectChaItems.Value ? "Yes" : "No")}", affectChaItemsText), newSkin.button, GUILayout.MaxWidth(halfWidth)))
+                            AffectChaItems.Value = !AffectChaItems.Value;
+                    }
                     GUILayout.EndHorizontal();
                 }
             } // End studio settings
 
             // Maker settings
-            if (KKAPI.Maker.MakerAPI.InsideMaker) {
+            if (KKAPI.Maker.MakerAPI.InsideMaker && !UseStudioSelections.Value) {
                 GUILayout.BeginHorizontal();
                 if (GUILayout.Button(new GUIContent($"Misc parts: {(AffectMiscBodyParts.Value ? "Yes" : "No")}", affectMiscBodyPartsText), newSkin.button))
                     AffectMiscBodyParts.Value = !AffectMiscBodyParts.Value;

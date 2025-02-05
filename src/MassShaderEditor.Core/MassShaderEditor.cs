@@ -11,6 +11,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using KKAPI.Utilities;
 using Illusion.Extensions;
+using System.Collections;
 
 [assembly: System.Reflection.AssemblyFileVersion(MassShaderEditor.Koikatu.MassShaderEditor.Version)]
 
@@ -28,7 +29,7 @@ namespace MassShaderEditor.Koikatu {
 	/// </info>
     public partial class MassShaderEditor : BaseUnityPlugin {
         public const string GUID = "starstorm.massshadereditor";
-        public const string Version = "1.3.1." + BuildNumber.Version;
+        public const string Version = "1.4.0." + BuildNumber.Version;
 
         // General
         public ConfigEntry<float> UIScale { get; private set; }
@@ -48,6 +49,7 @@ namespace MassShaderEditor.Koikatu {
         // Maker options
         public ConfigEntry<bool> AffectMiscBodyParts { get; private set; }
         public ConfigEntry<bool> HairAccIsHair { get; private set; }
+        public ConfigEntry<bool> UseStudioSelections { get; private set; }
 
         // Hotkeys
         public ConfigEntry<KeyboardShortcut> VisibleHotkey { get; private set; }
@@ -96,6 +98,7 @@ namespace MassShaderEditor.Koikatu {
             AffectChaItems = Config.Bind("Studio", "Affect character items", false, new ConfigDescription(affectChaItemsText, null, null));
 
             HairAccIsHair = Config.Bind("Maker", "Hair accs are hair", false, new ConfigDescription(hairAccIsHairText, null, null));
+            UseStudioSelections = Config.Bind("Maker", "Use Studio Selections", false, new ConfigDescription(useStudioSelectionsText, null, null));
 
             VisibleHotkey = Config.Bind("Hotkeys", "UI Toggle", new KeyboardShortcut(KeyCode.M), new ConfigDescription("The key used to toggle the plugin's UI",null,new ConfigurationManagerAttributes{ Order = 10}));
             SetSelectedHotkey = Config.Bind("Hotkeys", "Modify Selected", new KeyboardShortcut(KeyCode.None), new ConfigDescription("Simulate left-clicking 'Modify Selected'", null, null));
@@ -123,6 +126,9 @@ namespace MassShaderEditor.Koikatu {
                 controller = MEStudio.GetSceneController();
                 GetShaders();
                 makerTabID = 0;
+            };
+            KKAPI.Maker.MakerAPI.MakerExiting += (x, y) => {
+                HookPatch.AlwaysHooks.buttonsMade = false;
             };
 
             ReadData();
@@ -410,38 +416,48 @@ namespace MassShaderEditor.Koikatu {
 
         private bool SetSelectedProperties<T>(T _value) {
             if (!(_value is float) && !(_value is Color) && !(_value is string) && !(_value is ScaledTex)) return false;
-            if (KKAPI.Studio.StudioAPI.InsideStudio) {
-                if (setReset && _value is ScaledTex) MaterialEditorAPI.MaterialEditorPluginBase.Logger.LogMessage("Save and reload scene to refresh textures.");
-                if (IsDebug.Value) Log($"{(setReset ? "Res" : "S")}etting selected items' properties!");
-                var ociList = KKAPI.Studio.StudioAPI.GetSelectedObjects().ToList();
-                if (ociList.Count > 0) {
-                    var iterateList = new List<ObjectCtrlInfo>(ociList);
-                    if (IsDebug.Value) Log("Checking for dives...");
-                    var diveList = new List<Type>();
-                    if (DiveFolders.Value) diveList.Add(typeof(OCIFolder));
-                    if (DiveItems.Value) diveList.Add(typeof(OCIItem));
-                    if (AffectChaItems.Value) {
-                        diveList.Add(typeof(OCICharFemale));
-                        diveList.Add(typeof(OCICharMale));
-                    }
-                    foreach (var oci in iterateList)
-                        if (diveList.Contains(oci.GetType())) {
-                            if (IsDebug.Value) Log($"Found diveable item: {oci.treeNodeObject.textName}");
-                            if (oci.GetType().IsSubclassOf(typeof(OCIChar))) {
-                                foreach (TreeNodeObject childOne in oci.treeNodeObject.child) {
-                                    foreach (TreeNodeObject childTwo in childOne.child) {
-                                        foreach (TreeNodeObject childItem in childTwo.child) {
-                                            var childOCI = Singleton<Studio.Studio>.Instance.dicInfo[childItem];
-                                            ociList.AddChildrenRecursive(childOCI);
+            if (KKAPI.Studio.StudioAPI.InsideStudio || UseStudioSelections.Value) {
+                bool inMaker = KKAPI.Maker.MakerAPI.InsideMaker;
+                string reloadWhat = inMaker ? "character" : "scene";
+                if (setReset && _value is ScaledTex) MaterialEditorAPI.MaterialEditorPluginBase.Logger.LogMessage($"Save and reload {reloadWhat} to refresh textures.");
+                string resetWhat = inMaker ? "character's" : "selected items'";
+                if (IsDebug.Value) Log($"{(setReset ? "Res" : "S")}etting {resetWhat} properties!");
+                if (!inMaker) {
+                    var ociList = KKAPI.Studio.StudioAPI.GetSelectedObjects().ToList();
+                    if (ociList.Count > 0) {
+                        var iterateList = new List<ObjectCtrlInfo>(ociList);
+                        if (IsDebug.Value) Log("Checking for dives...");
+                        var diveList = new List<Type>();
+                        if (DiveFolders.Value) diveList.Add(typeof(OCIFolder));
+                        if (DiveItems.Value) diveList.Add(typeof(OCIItem));
+                        if (AffectChaItems.Value) {
+                            diveList.Add(typeof(OCICharFemale));
+                            diveList.Add(typeof(OCICharMale));
+                        }
+                        foreach (var oci in iterateList)
+                            if (diveList.Contains(oci.GetType())) {
+                                if (IsDebug.Value) Log($"Found diveable item: {oci.treeNodeObject.textName}");
+                                if (oci.GetType().IsSubclassOf(typeof(OCIChar))) {
+                                    foreach (TreeNodeObject childOne in oci.treeNodeObject.child) {
+                                        foreach (TreeNodeObject childTwo in childOne.child) {
+                                            foreach (TreeNodeObject childItem in childTwo.child) {
+                                                var childOCI = Singleton<Studio.Studio>.Instance.dicInfo[childItem];
+                                                ociList.AddChildrenRecursive(childOCI);
+                                            }
                                         }
                                     }
+                                } else {
+                                    ociList.AddChildrenRecursive(oci);
                                 }
-                            } else {
-                                ociList.AddChildrenRecursive(oci);
                             }
-                        }
-                    if (SetStudioProperties(ociList, _value) && fetchValue) return true;
-                } else ShowMessage("Please select at least one item!");
+                        if (SetStudioProperties(ociList, _value) && fetchValue) return true;
+                    } else ShowMessage("Please select at least one item!");
+                } else {
+                    OCICharFemale ociTemp = new OCICharFemale {
+                        charInfo = KKAPI.Maker.MakerAPI.GetCharacterControl()
+                    };
+                    if (SetStudioProperties(new List<ObjectCtrlInfo> { ociTemp }, _value) && fetchValue) return true;
+                }
             } else if (KKAPI.Maker.MakerAPI.InsideMaker) {
                 if (MakerGetType(out ObjectType type)) {
                     if (setReset && _value is ScaledTex) MaterialEditorAPI.MaterialEditorPluginBase.Logger.LogMessage("Save and reload character or change outfits to refresh textures.");
@@ -475,13 +491,14 @@ namespace MassShaderEditor.Koikatu {
         }
 
         private bool SetStudioProperties<T>(List<ObjectCtrlInfo> _ociList, T _value) {
-            if (KKAPI.Studio.StudioAPI.InsideStudio) {
+            if (KKAPI.Studio.StudioAPI.InsideStudio || UseStudioSelections.Value) {
+                bool inMaker = KKAPI.Maker.MakerAPI.InsideMaker;
                 foreach (ObjectCtrlInfo oci in _ociList) {
                     if (oci is OCIItem item) {
                         if (SetItemProperties(controller, item, _value) && fetchValue) return true;
-                    } else if (oci is OCIChar ociChar && AffectCharacters.Value) {
-                        if (IsDebug.Value) Log($"Looking into character: {ociChar.treeNodeObject.textName}");
-                        var ctrl = KKAPI.Studio.StudioObjectExtensions.GetChaControl(ociChar);
+                    } else if (oci is OCIChar ociChar && (AffectCharacters.Value || inMaker)) {
+                        var ctrl = ociChar.charInfo;
+                        if (IsDebug.Value) Log($"Looking into character: {ctrl.fileParam.fullname}");
 
                         // Modify body parts
                         if (AffectChaBody.Value && AffectMiscBodyParts.Value) {
@@ -526,7 +543,7 @@ namespace MassShaderEditor.Koikatu {
                 }
                 if (MaterialEditorAPI.MaterialEditorUI.MaterialEditorWindow.gameObject.activeSelf && !fetchValue) MEStudio.Instance.RefreshUI();
             } else if (KKAPI.Maker.MakerAPI.InsideMaker) {
-                Log("SetStudioProperties should not be called inside Maker!", 3);
+                Log("SetStudioProperties should not be called inside Maker without UseStudioSelections!", 3);
             }
             return false;
         }
@@ -674,7 +691,7 @@ namespace MassShaderEditor.Koikatu {
             var chaCtrl = ctrl.ChaControl;
 
             string chaName;
-            if (ociChar != null) chaName = ociChar.NameFormatted();
+            if (ociChar != null && ociChar.treeNodeObject != null) chaName = ociChar.NameFormatted();
             else chaName = $"{chaCtrl.fileParam.lastname} {chaCtrl.fileParam.firstname}";
 
             GameObject go = GetChaGO(ctrl, type, slot);

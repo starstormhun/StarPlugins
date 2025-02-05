@@ -39,9 +39,9 @@ namespace MassShaderEditor.Koikatu {
             }
         }
 
-        private static class AlwaysHooks {
+        internal static class AlwaysHooks {
             private static Harmony _harmony;
-            private static bool buttonsMade = false;
+            internal static bool buttonsMade = false;
 
             // Setup Harmony and patch methods
             public static void SetupHooks() {
