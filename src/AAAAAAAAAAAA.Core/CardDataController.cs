@@ -28,28 +28,25 @@ namespace AAAAAAAAAAAA {
         // AAAPK compatibility
         public List<AAAPKParentRule> listAAAPKData = null;
 
-        // Only for Studio
         protected override void OnDestroy() {
-            if (KKAPI.Studio.StudioAPI.InsideStudio) {
-                chaRoot.Destroy();
-                customAccParents.Clear();
-                dicTfBones.Clear();
-                dicHashBones.Clear();
-            }
+            chaRoot?.Destroy();
+            customAccParents?.Clear();
+            dicTfBones?.Clear();
+            dicHashBones?.Clear();
             base.OnDestroy();
         }
 
-        // Only possible in Maker
         protected override void OnCardBeingSaved(GameMode currentGameMode) {
-            if (AAAAAAAAAAAA.dicMakerModifiedParents.Count == 0) return;
             if (AAAAAAAAAAAA.IsDebug.Value) AAAAAAAAAAAA.Instance.Log("Saving custom card data...");
             var data = new PluginData { version = version };
-            data.data.Add(cardDataID, MessagePackSerializer.Serialize(AAAAAAAAAAAA.dicMakerModifiedParents));
-            if (listAAAPKData != null && listAAAPKData.Count > 0) data.data.Add(aaapkKey, MessagePackSerializer.Serialize(listAAAPKData));
+            if (KKAPI.Maker.MakerAPI.InsideMaker) {
+                data.data.Add(cardDataID, MessagePackSerializer.Serialize(AAAAAAAAAAAA.dicMakerModifiedParents));
+            } else {
+                data.data.Add(cardDataID, MessagePackSerializer.Serialize(customAccParents));
+            }
             SetExtendedData(data);
         }
 
-        // Only possible in Maker
         protected override void OnCoordinateBeingSaved(ChaFileCoordinate coordinate) {
             if (!AAAAAAAAAAAA.dicMakerModifiedParents.TryGetValue((int)CurrentCoordinate.Value, out var dicCoord) || dicCoord.Count == 0) return;
             if (AAAAAAAAAAAA.IsDebug.Value) AAAAAAAAAAAA.Instance.Log($"Saving custom data to coordinate file from coord#{(int)CurrentCoordinate.Value}...");
@@ -61,18 +58,18 @@ namespace AAAAAAAAAAAA {
         protected override void OnCoordinateBeingLoaded(ChaFileCoordinate coordinate, bool maintainState) {
             if (maintainState) {
                 if (KKAPI.Maker.MakerAPI.InsideMaker) AAAAAAAAAAAA.UpdateMakerTree(true);
-                if (KKAPI.Studio.StudioAPI.InsideStudio) LoadData();
+                else LoadData();
                 return;
             }
             if (KKAPI.Maker.MakerAPI.InsideMaker) AAAAAAAAAAAA.dicMakerModifiedParents[(int)CurrentCoordinate.Value] = new Dictionary<int, string>();
-            if (KKAPI.Studio.StudioAPI.InsideStudio) customAccParents[(int)CurrentCoordinate.Value] = new Dictionary<int, string>();
+            else customAccParents[(int)CurrentCoordinate.Value] = new Dictionary<int, string>();
             PluginData data = GetCoordinateExtendedData(coordinate);
             if (data == null || data.data == null) return;
             if (data.data.TryGetValue(coordDataID, out var accData)) {
                 if (AAAAAAAAAAAA.IsDebug.Value) AAAAAAAAAAAA.Instance.Log($"Loading custom data into coord#{(int)CurrentCoordinate.Value}...");
                 var dicCoord = MessagePackSerializer.Deserialize<Dictionary<int, string>>((byte[])accData);
                 if (KKAPI.Maker.MakerAPI.InsideMaker) AAAAAAAAAAAA.dicMakerModifiedParents[(int)CurrentCoordinate.Value] = dicCoord;
-                if (KKAPI.Studio.StudioAPI.InsideStudio) customAccParents[(int)CurrentCoordinate.Value] = dicCoord;
+                else customAccParents[(int)CurrentCoordinate.Value] = dicCoord;
                 LoadData();
             }
             AddAAAPKData(data, false, true);
@@ -81,18 +78,18 @@ namespace AAAAAAAAAAAA {
         protected override void OnReload(GameMode currentGameMode, bool maintainState) {
             if (maintainState) {
                 if (KKAPI.Maker.MakerAPI.InsideMaker) AAAAAAAAAAAA.UpdateMakerTree(true);
-                if (KKAPI.Studio.StudioAPI.InsideStudio) LoadData();
+                else LoadData();
                 return;
             }
             if (KKAPI.Maker.MakerAPI.InsideMaker) AAAAAAAAAAAA.dicMakerModifiedParents = new Dictionary<int, Dictionary<int, string>>();
-            if (KKAPI.Studio.StudioAPI.InsideStudio) customAccParents = new Dictionary<int, Dictionary<int, string>>();
+            else customAccParents = new Dictionary<int, Dictionary<int, string>>();
             PluginData data = GetExtendedData();
             if (data != null && data.data != null) {
                 if (data.data.TryGetValue(cardDataID, out object cardData)) {
                     if (AAAAAAAAAAAA.IsDebug.Value) AAAAAAAAAAAA.Instance.Log("Loading card data...");
                     var dicCoord = MessagePackSerializer.Deserialize<Dictionary<int, Dictionary<int, string>>>((byte[])cardData);
                     if (KKAPI.Maker.MakerAPI.InsideMaker) AAAAAAAAAAAA.dicMakerModifiedParents = dicCoord;
-                    if (KKAPI.Studio.StudioAPI.InsideStudio) customAccParents = dicCoord;
+                    else customAccParents = dicCoord;
                     LoadData();
                 }
                 AddAAAPKData(data);
@@ -111,8 +108,7 @@ namespace AAAAAAAAAAAA {
                     if (KKAPI.Maker.MakerAPI.InsideMaker) {
                         if (AAAAAAAAAAAA.makerBoneRoot == null) AAAAAAAAAAAA.MakeMakerTree();
                         else AAAAAAAAAAAA.UpdateMakerTree(_clearNullTransforms: true, forced: true);
-                    }
-                    if (KKAPI.Studio.StudioAPI.InsideStudio) AAAAAAAAAAAA.BuildStudioTree(this);
+                    } else  AAAAAAAAAAAA.BuildStudioTree(this);
                     var listSaveValues = new List<AAAPKParentRule>();
                     Transform hairsRoot = ChaControl.transform.Find("BodyTop/p_cf_body_bone/cf_j_root/cf_n_height/cf_j_hips/cf_j_spine01/cf_j_spine02/cf_j_spine03/cf_j_neck/cf_j_head/cf_s_head/p_cf_head_bone/cf_J_N_FaceRoot/cf_J_FaceRoot/cf_J_FaceBase/cf_J_FaceUp_ty");
                     Transform[] hairRoots = new[] {
@@ -158,7 +154,7 @@ namespace AAAAAAAAAAAA {
                                     if (AAAAAAAAAAAA.IsDebug.Value) AAAAAAAAAAAA.Instance.Log($"Converting accessory parent...");
                                     Bone accBone = null;
                                     if (KKAPI.Maker.MakerAPI.InsideMaker) AAAAAAAAAAAA.TryGetMakerAccBone(rule.ParentSlot, out accBone);
-                                    if (KKAPI.Studio.StudioAPI.InsideStudio) AAAAAAAAAAAA.TryGetStudioAccBone(this, rule.ParentSlot, out accBone);
+                                    else AAAAAAAAAAAA.TryGetStudioAccBone(this, rule.ParentSlot, out accBone);
                                     if (accBone == null) { if (AAAAAAAAAAAA.IsDebug.Value) AAAAAAAAAAAA.Instance.Log($"No acc bone for acc #{rule.ParentSlot}...", 2); continue; }
                                     parent = accBone.bone.Find(rule.ParentPath);
                                     if (parent == null) { if (AAAAAAAAAAAA.IsDebug.Value) AAAAAAAAAAAA.Instance.Log($"No parent for {accBone.bone.name}, '{rule.ParentPath}'...", 2); continue; }
@@ -179,13 +175,12 @@ namespace AAAAAAAAAAAA {
                                 }
                         }
                         if (KKAPI.Maker.MakerAPI.InsideMaker) AAAAAAAAAAAA.dicMakerTfBones.TryGetValue(parent, out parentBone);
-                        if (KKAPI.Studio.StudioAPI.InsideStudio) dicTfBones.TryGetValue(parent, out parentBone);
+                        else dicTfBones.TryGetValue(parent, out parentBone);
                         if (parentBone == null) { if (AAAAAAAAAAAA.IsDebug.Value) AAAAAAAAAAAA.Instance.Log($"No parent bone for \"{parent.name}\" found...", 2); continue; }
                         if (KKAPI.Maker.MakerAPI.InsideMaker) {
                             if (!AAAAAAAAAAAA.dicMakerModifiedParents.ContainsKey(rule.Coordinate)) AAAAAAAAAAAA.dicMakerModifiedParents.Add(rule.Coordinate, new Dictionary<int, string>());
                             AAAAAAAAAAAA.dicMakerModifiedParents[rule.Coordinate][rule.Slot] = parentBone.Hash;
-                        }
-                        if (KKAPI.Studio.StudioAPI.InsideStudio) {
+                        } else {
                             if (!customAccParents.ContainsKey(rule.Coordinate)) customAccParents.Add(rule.Coordinate, new Dictionary<int, string>());
                             customAccParents[rule.Coordinate][rule.Slot] = parentBone.Hash;
                         }
@@ -206,8 +201,7 @@ namespace AAAAAAAAAAAA {
                 if (KKAPI.Maker.MakerAPI.InsideMaker) {
                     AAAAAAAAAAAA.MakeMakerTree();
                     AAAAAAAAAAAA.UpdateMakerTree(true);
-                }
-                if (KKAPI.Studio.StudioAPI.InsideStudio) {
+                } else {
                     if (AAAAAAAAAAAA.IsDebug.Value) AAAAAAAAAAAA.Instance.Log($"Loading data for {ChaFileControl.parameter.fullname}...");
                     chaRoot = AAAAAAAAAAAA.ApplyStudioData(this);
                 }
@@ -217,6 +211,17 @@ namespace AAAAAAAAAAAA {
 
         internal class A12AAAPKLoader : CharaCustomFunctionController {
             protected override void OnCardBeingSaved(GameMode currentGameMode) {
+                var parentCtrl = ChaControl.GetComponent<CardDataController>();
+                if (parentCtrl.listAAAPKData != null && parentCtrl.listAAAPKData.Count > 0) {
+                    var data = new PluginData { version = version };
+                    if (KKAPI.Maker.MakerAPI.InsideMaker) {
+                        data.data.Add(cardDataID, MessagePackSerializer.Serialize(AAAAAAAAAAAA.dicMakerModifiedParents));
+                    } else {
+                        data.data.Add(cardDataID, MessagePackSerializer.Serialize(parentCtrl.customAccParents));
+                    }
+                    data.data.Add(aaapkKey, MessagePackSerializer.Serialize(parentCtrl.listAAAPKData));
+                    SetExtendedData(data);
+                }
             }
 
             protected override void OnCoordinateBeingLoaded(ChaFileCoordinate coordinate, bool maintainState) {

@@ -24,7 +24,7 @@ namespace AAAAAAAAAAAA {
             if (_controller != null) {
                 controller = _controller;
             }
-            if (KKAPI.Studio.StudioAPI.InsideStudio && controller == null) {
+            if (!KKAPI.Maker.MakerAPI.InsideMaker && controller == null) {
                 AAAAAAAAAAAA.Instance.Log("Did not provide CardDataController for Bone constructor in Studio!", 3);
                 AAAAAAAAAAAA.Instance.Log("[AAAAAAAAAAAA] ERROR: No CardDataController found for Bone constructor in Studio!", 5);
             }
@@ -32,8 +32,7 @@ namespace AAAAAAAAAAAA {
             if (KKAPI.Maker.MakerAPI.InsideMaker) {
                 AAAAAAAAAAAA.dicMakerTfBones.Add(_bone, this);
                 AAAAAAAAAAAA.dicMakerHashBones.Add(Hash, this);
-            }
-            if (KKAPI.Studio.StudioAPI.InsideStudio) {
+            } else {
                 controller.dicTfBones.Add(_bone, this);
                 controller.dicHashBones.Add(Hash, this);
             }
@@ -58,8 +57,7 @@ namespace AAAAAAAAAAAA {
             if (KKAPI.Maker.MakerAPI.InsideMaker) {
                 if (bone != null) AAAAAAAAAAAA.dicMakerTfBones.Remove(bone);
                 if (Hash != "") AAAAAAAAAAAA.dicMakerHashBones.Remove(Hash);
-            }
-            if (KKAPI.Studio.StudioAPI.InsideStudio) {
+            } else {
                 if (bone != null) controller.dicTfBones.Remove(bone);
                 if (Hash != "") controller.dicHashBones.Remove(Hash);
             }
@@ -133,8 +131,7 @@ namespace AAAAAAAAAAAA {
                         while (AAAAAAAAAAAA.dicMakerHashBones.ContainsKey(result + $"/{i}")) i++;
                         result += $"/{i}";
                     }
-                }
-                if (KKAPI.Studio.StudioAPI.InsideStudio) {
+                } else {
                     if (controller.dicHashBones.ContainsKey(result)) {
                         int i = 1;
                         while (controller.dicHashBones.ContainsKey(result + $"/{i}")) i++;

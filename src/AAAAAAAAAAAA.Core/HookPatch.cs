@@ -12,6 +12,7 @@ namespace AAAAAAAAAAAA {
     public static class HookPatch {
         internal static void InitMaker() {
             KKAPI.Maker.MakerAPI.MakerStartedLoading += (x, y) => { Maker.makerLoaded = false; };
+            KKAPI.Maker.MakerAPI.MakerExiting += (x, y) => { Maker.makerLoaded = false; };
             KKAPI.Maker.MakerAPI.MakerFinishedLoading += (x, y) => { Maker.makerLoaded = true; };
             if (AAAAAAAAAAAA.IsDebug.Value) AAAAAAAAAAAA.Instance.Log("Initialising AAAAAAAAAAAA for Maker!");
             Maker.SetupHooks();
@@ -22,9 +23,8 @@ namespace AAAAAAAAAAAA {
             Studio.SetupHooks();
         }
 
-        internal static void Deactivate() {
+        internal static void DeactivateMaker() {
             Maker.UnregisterHooks();
-            Studio.UnregisterHooks();
         }
 
         public static class Maker {

@@ -45,7 +45,7 @@ namespace AAAAAAAAAAAA {
                         }
                     } else if (tf.GetComponent<ChaControl>() == null) {
                         var newBone = new Bone(tf, parent, null, controller);
-                        if (KKAPI.Maker.MakerAPI.InsideMaker && tf.name == "a_n_hair_pony") {
+                        if (tf.name == "a_n_hair_pony") {
                             ponyBone = newBone;
                         }
                     }

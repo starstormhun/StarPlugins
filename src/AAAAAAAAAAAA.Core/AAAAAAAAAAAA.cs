@@ -24,7 +24,7 @@ namespace AAAAAAAAAAAA {
     public partial class AAAAAAAAAAAA : BaseUnityPlugin {
         // Actual plugin name: Attach All Accessories Anywhere, Anytime, At Any Angle And Artistic Arrangement, Allegedly
         public const string GUID = "starstorm.aaaaaaaaaaaa";
-        public const string Version = "1.2.1." + BuildNumber.Version;
+        public const string Version = "1.2.2." + BuildNumber.Version;
 
         public static AAAAAAAAAAAA Instance {  get; private set; }
 
@@ -38,13 +38,10 @@ namespace AAAAAAAAAAAA {
             CharacterApi.RegisterExtraBehaviour<CardDataController>(CardDataController.SaveID);
             CharacterApi.RegisterExtraBehaviour<CardDataController.A12AAAPKLoader>(CardDataController.aaapkID);
 
-            if (KKAPI.KoikatuAPI.GetCurrentGameMode() != KKAPI.GameMode.Studio) {
-                HookPatch.InitMaker();
-            } else {
-                HookPatch.InitStudio();
-            }
+            HookPatch.InitMaker();
+            HookPatch.InitStudio();
 
-            KKAPI.Maker.MakerAPI.MakerFinishedLoading += (x, y) => { InitMaker(); };
+            KKAPI.Maker.MakerAPI.MakerStartedLoading += (x, y) => { InitMaker(); };
             KKAPI.Studio.StudioAPI.StudioLoadedChanged += (x, y) => { InitStudio(); };
         }
 
