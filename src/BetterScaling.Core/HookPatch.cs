@@ -2,11 +2,12 @@
 using Studio;
 using BepInEx;
 using HarmonyLib;
+using System.Xml;
 using UnityEngine;
 using System.Linq;
 using UnityEngine.UI;
+using System.Collections;
 using System.Collections.Generic;
-using System.Xml;
 
 namespace BetterScaling {
     public static class HookPatch {
@@ -220,6 +221,7 @@ namespace BetterScaling {
             [HarmonyPatch(typeof(TreeNodeObject), "Start")]
             private static void TNOAfterStart(TreeNodeObject __instance) {
                 if (!Studio.Studio.Instance.dicInfo.TryGetValue(__instance, out ObjectCtrlInfo oci)) return;
+                if (dicGuideToTNO.ContainsKey(oci.guideObject)) return;
                 if ((oci is OCIItem || oci is OCIFolder || oci is OCIChar) && oci.guideObject.enableScale) {
                     // Register TNO in dictionaries
                     dicGuideToTNO[oci.guideObject] = __instance;
@@ -257,6 +259,20 @@ namespace BetterScaling {
 
                     // Recalculate text position
                     __instance.RecalcSelectButtonPos();
+
+                    // If hierarchy scaled, call self on all children to ensure scaling works on load
+                    BetterScaling.Instance.StartCoroutine(CallLater());
+                    IEnumerator CallLater() {
+                        yield return null;
+                        if (dicTNOScaleHierarchy[__instance]) {
+                            if (BetterScaling.IsDebug.Value) {
+                                BetterScaling.Instance.Log($"Scaled TNO ({__instance.textName}) initialising {__instance.child.Count} children!");
+                            }
+                            foreach (TreeNodeObject child in __instance.child) {
+                                TNOAfterStart(child);
+                            }
+                        }
+                    }
                 }
             }
 

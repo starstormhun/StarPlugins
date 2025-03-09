@@ -53,5 +53,17 @@ namespace BetterScaling {
                 SetExtendedData(data);
             }
         }
+
+        protected override void OnObjectsCopied(ReadOnlyDictionary<int, ObjectCtrlInfo> copiedItems) {
+            foreach (var kvp in copiedItems) {
+                if (Studio.Studio.Instance.dicObjectCtrl.TryGetValue(kvp.Key, out var originalOCI)) {
+                    if (HookPatch.Hierarchy.dicTNOScaleHierarchy.TryGetValue(originalOCI.treeNodeObject, out var scaled) && scaled) {
+                        HookPatch.Hierarchy.dicTNOScaleHierarchy[kvp.Value.treeNodeObject] = true;
+                    }
+                }
+            }
+
+            base.OnObjectsCopied(copiedItems);
+        }
     }
 }
