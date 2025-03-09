@@ -219,7 +219,7 @@ namespace BetterScaling {
             // Register TNO in dictionaries and create toggle button
             [HarmonyPostfix]
             [HarmonyPatch(typeof(TreeNodeObject), "Start")]
-            private static void TNOAfterStart(TreeNodeObject __instance) {
+            internal static void TNOAfterStart(TreeNodeObject __instance) {
                 if (!Studio.Studio.Instance.dicInfo.TryGetValue(__instance, out ObjectCtrlInfo oci)) return;
                 if (dicGuideToTNO.ContainsKey(oci.guideObject)) return;
                 if ((oci is OCIItem || oci is OCIFolder || oci is OCIChar) && oci.guideObject.enableScale) {

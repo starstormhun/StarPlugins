@@ -2,6 +2,7 @@
 using MessagePack;
 using UnityEngine.UI;
 using KKAPI.Utilities;
+using System.Collections;
 using ExtensibleSaveFormat;
 using KKAPI.Studio.SaveLoad;
 using System.Collections.Generic;
@@ -25,11 +26,17 @@ namespace BetterScaling {
                         if (loadedItems.TryGetValue(dicKey, out var oci)) {
                             if (HookPatch.Hierarchy.dicTNOScaleHierarchy.ContainsKey(oci.treeNodeObject)) {
                                 HookPatch.Hierarchy.dicTNOScaleHierarchy[oci.treeNodeObject] = true;
+                                HookPatch.Hierarchy.TNOAfterStart(oci.treeNodeObject);
                                 if (HookPatch.Hierarchy.dicTNOButtons.TryGetValue(oci.treeNodeObject, out var toggle)) {
                                     toggle.GetComponent<Image>().sprite = HookPatch.Hierarchy.toggleOn;
                                 }
                             } else {
                                 listScaledTNO.Add(oci.treeNodeObject);
+                                BetterScaling.Instance.StartCoroutine(RunLater(oci.treeNodeObject));
+                                IEnumerator RunLater(TreeNodeObject tno) {
+                                    yield return null;
+                                    HookPatch.Hierarchy.TNOAfterStart(tno);
+                                }
                             }
                         }
                     }
