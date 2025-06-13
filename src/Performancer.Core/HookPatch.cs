@@ -355,7 +355,11 @@ namespace Performancer {
             [HarmonyPatch(typeof(DynamicBone_Ver02), "LateUpdate")]
             private static void DynamicBonesAfterUpdate(MonoBehaviour __instance) {
                 // If we don't optimise, then skip the postfix
-                if (!Performancer.OptimiseGuideObjectLate.Value || !Performancer.OptimiseDynamicBones.Value) {
+                if (
+                    !Performancer.OptimiseGuideObjectLate.Value ||
+                    !Performancer.OptimiseDynamicBones.Value ||
+                    ConditionalHooks.IsVideoExportRecording()
+                ) {
                     return;
                 }
 
@@ -378,7 +382,11 @@ namespace Performancer {
             [HarmonyPatch(typeof(DynamicBone_Ver02), "OnEnable")]
             private static void DynamicBonesAfterOnEnable(MonoBehaviour __instance) {
                 // If we don't optimise, then skip the postfix
-                if (!Performancer.OptimiseGuideObjectLate.Value || !Performancer.OptimiseDynamicBones.Value) {
+                if (
+                    !Performancer.OptimiseGuideObjectLate.Value ||
+                    !Performancer.OptimiseDynamicBones.Value ||
+                    ConditionalHooks.IsVideoExportRecording()
+                ) {
                     return;
                 }
 
