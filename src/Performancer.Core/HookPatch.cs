@@ -231,7 +231,11 @@ namespace Performancer {
                 bool result;
                 bool skip = false;
                 // If we don't optimise, then always run the Update scripts
-                if (!Performancer.OptimiseGuideObjectLate.Value || !Performancer.OptimiseDynamicBones.Value) {
+                if (
+                    !Performancer.OptimiseGuideObjectLate.Value ||
+                    !Performancer.OptimiseDynamicBones.Value ||
+                    ConditionalHooks.IsVideoExportRecording()
+                ) {
                     result = true;
                     // If there's leeway time left, continue
                 } else if (dicDynBonesToUpdate.TryGetValue(__instance, out int framesLeft) && framesLeft > 0) {
@@ -400,6 +404,7 @@ namespace Performancer {
 
             internal static bool isKKPE = false;
             internal static bool isDBDE = false;
+            internal static bool isVideoExport = false;
 
             internal static MonoBehaviour DBDEUI = null;
 
@@ -422,6 +427,9 @@ namespace Performancer {
                     }
                     if (mb.GetType().ToString() == "HSPE.HSPE") {
                         isKKPE = true;
+                    }
+                    if (mb.GetType().ToString() == "VideoExport.VideoExport") {
+                        isVideoExport = true;
                     }
                 }
             }
@@ -465,6 +473,13 @@ namespace Performancer {
                 return doIsKKPEOpen();
                 bool doIsKKPEOpen() {
                     return PoseController._drawAdvancedMode;
+                }
+            }
+
+            public static bool IsVideoExportRecording() {
+                return isVideoExport && doIsVideoExportRecording();
+                bool doIsVideoExportRecording() {
+                    return Singleton<VideoExport.VideoExport>.Instance.isRecording;
                 }
             }
         }

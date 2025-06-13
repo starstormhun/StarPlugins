@@ -14,6 +14,7 @@ namespace Performancer {
     [BepInDependency(KKAPI.KoikatuAPI.GUID)]
     [BepInDependency(DynamicBoneDistributionEditor.DBDE.GUID, BepInDependency.DependencyFlags.SoftDependency)]
     [BepInDependency(HSPE.HSPE.GUID, BepInDependency.DependencyFlags.SoftDependency)]
+    [BepInDependency(VideoExport.VideoExport.GUID, BepInDependency.DependencyFlags.SoftDependency)]
     [BepInProcess(KKAPI.KoikatuAPI.StudioProcessName)]
     [BepInPlugin(GUID, "Performancer", Version)]
 	/// <info>
