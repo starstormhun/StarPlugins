@@ -66,6 +66,10 @@ namespace Performancer {
             [HarmonyPrefix]
             [HarmonyPatch(typeof(GuideObject), "LateUpdate")]
             private static bool GuideObjectBeforeLateUpdate(GuideObject __instance) {
+                if (!Performancer.OptimiseGuideObjectLate.Value) {
+                    return true;
+                }
+
                 if (!dicGuideObjects.ContainsKey(__instance.transformTarget)) {
                     dicGuideObjects[__instance.transformTarget] = __instance;
                 }
@@ -81,10 +85,7 @@ namespace Performancer {
                         { "scale", __instance.m_ChangeAmount.scale }
                     });
                     result = true;
-                // Second check is whether we want to optimise the LateUpdate or not
-                } else if (!Performancer.OptimiseGuideObjectLate.Value) {
-                    result = true;
-                // Whether we have decided it's time to update all guide objects
+                // Second check if we have decided it's time to update all guide objects
                 } else if (enableAllGuideObjects) {
                     result = true;
                     skipChildren = true;
@@ -227,20 +228,23 @@ namespace Performancer {
             [HarmonyPatch(typeof(DynamicBone_Ver01), "LateUpdate")]
             [HarmonyPatch(typeof(DynamicBone_Ver02), "LateUpdate")]
             private static bool DynamicBonesBeforeLateUpdate(MonoBehaviour __instance) {
-                var dicVal = dicDynBoneVals[__instance];
-                bool result;
-                bool skip = false;
-                // If we don't optimise, then always run the Update scripts
+                // If we're not optimising, then always run the Update scripts
                 if (
                     !Performancer.OptimiseGuideObjectLate.Value ||
                     !Performancer.OptimiseDynamicBones.Value ||
                     ConditionalHooks.IsVideoExportRecording()
                 ) {
+                    return true;
+                }
+
+                var dicVal = dicDynBoneVals[__instance];
+                bool result;
+                bool skip = false;
+                
+                // If there's leeway time left, continue
+                if (dicDynBonesToUpdate.TryGetValue(__instance, out int framesLeft) && framesLeft > 0) {
                     result = true;
-                    // If there's leeway time left, continue
-                } else if (dicDynBonesToUpdate.TryGetValue(__instance, out int framesLeft) && framesLeft > 0) {
-                    result = true;
-                    // If there are no particles, stop running altogether
+                // If there are no particles, stop running altogether
                 } else if (
                     (__instance is DynamicBone db_00 && (db_00.m_Particles.Count == 0)) ||
                     (__instance is DynamicBone_Ver01 db_01 && (db_01.m_Particles.Count == 0)) ||
@@ -248,18 +252,18 @@ namespace Performancer {
                 ) {
                     result = false;
                     skip = true;
-                    // If the weight is zero, then continue
+                // If the weight is zero, then continue
                 } else if (
                     (__instance is DynamicBone db_10 && (db_10.m_Weight == 0)) ||
                     (__instance is DynamicBone_Ver01 db_11 && (db_11.m_Weight == 0)) ||
                     (__instance is DynamicBone_Ver02 db_12 && (db_12.Weight == 0))
                 ) {
                     result = true;
-                    // If the item / character is edited by KKPE / DBDE, always run
+                // If the item / character is edited by KKPE / DBDE, always run
                 } else if (ConditionalHooks.IsThisDBDE(__instance) || ConditionalHooks.IsThisKKPE(__instance)) {
                     dicDynBonesToUpdate[__instance] = frameAllowance;
                     result = true;
-                    // If a relevant collider has changed, start running
+                // If a relevant collider has changed, start running
                 } else if (
                     (__instance is DynamicBone db_20 && db_20.m_Colliders.Any(x => x != null && Performancer.dicColliderVals.TryGetValue(x, out var dicColls) && dicColls["moved"] is bool moved && moved)) ||
                     (__instance is DynamicBone_Ver01 db_21 && db_21.m_Colliders.Any(x => x != null && Performancer.dicColliderVals.TryGetValue(x, out var dicColls) && dicColls["moved"] is bool moved && moved)) ||
@@ -267,7 +271,7 @@ namespace Performancer {
                 ) {
                     dicDynBonesToUpdate[__instance] = frameAllowance;
                     result = true;
-                    // If some value has changed, start running
+                // If some value has changed, start running
                 } else if (
                     __instance.GetDBPos() is Vector3[] positions && (
                         (__instance is DynamicBone db_30 && (
