@@ -198,7 +198,7 @@ namespace Performancer {
                 IEnumerator GetRefs() {
                     yield return null;
                     yield return null;
-                    if (__instance == null) yield break;
+                    if (!(__instance?.transform != null)) yield break;
                     Transform go = __instance.transform;
                     ChaControl chaCtrl = null;
                     MonoBehaviour poseCtrl = null;
@@ -217,7 +217,7 @@ namespace Performancer {
                         }
                         go = go.parent;
                     }
-                    if (ConditionalHooks.isKKPE && poseCtrl == null) {
+                    if (ConditionalHooks.isKKPE && poseCtrl == null && __instance?.name != null) {
                         Performancer.Instance.Log($"No PoseController found for {__instance.name}!", 1);
                     }
                 }
