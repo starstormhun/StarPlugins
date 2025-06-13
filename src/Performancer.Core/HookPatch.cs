@@ -257,9 +257,9 @@ namespace Performancer {
                     result = true;
                     // If a relevant collider has changed, start running
                 } else if (
-                    (__instance is DynamicBone db_20 && db_20.m_Colliders.Any(x => Performancer.dicColliderVals.TryGetValue(x, out var dicColls) && dicColls["moved"] is bool moved && moved)) ||
-                    (__instance is DynamicBone_Ver01 db_21 && db_21.m_Colliders.Any(x => Performancer.dicColliderVals.TryGetValue(x, out var dicColls) && dicColls["moved"] is bool moved && moved)) ||
-                    (__instance is DynamicBone_Ver02 db_22 && db_22.Colliders.Any(x => Performancer.dicColliderVals.TryGetValue(x, out var dicColls) && dicColls["moved"] is bool moved && moved))
+                    (__instance is DynamicBone db_20 && db_20.m_Colliders.Any(x => x != null && Performancer.dicColliderVals.TryGetValue(x, out var dicColls) && dicColls["moved"] is bool moved && moved)) ||
+                    (__instance is DynamicBone_Ver01 db_21 && db_21.m_Colliders.Any(x => x != null && Performancer.dicColliderVals.TryGetValue(x, out var dicColls) && dicColls["moved"] is bool moved && moved)) ||
+                    (__instance is DynamicBone_Ver02 db_22 && db_22.Colliders.Any(x => x != null && Performancer.dicColliderVals.TryGetValue(x, out var dicColls) && dicColls["moved"] is bool moved && moved))
                 ) {
                     dicDynBonesToUpdate[__instance] = frameAllowance;
                     result = true;
