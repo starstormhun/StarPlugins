@@ -3,12 +3,11 @@ using Studio;
 using BepInEx;
 using HarmonyLib;
 using UnityEngine;
+using System.Linq;
 using System.Collections;
 using Illusion.Extensions;
 using System.Collections.Generic;
 using DynamicBoneDistributionEditor;
-using UniRx.Triggers;
-using System.Linq;
 
 namespace Performancer {
     public static class HookPatch {
@@ -37,7 +36,7 @@ namespace Performancer {
             internal static Dictionary<GuideObject, int> dicGuideObjectsToUpdate = new Dictionary<GuideObject, int>();
             internal static Dictionary<MonoBehaviour, int> dicDynBonesToUpdate = new Dictionary<MonoBehaviour, int>();
 
-            private static List<Transform> iterateList = new List<Transform>();
+            private static List<Transform> guideObjectIterateList = new List<Transform>();
 
             private static bool enableAllGuideObjects = false;
 
@@ -123,14 +122,14 @@ namespace Performancer {
                     }
                     if (id != int.MaxValue) {
                         if (Studio.Studio.Instance.dicObjectCtrl.TryGetValue(id, out var oci)) {
-                            iterateList.Clear();
-                            iterateList.Add(oci.GetObject().transform);
-                            while (iterateList.Count > 0) {
-                                var curr = iterateList.Pop();
+                            guideObjectIterateList.Clear();
+                            guideObjectIterateList.Add(oci.GetObject().transform);
+                            while (guideObjectIterateList.Count > 0) {
+                                var curr = guideObjectIterateList.Pop();
                                 if (dicGuideObjects.ContainsKey(curr)) {
                                     dicGuideObjectsToUpdate[dicGuideObjects[curr]] = 1;
                                 }
-                                iterateList.AddRange(curr.Children());
+                                guideObjectIterateList.AddRange(curr.Children());
 
                                 if (Performancer.OptimiseDynamicBones.Value) {
                                     foreach (var bone in curr.GetComponents<DynamicBone>()) {
@@ -332,11 +331,9 @@ namespace Performancer {
                 if (!result && !skip) {
                     switch (__instance) {
                         case DynamicBone db:
-                            db.InitTransforms();
                             db.ApplyParticlesToTransforms();
                             break;
                         case DynamicBone_Ver01 db:
-                            db.InitTransforms();
                             db.ApplyParticlesToTransforms();
                             break;
                         case DynamicBone_Ver02 db:

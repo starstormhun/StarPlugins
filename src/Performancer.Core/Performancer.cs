@@ -1,12 +1,10 @@
+using Studio;
 using BepInEx;
 using UnityEngine;
 using KKAPI.Utilities;
 using System.Collections;
 using BepInEx.Configuration;
 using System.Collections.Generic;
-using Studio;
-using static RootMotion.FinalIK.IKSolver;
-using System.Linq;
 
 [assembly: System.Reflection.AssemblyFileVersion(Performancer.Performancer.Version)]
 
