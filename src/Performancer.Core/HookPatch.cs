@@ -205,7 +205,7 @@ namespace Performancer {
                     }
                     if (poseCtrl != null) {
                         dicDynBonePoseCtrls.Add(__instance, poseCtrl);
-                    } else if (ConditionalHooks.isKKPE && __instance?.name != null) {
+                    } else if (ConditionalHooks.isKKPE && __instance.name != null) {
                         Performancer.Instance.Log($"No PoseController found for {__instance.name}!", 1);
                     }
                 }
