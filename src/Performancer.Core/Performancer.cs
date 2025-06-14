@@ -20,7 +20,7 @@ namespace Performancer {
 	/// </info>
     public class Performancer : BaseUnityPlugin {
         public const string GUID = "starstorm.performancer";
-        public const string Version = "1.2.5." + BuildNumber.Version;
+        public const string Version = "1.2.6." + BuildNumber.Version;
 
         public static Performancer Instance { get; private set; }
 
