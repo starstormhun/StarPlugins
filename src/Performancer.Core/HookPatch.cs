@@ -197,26 +197,15 @@ namespace Performancer {
                 IEnumerator GetRefs() {
                     yield return null;
                     yield return null;
-                    if (!(__instance?.transform != null)) yield break;
-                    Transform go = __instance.transform;
-                    ChaControl chaCtrl = null;
-                    MonoBehaviour poseCtrl = null;
-                    while (go != null && (chaCtrl == null || (ConditionalHooks.isKKPE && poseCtrl == null))) {
-                        if (chaCtrl == null) {
-                            chaCtrl = go.GetComponent<ChaControl>();
-                            if (chaCtrl != null) {
-                                dicDynBoneCharas.Add(__instance, chaCtrl);
-                            }
-                        }
-                        if (ConditionalHooks.isKKPE && poseCtrl == null) {
-                            poseCtrl = ConditionalHooks.GetPoseControl(go);
-                            if (poseCtrl != null) {
-                                dicDynBonePoseCtrls.Add(__instance, poseCtrl);
-                            }
-                        }
-                        go = go.parent;
+                    if (__instance == null) yield break;
+                    ChaControl chaCtrl = __instance.transform.GetComponentInParent<ChaControl>();
+                    MonoBehaviour poseCtrl = ConditionalHooks.GetPoseControl(__instance.transform);
+                    if (chaCtrl != null) {
+                        dicDynBoneCharas.Add(__instance, chaCtrl);
                     }
-                    if (ConditionalHooks.isKKPE && poseCtrl == null && __instance?.name != null) {
+                    if (poseCtrl != null) {
+                        dicDynBonePoseCtrls.Add(__instance, poseCtrl);
+                    } else if (ConditionalHooks.isKKPE && __instance?.name != null) {
                         Performancer.Instance.Log($"No PoseController found for {__instance.name}!", 1);
                     }
                 }
@@ -463,7 +452,7 @@ namespace Performancer {
                 if (!isKKPE) return null;
                 return DoGetPoseControl();
                 MonoBehaviour DoGetPoseControl() {
-                    return tf.GetComponent<PoseController>();
+                    return tf.GetComponentInParent<PoseController>();
                 }
             }
 
