@@ -1,12 +1,10 @@
+using Studio;
 using BepInEx;
 using UnityEngine;
 using KKAPI.Utilities;
 using System.Collections;
 using BepInEx.Configuration;
 using System.Collections.Generic;
-using Studio;
-using static RootMotion.FinalIK.IKSolver;
-using System.Linq;
 
 [assembly: System.Reflection.AssemblyFileVersion(Performancer.Performancer.Version)]
 
@@ -14,6 +12,7 @@ namespace Performancer {
     [BepInDependency(KKAPI.KoikatuAPI.GUID)]
     [BepInDependency(DynamicBoneDistributionEditor.DBDE.GUID, BepInDependency.DependencyFlags.SoftDependency)]
     [BepInDependency(HSPE.HSPE.GUID, BepInDependency.DependencyFlags.SoftDependency)]
+    [BepInDependency(VideoExport.VideoExport.GUID, BepInDependency.DependencyFlags.SoftDependency)]
     [BepInProcess(KKAPI.KoikatuAPI.StudioProcessName)]
     [BepInPlugin(GUID, "Performancer", Version)]
 	/// <info>
@@ -21,7 +20,7 @@ namespace Performancer {
 	/// </info>
     public class Performancer : BaseUnityPlugin {
         public const string GUID = "starstorm.performancer";
-        public const string Version = "1.2.5." + BuildNumber.Version;
+        public const string Version = "1.2.6." + BuildNumber.Version;
 
         public static Performancer Instance { get; private set; }
 

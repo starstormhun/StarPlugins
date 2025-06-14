@@ -27,6 +27,9 @@
     <Reference Include="KKSPE">
       <HintPath>..\..\lib\KKSPE.dll</HintPath>
     </Reference>
+    <Reference Include="VideoExport">
+      <HintPath>..\..\lib\KKS\VideoExport.dll</HintPath>
+    </Reference>
   </ItemGroup>
   <Import Project="..\Common.Core\Common.Core.projitems" Label="Shared" />
   <Import Project="..\Performancer.Core\Performancer.Core.projitems" Label="Shared" />

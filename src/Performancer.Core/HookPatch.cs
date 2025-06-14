@@ -3,12 +3,11 @@ using Studio;
 using BepInEx;
 using HarmonyLib;
 using UnityEngine;
+using System.Linq;
 using System.Collections;
 using Illusion.Extensions;
 using System.Collections.Generic;
 using DynamicBoneDistributionEditor;
-using UniRx.Triggers;
-using System.Linq;
 
 namespace Performancer {
     public static class HookPatch {
@@ -37,7 +36,7 @@ namespace Performancer {
             internal static Dictionary<GuideObject, int> dicGuideObjectsToUpdate = new Dictionary<GuideObject, int>();
             internal static Dictionary<MonoBehaviour, int> dicDynBonesToUpdate = new Dictionary<MonoBehaviour, int>();
 
-            private static List<Transform> iterateList = new List<Transform>();
+            private static List<Transform> guideObjectIterateList = new List<Transform>();
 
             private static bool enableAllGuideObjects = false;
 
@@ -66,6 +65,10 @@ namespace Performancer {
             [HarmonyPrefix]
             [HarmonyPatch(typeof(GuideObject), "LateUpdate")]
             private static bool GuideObjectBeforeLateUpdate(GuideObject __instance) {
+                if (!Performancer.OptimiseGuideObjectLate.Value) {
+                    return true;
+                }
+
                 if (!dicGuideObjects.ContainsKey(__instance.transformTarget)) {
                     dicGuideObjects[__instance.transformTarget] = __instance;
                 }
@@ -81,10 +84,7 @@ namespace Performancer {
                         { "scale", __instance.m_ChangeAmount.scale }
                     });
                     result = true;
-                // Second check is whether we want to optimise the LateUpdate or not
-                } else if (!Performancer.OptimiseGuideObjectLate.Value) {
-                    result = true;
-                // Whether we have decided it's time to update all guide objects
+                // Second check if we have decided it's time to update all guide objects
                 } else if (enableAllGuideObjects) {
                     result = true;
                     skipChildren = true;
@@ -122,14 +122,14 @@ namespace Performancer {
                     }
                     if (id != int.MaxValue) {
                         if (Studio.Studio.Instance.dicObjectCtrl.TryGetValue(id, out var oci)) {
-                            iterateList.Clear();
-                            iterateList.Add(oci.GetObject().transform);
-                            while (iterateList.Count > 0) {
-                                var curr = iterateList.Pop();
+                            guideObjectIterateList.Clear();
+                            guideObjectIterateList.Add(oci.GetObject().transform);
+                            while (guideObjectIterateList.Count > 0) {
+                                var curr = guideObjectIterateList.Pop();
                                 if (dicGuideObjects.ContainsKey(curr)) {
                                     dicGuideObjectsToUpdate[dicGuideObjects[curr]] = 1;
                                 }
-                                iterateList.AddRange(curr.Children());
+                                guideObjectIterateList.AddRange(curr.Children());
 
                                 if (Performancer.OptimiseDynamicBones.Value) {
                                     foreach (var bone in curr.GetComponents<DynamicBone>()) {
@@ -198,25 +198,14 @@ namespace Performancer {
                     yield return null;
                     yield return null;
                     if (__instance == null) yield break;
-                    Transform go = __instance.transform;
-                    ChaControl chaCtrl = null;
-                    MonoBehaviour poseCtrl = null;
-                    while (go != null && (chaCtrl == null || (ConditionalHooks.isKKPE && poseCtrl == null))) {
-                        if (chaCtrl == null) {
-                            chaCtrl = go.GetComponent<ChaControl>();
-                            if (chaCtrl != null) {
-                                dicDynBoneCharas.Add(__instance, chaCtrl);
-                            }
-                        }
-                        if (ConditionalHooks.isKKPE && poseCtrl == null) {
-                            poseCtrl = ConditionalHooks.GetPoseControl(go);
-                            if (poseCtrl != null) {
-                                dicDynBonePoseCtrls.Add(__instance, poseCtrl);
-                            }
-                        }
-                        go = go.parent;
+                    ChaControl chaCtrl = __instance.transform.GetComponentInParent<ChaControl>();
+                    MonoBehaviour poseCtrl = ConditionalHooks.GetPoseControl(__instance.transform);
+                    if (chaCtrl != null) {
+                        dicDynBoneCharas.Add(__instance, chaCtrl);
                     }
-                    if (ConditionalHooks.isKKPE && poseCtrl == null) {
+                    if (poseCtrl != null) {
+                        dicDynBonePoseCtrls.Add(__instance, poseCtrl);
+                    } else if (ConditionalHooks.isKKPE && __instance.name != null) {
                         Performancer.Instance.Log($"No PoseController found for {__instance.name}!", 1);
                     }
                 }
@@ -227,16 +216,23 @@ namespace Performancer {
             [HarmonyPatch(typeof(DynamicBone_Ver01), "LateUpdate")]
             [HarmonyPatch(typeof(DynamicBone_Ver02), "LateUpdate")]
             private static bool DynamicBonesBeforeLateUpdate(MonoBehaviour __instance) {
+                // If we're not optimising, then always run the Update scripts
+                if (
+                    !Performancer.OptimiseGuideObjectLate.Value ||
+                    !Performancer.OptimiseDynamicBones.Value ||
+                    ConditionalHooks.IsVideoExportRecording()
+                ) {
+                    return true;
+                }
+
                 var dicVal = dicDynBoneVals[__instance];
                 bool result;
                 bool skip = false;
-                // If we don't optimise, then always run the Update scripts
-                if (!Performancer.OptimiseGuideObjectLate.Value || !Performancer.OptimiseDynamicBones.Value) {
+                
+                // If there's leeway time left, continue
+                if (dicDynBonesToUpdate.TryGetValue(__instance, out int framesLeft) && framesLeft > 0) {
                     result = true;
-                    // If there's leeway time left, continue
-                } else if (dicDynBonesToUpdate.TryGetValue(__instance, out int framesLeft) && framesLeft > 0) {
-                    result = true;
-                    // If there are no particles, stop running altogether
+                // If there are no particles, stop running altogether
                 } else if (
                     (__instance is DynamicBone db_00 && (db_00.m_Particles.Count == 0)) ||
                     (__instance is DynamicBone_Ver01 db_01 && (db_01.m_Particles.Count == 0)) ||
@@ -244,26 +240,26 @@ namespace Performancer {
                 ) {
                     result = false;
                     skip = true;
-                    // If the weight is zero, then continue
+                // If the weight is zero, then continue
                 } else if (
                     (__instance is DynamicBone db_10 && (db_10.m_Weight == 0)) ||
                     (__instance is DynamicBone_Ver01 db_11 && (db_11.m_Weight == 0)) ||
                     (__instance is DynamicBone_Ver02 db_12 && (db_12.Weight == 0))
                 ) {
                     result = true;
-                    // If the item / character is edited by KKPE / DBDE, always run
+                // If the item / character is edited by KKPE / DBDE, always run
                 } else if (ConditionalHooks.IsThisDBDE(__instance) || ConditionalHooks.IsThisKKPE(__instance)) {
                     dicDynBonesToUpdate[__instance] = frameAllowance;
                     result = true;
-                    // If a relevant collider has changed, start running
+                // If a relevant collider has changed, start running
                 } else if (
-                    (__instance is DynamicBone db_20 && db_20.m_Colliders.Any(x => Performancer.dicColliderVals.TryGetValue(x, out var dicColls) && dicColls["moved"] is bool moved && moved)) ||
-                    (__instance is DynamicBone_Ver01 db_21 && db_21.m_Colliders.Any(x => Performancer.dicColliderVals.TryGetValue(x, out var dicColls) && dicColls["moved"] is bool moved && moved)) ||
-                    (__instance is DynamicBone_Ver02 db_22 && db_22.Colliders.Any(x => Performancer.dicColliderVals.TryGetValue(x, out var dicColls) && dicColls["moved"] is bool moved && moved))
+                    (__instance is DynamicBone db_20 && db_20.m_Colliders.Any(x => x != null && Performancer.dicColliderVals.TryGetValue(x, out var dicColls) && dicColls["moved"] is bool moved && moved)) ||
+                    (__instance is DynamicBone_Ver01 db_21 && db_21.m_Colliders.Any(x => x != null && Performancer.dicColliderVals.TryGetValue(x, out var dicColls) && dicColls["moved"] is bool moved && moved)) ||
+                    (__instance is DynamicBone_Ver02 db_22 && db_22.Colliders.Any(x => x != null && Performancer.dicColliderVals.TryGetValue(x, out var dicColls) && dicColls["moved"] is bool moved && moved))
                 ) {
                     dicDynBonesToUpdate[__instance] = frameAllowance;
                     result = true;
-                    // If some value has changed, start running
+                // If some value has changed, start running
                 } else if (
                     __instance.GetDBPos() is Vector3[] positions && (
                         (__instance is DynamicBone db_30 && (
@@ -324,11 +320,9 @@ namespace Performancer {
                 if (!result && !skip) {
                     switch (__instance) {
                         case DynamicBone db:
-                            db.InitTransforms();
                             db.ApplyParticlesToTransforms();
                             break;
                         case DynamicBone_Ver01 db:
-                            db.InitTransforms();
                             db.ApplyParticlesToTransforms();
                             break;
                         case DynamicBone_Ver02 db:
@@ -347,7 +341,11 @@ namespace Performancer {
             [HarmonyPatch(typeof(DynamicBone_Ver02), "LateUpdate")]
             private static void DynamicBonesAfterUpdate(MonoBehaviour __instance) {
                 // If we don't optimise, then skip the postfix
-                if (!Performancer.OptimiseGuideObjectLate.Value || !Performancer.OptimiseDynamicBones.Value) {
+                if (
+                    !Performancer.OptimiseGuideObjectLate.Value ||
+                    !Performancer.OptimiseDynamicBones.Value ||
+                    ConditionalHooks.IsVideoExportRecording()
+                ) {
                     return;
                 }
 
@@ -370,7 +368,11 @@ namespace Performancer {
             [HarmonyPatch(typeof(DynamicBone_Ver02), "OnEnable")]
             private static void DynamicBonesAfterOnEnable(MonoBehaviour __instance) {
                 // If we don't optimise, then skip the postfix
-                if (!Performancer.OptimiseGuideObjectLate.Value || !Performancer.OptimiseDynamicBones.Value) {
+                if (
+                    !Performancer.OptimiseGuideObjectLate.Value ||
+                    !Performancer.OptimiseDynamicBones.Value ||
+                    ConditionalHooks.IsVideoExportRecording()
+                ) {
                     return;
                 }
 
@@ -400,6 +402,7 @@ namespace Performancer {
 
             internal static bool isKKPE = false;
             internal static bool isDBDE = false;
+            internal static bool isVideoExport = false;
 
             internal static MonoBehaviour DBDEUI = null;
 
@@ -422,6 +425,9 @@ namespace Performancer {
                     }
                     if (mb.GetType().ToString() == "HSPE.HSPE") {
                         isKKPE = true;
+                    }
+                    if (mb.GetType().ToString() == "VideoExport.VideoExport") {
+                        isVideoExport = true;
                     }
                 }
             }
@@ -446,7 +452,7 @@ namespace Performancer {
                 if (!isKKPE) return null;
                 return DoGetPoseControl();
                 MonoBehaviour DoGetPoseControl() {
-                    return tf.GetComponent<PoseController>();
+                    return tf.GetComponentInParent<PoseController>();
                 }
             }
 
@@ -465,6 +471,13 @@ namespace Performancer {
                 return doIsKKPEOpen();
                 bool doIsKKPEOpen() {
                     return PoseController._drawAdvancedMode;
+                }
+            }
+
+            public static bool IsVideoExportRecording() {
+                return isVideoExport && doIsVideoExportRecording();
+                bool doIsVideoExportRecording() {
+                    return Singleton<VideoExport.VideoExport>.Instance.isRecording;
                 }
             }
         }
