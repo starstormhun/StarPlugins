@@ -172,6 +172,7 @@ namespace BetterScaling {
 
             internal static bool HandleSetScaling(TreeNodeObject tno, bool newVal) {
                 if (dicTNOButtons.TryGetValue(tno, out var extraToggle) && dicTNOScaleHierarchy.TryGetValue(tno, out bool oldVal) && newVal != oldVal) {
+                    // Adjust scaling of children to remain approximately the same size
                     if (BetterScaling.AdjustScales.Value) {
                         var oci = Studio.Studio.Instance.dicInfo[tno];
                         if (oci is OCIChar) {
@@ -207,6 +208,13 @@ namespace BetterScaling {
                             }
                         }
                     }
+
+                    // Activate children to ensure scale updates as intended even after loading
+                    foreach (var child in tno.child) {
+                        TNOAfterStart(child);
+                    }
+
+                    // Save new hierarchy scaling setting
                     dicTNOScaleHierarchy[tno] = newVal;
                     extraToggle.GetComponent<Image>().sprite = newVal ? toggleOn : toggleOff;
                     MakePerformancerUpdate(tno);
