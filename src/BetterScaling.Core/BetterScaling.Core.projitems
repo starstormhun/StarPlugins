@@ -13,6 +13,6 @@
     <Compile Include="$(MSBuildThisFileDirectory)IMG.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Extensions.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)HookPatch.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)SceneDataController.cs" />
+    <Compile Include="..\BetterScaling.Core\BetterScalingDataController.cs" />
   </ItemGroup>
 </Project>
