@@ -180,15 +180,23 @@ namespace BetterScaling {
                                 foreach (var child2 in child1.child) {
                                     Vector3 parentScale;
                                     Vector3 scale;
+                                    Quaternion rotation;
                                     foreach (var child in child2.child) {
+                                        // Get relevant geometry data
                                         var childOCI = Studio.Studio.Instance.dicInfo[child];
                                         parentScale = childOCI.guideObject.transformTarget.parent.lossyScale;
                                         scale = childOCI.guideObject.m_ChangeAmount.scale;
-                                        if (newVal) {
-                                            scale.x /= parentScale.x; scale.y /= parentScale.y; scale.z /= parentScale.z;
-                                        } else {
-                                            scale.x *= parentScale.x; scale.y *= parentScale.y; scale.z *= parentScale.z;
-                                        }
+                                        rotation = childOCI.guideObject.transformTarget.localRotation;
+
+                                        // Adjust parentScale by local rotation;
+                                        parentScale = new Vector3(
+                                            Vector3.Dot(rotation * Vector3.right, (rotation * Vector3.right).ScaleImmut(parentScale)),
+                                            Vector3.Dot(rotation * Vector3.up, (rotation * Vector3.up).ScaleImmut(parentScale)),
+                                            Vector3.Dot(rotation * Vector3.forward, (rotation * Vector3.forward).ScaleImmut(parentScale))
+                                        );
+
+                                        // Apply scale adjustment
+                                        scale = scale.ScaleImmut(newVal ? parentScale.Invert() : parentScale);
                                         childOCI.guideObject.m_ChangeAmount.scale = scale;
                                     }
                                 }
@@ -197,13 +205,20 @@ namespace BetterScaling {
                             Vector3 parentScale = oci.guideObject.transformTarget.lossyScale;
                             var childList = tno.child;
                             foreach (var child in childList) {
+                                // Get relevant geometry data
                                 var childOCI = Studio.Studio.Instance.dicInfo[child];
                                 Vector3 scale = childOCI.guideObject.m_ChangeAmount.scale;
-                                if (newVal) {
-                                    scale.x /= parentScale.x; scale.y /= parentScale.y; scale.z /= parentScale.z;
-                                } else {
-                                    scale.x *= parentScale.x; scale.y *= parentScale.y; scale.z *= parentScale.z;
-                                }
+                                Quaternion rotation = childOCI.guideObject.transformTarget.localRotation;
+
+                                // Adjust parentScale by local rotation
+                                parentScale = new Vector3(
+                                    Vector3.Dot(rotation * Vector3.right, (rotation * Vector3.right).ScaleImmut(parentScale)),
+                                    Vector3.Dot(rotation * Vector3.up, (rotation * Vector3.up).ScaleImmut(parentScale)),
+                                    Vector3.Dot(rotation * Vector3.forward, (rotation * Vector3.forward).ScaleImmut(parentScale))
+                                );
+
+                                // Apply scale adjustment
+                                scale = scale.ScaleImmut(newVal ? parentScale.Invert() : parentScale);
                                 childOCI.guideObject.m_ChangeAmount.scale = scale;
                             }
                         }
