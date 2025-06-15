@@ -226,10 +226,10 @@ namespace BetterScaling {
                     // Register TNO in dictionaries
                     dicGuideToTNO[oci.guideObject] = __instance;
                     if (!dicTNOScaleHierarchy.ContainsKey(__instance)) {
-                        bool contains = SceneDataController.listScaledTNO.Contains(__instance);
+                        bool contains = BetterScalingDataController.listScaledTNO.Contains(__instance);
                         dicTNOScaleHierarchy[__instance] = contains;
                         if (contains) {
-                            SceneDataController.listScaledTNO.Remove(__instance);
+                            BetterScalingDataController.listScaledTNO.Remove(__instance);
                         }
                     }
 

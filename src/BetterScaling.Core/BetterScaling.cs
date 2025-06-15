@@ -45,7 +45,7 @@ namespace BetterScaling {
 
             if (!Enabled.Value) return;
 
-            StudioSaveLoadApi.RegisterExtraBehaviour<SceneDataController>(SceneDataController.SaveID);
+            StudioSaveLoadApi.RegisterExtraBehaviour<BetterScalingDataController>(BetterScalingDataController.SaveID);
 
             HookPatch.Init();
         }

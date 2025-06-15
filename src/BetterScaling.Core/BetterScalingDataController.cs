@@ -8,21 +8,28 @@ using KKAPI.Studio.SaveLoad;
 using System.Collections.Generic;
 
 namespace BetterScaling {
-    internal class SceneDataController : SceneCustomFunctionController {
+    internal class BetterScalingDataController : SceneCustomFunctionController {
         // These CANNOT be changed without breaking existing saved files
         internal const string SaveID = "BetterScalingData";
+        internal const string HierarchyID = "_scaledOCI";
 
         internal static List<TreeNodeObject> listScaledTNO = new List<TreeNodeObject>();
 
         protected override void OnSceneLoad(SceneOperationKind operation, ReadOnlyDictionary<int, ObjectCtrlInfo> loadedItems) {
-            var data = GetExtendedData();
+            if (BetterScaling.IsDebug.Value) BetterScaling.Instance.Log("[BetterScaling] Loading data...", 5);
 
+            var data = GetExtendedData();
             if (data != null) {
-                if ((operation == SceneOperationKind.Load || operation == SceneOperationKind.Import) && data.data.TryGetValue(SaveID + "_scaledOCI", out var saveDataBytes)) {
-                    var saveData = MessagePackSerializer.Deserialize<List<int>>((byte[])saveDataBytes);
+                if (
+                    (operation == SceneOperationKind.Load || operation == SceneOperationKind.Import) &&
+                    data.data.TryGetValue(SaveID + HierarchyID, out var saveDataBytes)
+                ) {
+                    var loadedData = MessagePackSerializer.Deserialize<List<int>>((byte[])saveDataBytes);
+
+                    if (BetterScaling.IsDebug.Value) BetterScaling.Instance.Log($"[BetterScaling] Loading {loadedData.Count} hierarchy-scaled items...", 5);
 
                     listScaledTNO.Clear();
-                    foreach (var dicKey in saveData) {
+                    foreach (var dicKey in loadedData) {
                         if (loadedItems.TryGetValue(dicKey, out var oci)) {
                             if (HookPatch.Hierarchy.dicTNOScaleHierarchy.ContainsKey(oci.treeNodeObject)) {
                                 HookPatch.Hierarchy.dicTNOScaleHierarchy[oci.treeNodeObject] = true;
@@ -41,23 +48,38 @@ namespace BetterScaling {
                         }
                     }
                 }
+            } else {
+                if (BetterScaling.IsDebug.Value) BetterScaling.Instance.Log("[BetterScaling] No data to load!", 5);
             }
         }
 
         protected override void OnSceneSave() {
-            // Transform TNO dictionary into OCI list
+            if (BetterScaling.IsDebug.Value) BetterScaling.Instance.Log("[BetterScaling] Saving data...", 5);
+            // Transform TNO dictionary into OCI ID list
             var saveList = new List<int>();
             foreach (var kvp in HookPatch.Hierarchy.dicTNOScaleHierarchy) {
-                if (kvp.Value) {
-                    saveList.Add(KKAPI.Studio.StudioObjectExtensions.GetSceneId(Studio.Studio.Instance.dicInfo[kvp.Key]));
+                if (kvp.Key != null && kvp.Value) {
+                    if (Studio.Studio.Instance.dicInfo.TryGetValue(kvp.Key, out var oci)) {
+                        int id = KKAPI.Studio.StudioObjectExtensions.GetSceneId(oci);
+                        if (id != -1) {
+                            saveList.Add(id);
+                        } else {
+                            const string msg = "[BetterScaling] Couldn't find hierarchy-scaled OCI ID to save!";
+                            BetterScaling.Instance.Log(msg, 2);
+                            BetterScaling.Instance.Log(msg, 5);
+                        }
+                    }
                 }
             }
 
             // Save
             if (saveList.Count > 0) {
                 var data = new PluginData();
-                data.data.Add(SaveID + "_scaledOCI", MessagePackSerializer.Serialize(saveList));
+                data.data.Add(SaveID + HierarchyID, MessagePackSerializer.Serialize(saveList));
                 SetExtendedData(data);
+                if (BetterScaling.IsDebug.Value) BetterScaling.Instance.Log($"[BetterScaling] Saved {saveList.Count} hierarchy-scaled items!", 5);
+            } else {
+                if (BetterScaling.IsDebug.Value) BetterScaling.Instance.Log("[BetterScaling] NO hierarchy-scaled items found!", 5);
             }
         }
 
