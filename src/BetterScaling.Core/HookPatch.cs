@@ -216,9 +216,12 @@ namespace BetterScaling {
 
                 // Adjust parentScale by local rotation;
                 parentScale = new Vector3(
-                    Vector3.Dot(rotation * Vector3.right, (rotation * Vector3.right).ScaleImmut(parentScale)),
-                    Vector3.Dot(rotation * Vector3.up, (rotation * Vector3.up).ScaleImmut(parentScale)),
-                    Vector3.Dot(rotation * Vector3.forward, (rotation * Vector3.forward).ScaleImmut(parentScale))
+                    Vector3.Dot(rotation * Vector3.right, (rotation * Vector3.right).ScaleImmut(parentScale.Abs())) *
+                        (Mathf.Sign(parentScale.x) < 0 ? -1 : 1),
+                    Vector3.Dot(rotation * Vector3.up, (rotation * Vector3.up).ScaleImmut(parentScale.Abs())) *
+                        (Mathf.Sign(parentScale.y) < 0 ? -1 : 1),
+                    Vector3.Dot(rotation * Vector3.forward, (rotation * Vector3.forward).ScaleImmut(parentScale.Abs())) *
+                        (Mathf.Sign(parentScale.z) < 0 ? -1 : 1)
                 );
 
                 // Apply scale adjustment
