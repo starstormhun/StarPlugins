@@ -10,6 +10,8 @@ namespace BetterScaling {
 
         public static Vector3 Invert(this Vector3 v) => new Vector3(1 / v.x, 1 / v.y, 1 / v.z);
 
+        public static Vector3 Abs(this Vector3 v) => new Vector3(Mathf.Abs(v.x), Mathf.Abs(v.y), Mathf.Abs(v.z));
+
 #if KK
         public static bool TryGetComponent<T>(this Component tf, out T component) {
             component = tf.GetComponent<T>();

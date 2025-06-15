@@ -8,6 +8,7 @@ using System.Linq;
 using UnityEngine.UI;
 using System.Collections;
 using System.Collections.Generic;
+using ADV.Commands.Object;
 
 namespace BetterScaling {
     public static class HookPatch {
@@ -172,41 +173,31 @@ namespace BetterScaling {
 
             internal static bool HandleSetScaling(TreeNodeObject tno, bool newVal) {
                 if (dicTNOButtons.TryGetValue(tno, out var extraToggle) && dicTNOScaleHierarchy.TryGetValue(tno, out bool oldVal) && newVal != oldVal) {
+                    // Adjust scaling of children to remain approximately the same size
                     if (BetterScaling.AdjustScales.Value) {
                         var oci = Studio.Studio.Instance.dicInfo[tno];
                         if (oci is OCIChar) {
                             foreach (var child1 in tno.child) {
                                 foreach (var child2 in child1.child) {
-                                    Vector3 parentScale;
-                                    Vector3 scale;
                                     foreach (var child in child2.child) {
-                                        var childOCI = Studio.Studio.Instance.dicInfo[child];
-                                        parentScale = childOCI.guideObject.transformTarget.parent.lossyScale;
-                                        scale = childOCI.guideObject.m_ChangeAmount.scale;
-                                        if (newVal) {
-                                            scale.x /= parentScale.x; scale.y /= parentScale.y; scale.z /= parentScale.z;
-                                        } else {
-                                            scale.x *= parentScale.x; scale.y *= parentScale.y; scale.z *= parentScale.z;
-                                        }
-                                        childOCI.guideObject.m_ChangeAmount.scale = scale;
+                                        ApplyScaleAdjustment(child, newVal);
                                     }
                                 }
                             }
                         } else {
-                            Vector3 parentScale = oci.guideObject.transformTarget.lossyScale;
                             var childList = tno.child;
                             foreach (var child in childList) {
-                                var childOCI = Studio.Studio.Instance.dicInfo[child];
-                                Vector3 scale = childOCI.guideObject.m_ChangeAmount.scale;
-                                if (newVal) {
-                                    scale.x /= parentScale.x; scale.y /= parentScale.y; scale.z /= parentScale.z;
-                                } else {
-                                    scale.x *= parentScale.x; scale.y *= parentScale.y; scale.z *= parentScale.z;
-                                }
-                                childOCI.guideObject.m_ChangeAmount.scale = scale;
+                                ApplyScaleAdjustment(child, newVal);
                             }
                         }
                     }
+
+                    // Activate children to ensure scale updates as intended even after loading
+                    foreach (var child in tno.child) {
+                        TNOAfterStart(child);
+                    }
+
+                    // Save new hierarchy scaling setting
                     dicTNOScaleHierarchy[tno] = newVal;
                     extraToggle.GetComponent<Image>().sprite = newVal ? toggleOn : toggleOff;
                     MakePerformancerUpdate(tno);
@@ -214,6 +205,28 @@ namespace BetterScaling {
                     return true;
                 }
                 return false;
+            }
+
+            private static void ApplyScaleAdjustment(TreeNodeObject child, bool newVal) {
+                // Get relevant geometry data
+                ObjectCtrlInfo childOCI = Studio.Studio.Instance.dicInfo[child];
+                Vector3 parentScale = childOCI.guideObject.transformTarget.parent.lossyScale;
+                Vector3 scale = childOCI.guideObject.m_ChangeAmount.scale;
+                Quaternion rotation = childOCI.guideObject.transformTarget.localRotation;
+
+                // Adjust parentScale by local rotation;
+                parentScale = new Vector3(
+                    Vector3.Dot(rotation * Vector3.right, (rotation * Vector3.right).ScaleImmut(parentScale.Abs())) *
+                        (Mathf.Sign(parentScale.x) < 0 ? -1 : 1),
+                    Vector3.Dot(rotation * Vector3.up, (rotation * Vector3.up).ScaleImmut(parentScale.Abs())) *
+                        (Mathf.Sign(parentScale.y) < 0 ? -1 : 1),
+                    Vector3.Dot(rotation * Vector3.forward, (rotation * Vector3.forward).ScaleImmut(parentScale.Abs())) *
+                        (Mathf.Sign(parentScale.z) < 0 ? -1 : 1)
+                );
+
+                // Apply scale adjustment
+                scale = scale.ScaleImmut(newVal ? parentScale.Invert() : parentScale);
+                childOCI.guideObject.m_ChangeAmount.scale = scale;
             }
 
             // Register TNO in dictionaries and create toggle button
@@ -226,10 +239,10 @@ namespace BetterScaling {
                     // Register TNO in dictionaries
                     dicGuideToTNO[oci.guideObject] = __instance;
                     if (!dicTNOScaleHierarchy.ContainsKey(__instance)) {
-                        bool contains = SceneDataController.listScaledTNO.Contains(__instance);
+                        bool contains = BetterScalingDataController.listScaledTNO.Contains(__instance);
                         dicTNOScaleHierarchy[__instance] = contains;
                         if (contains) {
-                            SceneDataController.listScaledTNO.Remove(__instance);
+                            BetterScalingDataController.listScaledTNO.Remove(__instance);
                         }
                     }
 
