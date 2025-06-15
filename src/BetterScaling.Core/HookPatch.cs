@@ -8,6 +8,7 @@ using System.Linq;
 using UnityEngine.UI;
 using System.Collections;
 using System.Collections.Generic;
+using ADV.Commands.Object;
 
 namespace BetterScaling {
     public static class HookPatch {
@@ -178,48 +179,15 @@ namespace BetterScaling {
                         if (oci is OCIChar) {
                             foreach (var child1 in tno.child) {
                                 foreach (var child2 in child1.child) {
-                                    Vector3 parentScale;
-                                    Vector3 scale;
-                                    Quaternion rotation;
                                     foreach (var child in child2.child) {
-                                        // Get relevant geometry data
-                                        var childOCI = Studio.Studio.Instance.dicInfo[child];
-                                        parentScale = childOCI.guideObject.transformTarget.parent.lossyScale;
-                                        scale = childOCI.guideObject.m_ChangeAmount.scale;
-                                        rotation = childOCI.guideObject.transformTarget.localRotation;
-
-                                        // Adjust parentScale by local rotation;
-                                        parentScale = new Vector3(
-                                            Vector3.Dot(rotation * Vector3.right, (rotation * Vector3.right).ScaleImmut(parentScale)),
-                                            Vector3.Dot(rotation * Vector3.up, (rotation * Vector3.up).ScaleImmut(parentScale)),
-                                            Vector3.Dot(rotation * Vector3.forward, (rotation * Vector3.forward).ScaleImmut(parentScale))
-                                        );
-
-                                        // Apply scale adjustment
-                                        scale = scale.ScaleImmut(newVal ? parentScale.Invert() : parentScale);
-                                        childOCI.guideObject.m_ChangeAmount.scale = scale;
+                                        ApplyScaleAdjustment(child, newVal);
                                     }
                                 }
                             }
                         } else {
-                            Vector3 parentScale = oci.guideObject.transformTarget.lossyScale;
                             var childList = tno.child;
                             foreach (var child in childList) {
-                                // Get relevant geometry data
-                                var childOCI = Studio.Studio.Instance.dicInfo[child];
-                                Vector3 scale = childOCI.guideObject.m_ChangeAmount.scale;
-                                Quaternion rotation = childOCI.guideObject.transformTarget.localRotation;
-
-                                // Adjust parentScale by local rotation
-                                parentScale = new Vector3(
-                                    Vector3.Dot(rotation * Vector3.right, (rotation * Vector3.right).ScaleImmut(parentScale)),
-                                    Vector3.Dot(rotation * Vector3.up, (rotation * Vector3.up).ScaleImmut(parentScale)),
-                                    Vector3.Dot(rotation * Vector3.forward, (rotation * Vector3.forward).ScaleImmut(parentScale))
-                                );
-
-                                // Apply scale adjustment
-                                scale = scale.ScaleImmut(newVal ? parentScale.Invert() : parentScale);
-                                childOCI.guideObject.m_ChangeAmount.scale = scale;
+                                ApplyScaleAdjustment(child, newVal);
                             }
                         }
                     }
@@ -237,6 +205,25 @@ namespace BetterScaling {
                     return true;
                 }
                 return false;
+            }
+
+            private static void ApplyScaleAdjustment(TreeNodeObject child, bool newVal) {
+                // Get relevant geometry data
+                ObjectCtrlInfo childOCI = Studio.Studio.Instance.dicInfo[child];
+                Vector3 parentScale = childOCI.guideObject.transformTarget.parent.lossyScale;
+                Vector3 scale = childOCI.guideObject.m_ChangeAmount.scale;
+                Quaternion rotation = childOCI.guideObject.transformTarget.localRotation;
+
+                // Adjust parentScale by local rotation;
+                parentScale = new Vector3(
+                    Vector3.Dot(rotation * Vector3.right, (rotation * Vector3.right).ScaleImmut(parentScale)),
+                    Vector3.Dot(rotation * Vector3.up, (rotation * Vector3.up).ScaleImmut(parentScale)),
+                    Vector3.Dot(rotation * Vector3.forward, (rotation * Vector3.forward).ScaleImmut(parentScale))
+                );
+
+                // Apply scale adjustment
+                scale = scale.ScaleImmut(newVal ? parentScale.Invert() : parentScale);
+                childOCI.guideObject.m_ChangeAmount.scale = scale;
             }
 
             // Register TNO in dictionaries and create toggle button
