@@ -1679,6 +1679,10 @@ namespace MassShaderEditor.Koikatu {
         }
 
         private bool GetFirstNonFav(out int _firstNonFav, List<HistoryItem> _history) {
+            if (_history.Count == 0) {
+                _firstNonFav = -1;
+                return false;
+            }
             _firstNonFav = _history.Count - 1;
             while (true) {
                 if (_history[_firstNonFav].favorite) {
