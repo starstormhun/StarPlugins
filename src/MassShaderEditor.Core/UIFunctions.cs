@@ -1589,9 +1589,10 @@ namespace MassShaderEditor.Koikatu {
         private void HistoryAppend(string name, float? val, Color? col, ScaledTex tex) {
             int firstNonFav;
             if (val != null) {
-                if (!GetFirstNonFav(out firstNonFav, floatHist)) return;
-                var last = floatHist[firstNonFav];
-                if ((last.val == val) && (last.name == name)) return;
+                if (GetFirstNonFav(out firstNonFav, floatHist)) {
+                    var last = floatHist[firstNonFav];
+                    if ((last.val == val) && (last.name == name)) return;
+                }
                 if (floatHist.Count == histLength) {
                     floatHist.RemoveAt(0);
                     firstNonFav--;
@@ -1599,9 +1600,10 @@ namespace MassShaderEditor.Koikatu {
                 floatHist.Insert(firstNonFav + 1, new HistoryItem { name = name, val = (float)val });
             }
             if (col != null && col is Color colval) {
-                if (!GetFirstNonFav(out firstNonFav, colHist)) return;
-                var last = colHist[firstNonFav];
-                if (colval.Matches(last.col.ToColor()) && (last.name == name)) return;
+                if (GetFirstNonFav(out firstNonFav, colHist)) {
+                    var last = colHist[firstNonFav];
+                    if (colval.Matches(last.col.ToColor()) && (last.name == name)) return;
+                }
                 if (colHist.Count == histLength) {
                     colHist.RemoveAt(0);
                     firstNonFav--;
@@ -1609,9 +1611,10 @@ namespace MassShaderEditor.Koikatu {
                 colHist.Insert(firstNonFav + 1, new HistoryItem { name = name, col = colval.ToArray() });
             }
             if (tex != null) {
-                if (!GetFirstNonFav(out firstNonFav, texHist)) return;
-                var last = texHist[firstNonFav];
-                if ((last.texData?.GetHashCode() == tex.data?.GetHashCode()) && (last.name == name)) return;
+                if (GetFirstNonFav(out firstNonFav, texHist)) {
+                    var last = texHist[firstNonFav];
+                    if ((last.texData?.GetHashCode() == tex.data?.GetHashCode()) && (last.name == name)) return;
+                }
                 if (texHist.Count == histLength) {
                     texHist.RemoveAt(0);
                     firstNonFav--;
