@@ -491,8 +491,8 @@ namespace MassShaderEditor.Koikatu {
         }
 
         private bool SetStudioProperties<T>(List<ObjectCtrlInfo> _ociList, T _value) {
-            if (KKAPI.Studio.StudioAPI.InsideStudio || UseStudioSelections.Value) {
-                bool inMaker = KKAPI.Maker.MakerAPI.InsideMaker;
+            bool inMaker = KKAPI.Maker.MakerAPI.InsideMaker;
+            if (KKAPI.Studio.StudioAPI.InsideStudio || (inMaker && UseStudioSelections.Value)) {
                 foreach (ObjectCtrlInfo oci in _ociList) {
                     if (oci is OCIItem item) {
                         if (SetItemProperties(controller, item, _value) && fetchValue) return true;
@@ -541,8 +541,11 @@ namespace MassShaderEditor.Koikatu {
                         }
                     }
                 }
-                if (MaterialEditorAPI.MaterialEditorUI.MaterialEditorWindow.gameObject.activeSelf && !fetchValue) MEStudio.Instance.RefreshUI();
-            } else if (KKAPI.Maker.MakerAPI.InsideMaker) {
+                if (MaterialEditorAPI.MaterialEditorUI.MaterialEditorWindow.gameObject.activeSelf && !fetchValue) {
+                    MEMaker.Instance?.RefreshUI();
+                    MEStudio.Instance?.RefreshUI();
+                }
+            } else if (inMaker) {
                 Log("SetStudioProperties should not be called inside Maker without UseStudioSelections!", 3);
             }
             return false;
