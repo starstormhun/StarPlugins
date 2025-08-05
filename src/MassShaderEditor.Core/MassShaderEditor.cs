@@ -787,6 +787,14 @@ namespace MassShaderEditor.Koikatu {
                                         } catch (Exception e) {
                                             Logger.LogError($"Unknown error during property value assignment of {chaName}\\{mat.NameFormatted()}\\{mat.shader.NameFormatted()}\\{setName}: {e}");
                                         }
+                                    } else if ((setName.ToLower().Contains("render queue") || setName.ToLower().Contains("renderqueue") || setName.ToLower().Trim() == "rq") && _value is float floatval) {
+                                        if (setReset) {
+                                            ctrl.RemoveMaterialShaderRenderQueue(slot, type, mat, go);
+                                            if (IsDebug.Value) Log($"Render queue of {chaName}\\{rend.NameFormatted()}\\{mat.NameFormatted()} reset!");
+                                        } else {
+                                            ctrl.SetMaterialShaderRenderQueue(slot, type, mat, (int)Mathf.Floor(floatval), go);
+                                            if (IsDebug.Value) Log($"Render queue of {chaName}\\{rend.NameFormatted()}\\{mat.NameFormatted()} set to {floatval}!");
+                                        }
                                     } else {
                                         if (IsDebug.Value) Log($"{chaName}\\{mat.NameFormatted()}\\{mat.shader.NameFormatted()} did not have the {setName} property...");
                                     }
