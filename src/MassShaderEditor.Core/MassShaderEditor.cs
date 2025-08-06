@@ -11,7 +11,6 @@ using System.Collections.Generic;
 using UnityEngine;
 using KKAPI.Utilities;
 using Illusion.Extensions;
-using System.Collections;
 
 [assembly: System.Reflection.AssemblyFileVersion(MassShaderEditor.Koikatu.MassShaderEditor.Version)]
 
@@ -61,6 +60,7 @@ namespace MassShaderEditor.Koikatu {
         // Advanced
         public ConfigEntry<bool> IsDebug { get; private set; }
         public ConfigEntry<bool> DisableWarning { get; private set; }
+        public ConfigEntry<bool> FallbackKeywords { get; private set; }
         private ConfigEntry<bool> IntroShown { get; set; }
 
         // Data
@@ -106,8 +106,9 @@ namespace MassShaderEditor.Koikatu {
             SetAllHotkey = Config.Bind("Hotkeys", "Modify ALL", new KeyboardShortcut(KeyCode.None), new ConfigDescription("Simulate left-clicking 'Modify ALL'", null, null));
             ResetAllHotkey = Config.Bind("Hotkeys", "Reset ALL", new KeyboardShortcut(KeyCode.None), new ConfigDescription("Simulate right-clicking 'Modify ALL'", null, null));
 
-            DisableWarning = Config.Bind("Advanced", "Disable warning", false, new ConfigDescription("Disable the warning screen for the 'Modify ALL' function.", null, new ConfigurationManagerAttributes { IsAdvanced = true }));
+            DisableWarning = Config.Bind("Advanced", "Disable warning", false, new ConfigDescription("Disable the warning screen for the 'Modify ALL' function", null, new ConfigurationManagerAttributes { IsAdvanced = true }));
             IsDebug = Config.Bind("Advanced", "Logging", false, new ConfigDescription("Enable verbose logging for debugging purposes", null, new ConfigurationManagerAttributes { IsAdvanced = true }));
+            FallbackKeywords = Config.Bind("Advanced", "Keyword Fallback", false, new ConfigDescription("Try setting keywords even if shaders don't seem to have them", null, new ConfigurationManagerAttributes { IsAdvanced = true }));
             IntroShown = Config.Bind("Advanced", "Intro Shown", false, new ConfigDescription("Whether the intro message has been shown already", null, new ConfigurationManagerAttributes { IsAdvanced = true }));
 
             FloatHistory = Config.Bind("Data", "Float History", "", new ConfigDescription("The 10 previously set property name/value pairings", null, new ConfigurationManagerAttributes { Browsable = false }));
@@ -652,6 +653,20 @@ namespace MassShaderEditor.Koikatu {
                                         }
                                     } else {
                                         if (IsDebug.Value) Log($"Material {item.NameFormatted()}\\{mat.NameFormatted()}\\{mat.shader.NameFormatted()} did not have the {setName} property...");
+                                        if (FallbackKeywords.Value && _value is float kwVal) {
+                                            try {
+                                                if (IsDebug.Value) Log($"Starting fallback keyword handling...");
+                                                if (setReset) {
+                                                    ctrl.RemoveMaterialKeywordProperty(item.objectInfo.dicKey, mat, setName);
+                                                    if (IsDebug.Value) Log($"Keyword {item.NameFormatted()}\\{mat.NameFormatted()}\\{setName} reset in fallback handler!");
+                                                } else {
+                                                    ctrl.SetMaterialKeywordProperty(item.objectInfo.dicKey, mat, setName, !Mathf.Approximately(0f, kwVal));
+                                                    if (IsDebug.Value) Log($"Keyword {item.NameFormatted()}\\{mat.NameFormatted()}\\{setName} set in fallback handler!");
+                                                }
+                                            } catch (Exception e) {
+                                                if (IsDebug.Value) Log($"Fallback keyword handling ran into an error:\n{e.Message}\n\nStack:\n{e.StackTrace}", 3);
+                                            }
+                                        }
                                     }
                                 } else if (tab == SettingType.Shader) {
                                     if (setReset || shaders.Contains(setShader.Trim()) || favShaders.Contains(setShader.Trim())) {
@@ -797,6 +812,20 @@ namespace MassShaderEditor.Koikatu {
                                         }
                                     } else {
                                         if (IsDebug.Value) Log($"{chaName}\\{mat.NameFormatted()}\\{mat.shader.NameFormatted()} did not have the {setName} property...");
+                                        if (FallbackKeywords.Value && _value is float kwVal) {
+                                            try {
+                                                if (IsDebug.Value) Log($"Starting fallback keyword handling...");
+                                                if (setReset) {
+                                                    ctrl.RemoveMaterialKeywordProperty(slot, type, mat, setName, go);
+                                                    if (IsDebug.Value) Log($"Keyword {chaName}\\{mat.NameFormatted()}\\{setName} reset in fallback handler!");
+                                                } else {
+                                                    ctrl.SetMaterialKeywordProperty(slot, type, mat, setName, !Mathf.Approximately(0f, kwVal), go);
+                                                    if (IsDebug.Value) Log($"Keyword {chaName}\\{mat.NameFormatted()}\\{setName} set in fallback handler!");
+                                                }
+                                            } catch (Exception e) {
+                                                if (IsDebug.Value) Log($"Fallback keyword handling ran into an error:\n{e.Message}\n\nStack:\n{e.StackTrace}", 3);
+                                            }
+                                        }
                                     }
                                 else if (tab == SettingType.Shader)
                                     if (shaders.Contains(setShader.Trim()) || favShaders.Contains(setShader.Trim()) || setReset) {
