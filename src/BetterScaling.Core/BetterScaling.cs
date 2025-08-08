@@ -1,9 +1,8 @@
+using Studio;
 using BepInEx;
-using UnityEngine.UI;
 using KKAPI.Utilities;
 using BepInEx.Configuration;
 using KKAPI.Studio.SaveLoad;
-using Studio;
 
 [assembly: System.Reflection.AssemblyFileVersion(BetterScaling.BetterScaling.Version)]
 
@@ -18,7 +17,7 @@ namespace BetterScaling {
 	/// </info>
     public class BetterScaling : BaseUnityPlugin {
         public const string GUID = "starstorm.betterscaling";
-        public const string Version = "1.2.0." + BuildNumber.Version;
+        public const string Version = "1.2.1." + BuildNumber.Version;
 
         public static BetterScaling Instance { get; private set; }
 
@@ -28,6 +27,7 @@ namespace BetterScaling {
         public static ConfigEntry<bool> HierarchyScaling { get; private set; }
         public static ConfigEntry<bool> AdjustScales { get; private set; }
         public static ConfigEntry<bool> PreventZeroScale { get; private set; }
+        public static ConfigEntry<bool> DisableFolderScalingWarning { get; private set; }
         public static ConfigEntry<bool> IsDebug { get; private set; }
 
         private void Awake() {
@@ -38,7 +38,8 @@ namespace BetterScaling {
             LogarithmicScaling = Config.Bind("General", "Logaritchmic scaling", true, "The bigger the scale, the faster it scales! And the smaller the scale, the slower it goes. Allows better control across all scales.");
             PreventZeroScale = Config.Bind("General", "Prevent zero-scale", true, "Makes it impossible to scale anything to 0 on any axis, because that makes objects disappear. The minimum scale on any axis is one one millionth. Does not prevent negative scales.");
             HierarchyScaling = Config.Bind("Advanced", "Hierarchy scaling", true, new ConfigDescription("REQUIRES RESTART! Enable toggling of hierarchy scaling. Mark objects in the Workspace window. Marked objects will scale their direct children by their own scale. DO NOT save / modify current scene after changing this setting! WARNING: Toggling this off (default is ON) might break compatibility with scenes created with this setting turned ON.", null, new ConfigurationManagerAttributes { IsAdvanced = true }));
-            AdjustScales = Config.Bind("Advanced", "Auto-adjust scales", true, new ConfigDescription("Auto-adjust item scaling when toggling hierarchy-scaling or parenting to/releasing an item from a hierarchy-scaled object, in order to maintain a constant apparent size. WARNING: Toggling this off (default is ON) might break compatibility with scenes created with this setting turned ON.", null, new ConfigurationManagerAttributes { IsAdvanced = true }));
+            AdjustScales = Config.Bind("Advanced", "Auto-adjust scales", true, new ConfigDescription("Auto-adjust item scaling when toggling hierarchy-scaling or parenting to/releasing an item from a hierarchy-scaled object, in order to maintain a constant apparent size.", null, new ConfigurationManagerAttributes { IsAdvanced = true }));
+            DisableFolderScalingWarning = Config.Bind("Advanced", "Disable Folder Scale Warning", false, new ConfigDescription("Disable the warning message that pops up when loading scenes with mismatched Scale Folders settings. Only use this if you know what you're doing.", null, new ConfigurationManagerAttributes { IsAdvanced = true }));
             IsDebug = Config.Bind("Debug", "Logging", false, new ConfigDescription("Enable verbose logging", null, new ConfigurationManagerAttributes { IsAdvanced = true }));
 
             if (IsDebug.Value) Log("Awoken!");
