@@ -36,7 +36,7 @@ namespace AccMover {
             [HarmonyTranspiler]
             [HarmonyPatch(typeof(CvsAccessoryChange), "CopyAcs")]
             private static IEnumerable<CodeInstruction> CvsAccessoryChangeCopyAcsTranspiler(IEnumerable<CodeInstruction> instructions) {
-                yield return new CodeInstruction(OpCodes.Call, AccessTools.Method(typeof(Hooks), "CvsAccessoryChangeCopyAcsReplacement"));
+                yield return new CodeInstruction(OpCodes.Call, AccessTools.Method(typeof(Hooks), nameof(CvsAccessoryChangeCopyAcsReplacement)));
                 yield return new CodeInstruction(OpCodes.Ret);
             }
             private static void CvsAccessoryChangeCopyAcsReplacement() {
@@ -62,7 +62,7 @@ namespace AccMover {
             [HarmonyTranspiler]
             [HarmonyPatch(typeof(CvsAccessoryCopy), "CopyAcs")]
             private static IEnumerable<CodeInstruction> CvsAccessoryCopyCopyAcsTranspiler(IEnumerable<CodeInstruction> instructions) {
-                yield return new CodeInstruction(OpCodes.Call, AccessTools.Method(typeof(Hooks), "CvsAccessoryCopyCopyAcsReplacement"));
+                yield return new CodeInstruction(OpCodes.Call, AccessTools.Method(typeof(Hooks), nameof(CvsAccessoryCopyCopyAcsReplacement)));
                 yield return new CodeInstruction(OpCodes.Ret);
             }
             private static void CvsAccessoryCopyCopyAcsReplacement() {
@@ -87,7 +87,7 @@ namespace AccMover {
             [HarmonyTranspiler]
             [HarmonyPatch(typeof(CvsClothesCopy), "CopyClothes")]
             private static IEnumerable<CodeInstruction> CvsClothesCopyCopyAcsTranspiler(IEnumerable<CodeInstruction> instructions) {
-                yield return new CodeInstruction(OpCodes.Call, AccessTools.Method(typeof(Hooks), "CvsClothesCopyCopyClothesReplacement"));
+                yield return new CodeInstruction(OpCodes.Call, AccessTools.Method(typeof(Hooks), nameof(CvsClothesCopyCopyClothesReplacement)));
                 yield return new CodeInstruction(OpCodes.Ret);
             }
             private static void CvsClothesCopyCopyClothesReplacement() {
@@ -189,7 +189,7 @@ namespace AccMover {
                         case "org.njaecha.plugins.dbde":
                             var v = plugin.Info.Metadata.Version;
                             if (v.Major <= 1 && v.Minor <= 5 && v.Build < 1) {
-                                AccMover.Instance.Log("[AccMover] Outdated DBDE detected, please update to v1.5.1 or later! AccMover won't be compatible with it until you do.", 5);
+                                AccMover.Instance.Log("[AccMover] Outdated DBDE detected, please update to v2.0.0 or later! DBDE data will fail to copy over until then.", 5);
                             } else {
                                 DBDE = true;
                                 if (_harmony == null) _harmony = Harmony.CreateAndPatchAll(typeof(DBDEHooks));
@@ -473,8 +473,9 @@ namespace AccMover {
                         );
                         List<DBDEDynamicBoneEdit> sourceEditsOriginal = new List<DBDEDynamicBoneEdit>(sourceEdits);
                         for (int i = 0; i < sourceEdits.Count; i++) {
-                            sourceEdits[i] = new DBDEDynamicBoneEdit(() => sourceEdits[i].DynamicBones, sourceEdits[i]) {
-                                ReidentificationData = sourceEdits[i].ReidentificationData
+                            var nowEdit = sourceEdits[i];
+                            sourceEdits[i] = new DBDEDynamicBoneEdit(() => nowEdit.DynamicBones, nowEdit.holder, nowEdit, false) {
+                                ReidentificationData = nowEdit.ReidentificationData
                             };
                         }
                         yield return new WaitForSeconds(0.25f);
@@ -482,9 +483,13 @@ namespace AccMover {
                         for (int i = 0; i < destDBs.Length; i++) {
                             sourcDBs[i].TryGetAccessoryQualifiedName(out string name);
                             int newSlot = destination;
-                            DBDEDynamicBoneEdit sourceEdit = sourceEdits.Find(dbde => dbde.ReidentificationData is KeyValuePair<int, string> kvp && kvp.Value == name);
+                            DBDEDynamicBoneEdit sourceEdit = sourceEdits.Find(dbdebe => dbdebe.ReidentificationData is KeyValuePair<int, string> kvp && kvp.Value == name);
                             if (sourceEdit == null) continue;
-                            __instance.DistributionEdits[__instance.ChaControl.fileStatus.coordinateType].Add(new DBDEDynamicBoneEdit(() => __instance.WouldYouBeSoKindTohandMeTheDynamicBonePlease(name, newSlot), sourceEdit) { ReidentificationData = new KeyValuePair<int, string>(newSlot, name) });
+                            __instance.DistributionEdits[__instance.ChaControl.fileStatus.coordinateType].Add(
+                                new DBDEDynamicBoneEdit(
+                                    () => __instance.WouldYouBeSoKindTohandMeTheDynamicBonePlease(name, newSlot), sourceEdit.holder, sourceEdit, false
+                                ) { ReidentificationData = new KeyValuePair<int, string>(newSlot, name) }
+                            );
                         }
                         foreach (var edit in sourceEditsOriginal) {
                             if (edit.PrimaryDynamicBone != null) edit.ApplyAll();
