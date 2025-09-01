@@ -5,6 +5,7 @@ using MessagePack;
 using System.Linq;
 using UnityEngine;
 using AAAAAAAAAAAA;
+using KKAPI.Utilities;
 using System.Collections;
 using System.Reflection.Emit;
 using System.Collections.Generic;
@@ -24,7 +25,6 @@ namespace AccMover {
             // Setup Harmony and patch methods
             public static void SetupHooks() {
                 _harmony = Harmony.CreateAndPatchAll(typeof(Hooks), null);
-                
             }
 
             // Disable Harmony patches of this plugin
@@ -165,6 +165,46 @@ namespace AccMover {
             private static bool CvsClothesCopyBeforeChangeDstDD(CvsClothesCopy __instance) {
                 var dd = __instance.ddCoordeType[0];
                 return !(dd.value == dd.options.Count - 1) && !disableTransferFuncs;
+            }
+
+            // Propagate acs placement edits
+            private static bool propagating = false;
+            [HarmonyPostfix]
+            [HarmonyPatch(typeof(CvsAccessory), "FuncUpdateAcsPosAdd")]
+            private static void CvsAccessoryAfterFuncUpdateAcsPosAdd(int xyz, bool add, float val) {
+                if (!propagating) PropagateEdit(0, xyz, add, val);
+            }
+            [HarmonyPostfix]
+            [HarmonyPatch(typeof(CvsAccessory), "FuncUpdateAcsRotAdd")]
+            private static void CvsAccessoryAfterFuncUpdateAcsRotAdd(int xyz, bool add, float val) {
+                if (!propagating) PropagateEdit(1, xyz, add, val);
+            }
+            [HarmonyPostfix]
+            [HarmonyPatch(typeof(CvsAccessory), "FuncUpdateAcsSclAdd")]
+            private static void CvsAccessoryAfterFuncUpdateAcsSclAdd(int xyz, bool add, float val) {
+                if (!propagating) PropagateEdit(2, xyz, add, val);
+            }
+            private static void PropagateEdit(int type, int xyz, bool add, float val) {
+                propagating = true;
+
+                var customAcsChangeSlot = Singleton<CustomAcsChangeSlot>.Instance;
+
+                int currentSlot = Singleton<CustomBase>.Instance.selectSlot + 1;
+                foreach (int Slot in AccMover.selectedTransform.Where(x => x != currentSlot)) {
+                    switch (type) {
+                        case 0:
+                            customAcsChangeSlot.cvsAccessory[Slot - 1]?.FuncUpdateAcsPosAdd(0, xyz, add, val);
+                            break;
+                        case 1:
+                            customAcsChangeSlot.cvsAccessory[Slot - 1]?.FuncUpdateAcsRotAdd(0, xyz, add, val);
+                            break;
+                        case 2:
+                            customAcsChangeSlot.cvsAccessory[Slot - 1]?.FuncUpdateAcsSclAdd(0, xyz, add, val);
+                            break;
+                    }
+                }
+
+                propagating = false;
             }
         }
 

@@ -39,7 +39,8 @@ namespace AccMover {
         internal static CvsAccessoryCopy _cvsAccessoryCopy;
         internal static CvsClothesCopy _cvsClothesCopy;
 
-        internal static HashSet<int> selected = new HashSet<int> { 0 };
+        internal static HashSet<int> selectedCopyMove = new HashSet<int> { 0 };
+        internal static HashSet<int> selectedTransform = new HashSet<int> { 0 };
 
         private static int prevAccLength = 0;
         internal static bool moving = false;
@@ -60,8 +61,8 @@ namespace AccMover {
         private void Update() {
             if (_cvsAccessoryChange != null && _cvsAccessoryChange.tglDstKind.Length != prevAccLength) {
                 prevAccLength = _cvsAccessoryChange.tglDstKind.Length;
-                selected.Clear();
-                selected.Add(_cvsAccessoryChange.selSrc);
+                selectedCopyMove.Clear();
+                selectedCopyMove.Add(_cvsAccessoryChange.selSrc);
             }
         }
 
@@ -70,14 +71,17 @@ namespace AccMover {
             var accRoot = GameObject.Find("04_AccessoryTop");
 
             // Setup variables
-            selected = new HashSet<int> { 0 };
+            selectedCopyMove = new HashSet<int> { 0 };
             _cvsAccessoryChange = accRoot.GetComponentInChildren<CvsAccessoryChange>(true);
             _cvsAccessoryCopy = accRoot.GetComponentInChildren<CvsAccessoryCopy>(true);
             _cvsClothesCopy = accRoot.transform.parent.GetComponentInChildren<CvsClothesCopy>(true);
 
-            // Setup transfer selection
+            // Setup selector components
             foreach (var toggle in _cvsAccessoryChange.tglSrcKind) {
-                toggle.transform.GetChild(0).gameObject.AddComponent<Selector>();
+                toggle.transform.GetChild(0).gameObject.AddComponent<SelectorAccMove>();
+            }
+            foreach (var text in Singleton<CustomAcsChangeSlot>.Instance.textSlotNames) {
+                text.transform.parent.parent.gameObject.AddComponent<SelectorAccTransform>();
             }
 
             // Setup transfer UI buttons
@@ -209,26 +213,26 @@ namespace AccMover {
         }
 
         private static void DoCompact() {
-            selected.Clear();
+            selectedCopyMove.Clear();
             int bufferedDst = _cvsAccessoryChange.selDst;
             _cvsAccessoryChange.selDst = 0;
             var accNum = _cvsAccessoryChange.tglDstKind.Where(x => x.isActiveAndEnabled).Count();
             for (int i = 0; i < accNum; i++) {
                 if (_cvsAccessoryChange.chaCtrl.infoAccessory[i] != null) {
-                    selected.Add(i);
+                    selectedCopyMove.Add(i);
                 }
             }
             DoTransfer();
             _cvsAccessoryChange.selSrc = 0;
             _cvsAccessoryChange.selDst = bufferedDst;
-            selected.Clear();
-            selected.Add(0);
+            selectedCopyMove.Clear();
+            selectedCopyMove.Add(0);
         }
 
         private static void DoTransfer() {
             // Prepare
             var accNum = _cvsAccessoryChange.tglDstKind.Where(x => x.isActiveAndEnabled).Count();
-            if (accNum < _cvsAccessoryChange.selDst + selected.Count) {
+            if (accNum < _cvsAccessoryChange.selDst + selectedCopyMove.Count) {
                 Instance.Log("[AccMover] Not enough space to copy/move, please add more slots!", 5);
                 return;
             }
@@ -239,14 +243,14 @@ namespace AccMover {
             var safeSlots = new HashSet<int>();
             int next = _cvsAccessoryChange.selDst;
             for (int idx = 0; idx < accNum; idx++) {
-                if (selected.Contains(idx)) {
+                if (selectedCopyMove.Contains(idx)) {
                     if (idx != next) {
                         dicMovement[idx] = next;
                         movements.Add(new KeyValuePair<int, int>(idx, next));
                     }
                     next++;
                 } else {
-                    if (idx >= _cvsAccessoryChange.selDst && idx < _cvsAccessoryChange.selDst + selected.Count) safeSlots.Add(idx);
+                    if (idx >= _cvsAccessoryChange.selDst && idx < _cvsAccessoryChange.selDst + selectedCopyMove.Count) safeSlots.Add(idx);
                 }
             }
             // Check if there's nothing to do
@@ -276,7 +280,7 @@ namespace AccMover {
                 var kvp = available[0];
                 if (kvp.Key == kvp.Value) continue;
                 movements.Remove(kvp);
-                if ((kvp.Key < bufferedDst + selected.Count) && !safeSlots.Contains(kvp.Key)) safeSlots.Add(kvp.Key);
+                if ((kvp.Key < bufferedDst + selectedCopyMove.Count) && !safeSlots.Contains(kvp.Key)) safeSlots.Add(kvp.Key);
 
                 // Perform movement
                 if (_cvsAccessoryChange.chaCtrl.infoAccessory[kvp.Key] == null) {
@@ -333,10 +337,6 @@ namespace AccMover {
             foreach (int i in dicMovement.Keys) {
                 if (HookPatch.Conditionals.A12) HookPatch.Conditionals.HandleA12After(i, dicMovement);
             }
-        }
-
-        private static void DoCopy() {
-
         }
 
         internal void Log(object data, int level = 0) {

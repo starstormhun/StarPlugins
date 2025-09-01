@@ -28,6 +28,9 @@
     <Reference Include="KKS.DynamicBoneDistributionEditor">
       <HintPath>..\..\lib\KKS_DynamicBoneDistributionEditor.dll</HintPath>
     </Reference>
+    <Reference Include="KKS_MaterialEditor">
+      <HintPath>..\..\lib\KKS_MaterialEditor.dll</HintPath>
+    </Reference>
     <Reference Include="KKS_MoreOutfits">
       <HintPath>..\..\lib\KKS_MoreOutfits.dll</HintPath>
     </Reference>
