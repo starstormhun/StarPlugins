@@ -40,7 +40,7 @@ namespace AccMover {
         internal static CvsClothesCopy _cvsClothesCopy;
 
         internal static HashSet<int> selectedCopyMove = new HashSet<int> { 0 };
-        internal static HashSet<int> selectedTransform = new HashSet<int> { 0 };
+        internal static HashSet<int> selectedTransform = new HashSet<int> { 1 };
 
         private static int prevAccLength = 0;
         internal static bool moving = false;
@@ -67,6 +67,12 @@ namespace AccMover {
         }
 
         private void Setup() {
+            // Reset selections
+            selectedCopyMove.Clear();
+            selectedCopyMove.Add(0);
+            selectedTransform.Clear();
+            selectedTransform.Add(1);
+
             // Get root
             var accRoot = GameObject.Find("04_AccessoryTop");
 
@@ -131,6 +137,10 @@ namespace AccMover {
                 tglCopy.onValueChanged.AddListener(FixAllOption);
                 var tglAccs = accRoot.transform.parent.parent.Find("CvsMainMenu/BaseTop/tglAccessories").GetComponent<Toggle>();
                 tglAccs.onValueChanged.AddListener(FixAllOption);
+                tglAccs.onValueChanged.AddListener((x) => {
+                    selectedTransform.Clear();
+                    selectedTransform.Add(1);
+                });
 
                 void FixAllOption(bool active) {
                     if (active && ddDst.options.IndexOf(allOpt) != ddDst.options.Count - 1) {

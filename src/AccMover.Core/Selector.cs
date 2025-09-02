@@ -91,7 +91,7 @@ namespace AccMover {
     internal class SelectorAccTransform : SelectorBase {
         protected static Color defCol = Color.clear;
         protected static Color inSetCol = Color.clear;
-        protected static int prevSel = 0;
+        protected static int prevSel = 1;
 
         private Toggle.ToggleEvent storedEvent;
         private Toggle.ToggleEvent selfEvent;

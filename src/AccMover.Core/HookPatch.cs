@@ -10,6 +10,8 @@ using System.Collections;
 using System.Reflection.Emit;
 using System.Collections.Generic;
 using DynamicBoneDistributionEditor;
+using ADV.Commands.Base;
+using static UnityEngine.UI.Image;
 
 namespace AccMover {
     public static class HookPatch {
@@ -199,29 +201,32 @@ namespace AccMover {
                 }
             }
 
-            // Propagate acs placement edits
+            // ===================== Mass Accessory Edit Zone =====================
             private static bool propagating = false;
+
+            // Propagate accessory transform edits
             [HarmonyPostfix]
             [HarmonyPatch(typeof(CvsAccessory), "FuncUpdateAcsPosAdd")]
             private static void CvsAccessoryAfterFuncUpdateAcsPosAdd(int xyz, bool add, float val) {
-                if (!propagating) PropagateEdit(0, xyz, add, val);
+                PropagateAccessoryTransformEdit(0, xyz, add, val);
             }
             [HarmonyPostfix]
             [HarmonyPatch(typeof(CvsAccessory), "FuncUpdateAcsRotAdd")]
             private static void CvsAccessoryAfterFuncUpdateAcsRotAdd(int xyz, bool add, float val) {
-                if (!propagating) PropagateEdit(1, xyz, add, val);
+                PropagateAccessoryTransformEdit(1, xyz, add, val);
             }
             [HarmonyPostfix]
             [HarmonyPatch(typeof(CvsAccessory), "FuncUpdateAcsSclAdd")]
             private static void CvsAccessoryAfterFuncUpdateAcsSclAdd(int xyz, bool add, float val) {
-                if (!propagating) PropagateEdit(2, xyz, add, val);
+                PropagateAccessoryTransformEdit(2, xyz, add, val);
             }
-            private static void PropagateEdit(int type, int xyz, bool add, float val) {
+            private static void PropagateAccessoryTransformEdit(int type, int xyz, bool add, float val) {
+                if (propagating) return;
                 propagating = true;
 
                 var customAcsChangeSlot = Singleton<CustomAcsChangeSlot>.Instance;
-
                 int currentSlot = Singleton<CustomBase>.Instance.selectSlot + 1;
+
                 foreach (int Slot in AccMover.selectedTransform.Where(x => x != currentSlot)) {
                     switch (type) {
                         case 0:
@@ -234,6 +239,98 @@ namespace AccMover {
                             customAcsChangeSlot.cvsAccessory[Slot - 1]?.FuncUpdateAcsSclAdd(0, xyz, add, val);
                             break;
                     }
+                }
+
+                propagating = false;
+            }
+
+            // Propagate accessory kind / type / parent edits
+            [HarmonyPrefix]
+            [HarmonyPatch(typeof(CvsAccessory), "UpdateSelectAccessoryKind")]
+            private static void PropagateAccessoryKindEdit(CvsAccessory __instance, string name, Sprite sp, int index) {
+                if (propagating) return;
+
+                var customAcsChangeSlot = Singleton<CustomAcsChangeSlot>.Instance;
+                int currentSlot = Singleton<CustomBase>.Instance.selectSlot + 1;
+                int original = 0;
+                if (__instance.nSlotNo < (__instance.accessory?.parts?.Length ?? 0)) original = __instance.accessory.parts[__instance.nSlotNo].id;
+
+                if (AccMover.IsDebug.Value) {
+                    AccMover.Instance.Log($"#{__instance.nSlotNo} Kind: {original} -> {index}");
+                }
+
+                if (original == index) {
+                    if (AccMover.IsDebug.Value) AccMover.Instance.Log("Skipping propagation!");
+                    return;
+                }
+
+                propagating = true;
+
+                foreach (int Slot in AccMover.selectedTransform.Where(x => x != currentSlot)) {
+                    int selfType = __instance.accessory.parts[__instance.nSlotNo].type - 120;
+                    var propagateSlot = customAcsChangeSlot.cvsAccessory[Slot - 1];
+                    if (propagateSlot == null) continue;
+                    propagateSlot.UpdateSelectAccessoryType(selfType);
+                    propagateSlot.UpdateSelectAccessoryKind(name, sp, index);
+                }
+
+                propagating = false;
+            }
+            [HarmonyPrefix]
+            [HarmonyPatch(typeof(CvsAccessory), "UpdateSelectAccessoryParent")]
+            private static void PropagateAccessoryParentEdit(CvsAccessory __instance, int index) {
+                if (propagating) return;
+
+                var customAcsChangeSlot = Singleton<CustomAcsChangeSlot>.Instance;
+                int currentSlot = Singleton<CustomBase>.Instance.selectSlot + 1;
+                string original = "None";
+                if (__instance.nSlotNo < (__instance.accessory?.parts?.Length ?? 0)) original = __instance.accessory.parts[__instance.nSlotNo].parentKey;
+                string[] array = (
+                    from key in System.Enum.GetNames(typeof(ChaAccessoryDefine.AccessoryParentKey))
+                    where key != "none"
+                    select key
+                ).ToArray();
+
+                if (AccMover.IsDebug.Value) {
+                    AccMover.Instance.Log($"#{__instance.nSlotNo} Parent: {original} -> {array[index]}");
+                }
+
+                if (original == array[index]) {
+                    if (AccMover.IsDebug.Value) AccMover.Instance.Log("Skipping propagation!");
+                    return;
+                }
+                    
+                propagating = true;
+
+                foreach (int Slot in AccMover.selectedTransform.Where(x => x != currentSlot)) {
+                    customAcsChangeSlot.cvsAccessory[Slot - 1]?.UpdateSelectAccessoryParent(index);
+                }
+
+                propagating = false;
+            }
+            [HarmonyPrefix]
+            [HarmonyPatch(typeof(CvsAccessory), "UpdateSelectAccessoryType")]
+            private static void PropagateAccessoryTypeEdit(CvsAccessory __instance, int index) {
+                if (propagating) return;
+
+                var customAcsChangeSlot = Singleton<CustomAcsChangeSlot>.Instance;
+                int currentSlot = Singleton<CustomBase>.Instance.selectSlot + 1;
+                int original = 0;
+                if (__instance.nSlotNo < (__instance.accessory?.parts?.Length ?? 0)) original = __instance.accessory.parts[__instance.nSlotNo].type - 120;
+
+                if (AccMover.IsDebug.Value) {
+                    AccMover.Instance.Log($"#{__instance.nSlotNo} Type: {original} -> {index}");
+                }
+
+                if (original == index) {
+                    if (AccMover.IsDebug.Value) AccMover.Instance.Log("Skipping propagation!");
+                    return;
+                }
+
+                propagating = true;
+
+                foreach (int Slot in AccMover.selectedTransform.Where(x => x != currentSlot)) {
+                    customAcsChangeSlot.cvsAccessory[Slot - 1]?.UpdateSelectAccessoryType(index);
                 }
 
                 propagating = false;
