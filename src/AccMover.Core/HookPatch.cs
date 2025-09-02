@@ -1,3 +1,4 @@
+using TMPro;
 using BepInEx;
 using ChaCustom;
 using HarmonyLib;
@@ -164,6 +165,38 @@ namespace AccMover {
             private static bool CvsClothesCopyBeforeChangeDstDD(CvsClothesCopy __instance) {
                 var dd = __instance.ddCoordeType[0];
                 return !(dd.value == dd.options.Count - 1) && !disableTransferFuncs;
+            }
+
+            // Fix exception when copy is on "all" and changing clothes type
+            private static bool inAllSensitiveFunction = false;
+            private static bool inAllSensitiveAccFunc = false;
+            [HarmonyPrefix]
+            [HarmonyPatch(typeof(CvsClothesCopy), "ChangeHideSubParts")]
+            [HarmonyPatch(typeof(CvsClothesCopy), "ChangeDstDD")]
+            [HarmonyPatch(typeof(CvsAccessoryCopy), "ChangeDstDD")]
+            private static void BeforeAllSensitiveFunction(object __instance) {
+                inAllSensitiveFunction = true;
+                inAllSensitiveAccFunc = __instance.GetType() == typeof(CvsAccessoryCopy);
+            }
+            [HarmonyPostfix]
+            [HarmonyPatch(typeof(CvsClothesCopy), "ChangeHideSubParts")]
+            [HarmonyPatch(typeof(CvsClothesCopy), "ChangeDstDD")]
+            [HarmonyPatch(typeof(CvsAccessoryCopy), "ChangeDstDD")]
+            private static void AfterAllSensitiveFunction() {
+                inAllSensitiveFunction = false;
+                inAllSensitiveAccFunc = false;
+            }
+            [HarmonyPostfix]
+            [HarmonyPatch(typeof(TMP_Dropdown), "value", MethodType.Getter)]
+            private static void AfterGetTMPDropdownValue(TMP_Dropdown __instance, ref int __result) {
+                if (!inAllSensitiveFunction) return;
+                if (__result >= __instance.options.Count() - 1) {
+                    if (inAllSensitiveAccFunc) {
+                        __result = AccMover._cvsAccessoryCopy?.ddCoordeType?[1]?.value ?? 0;
+                    } else {
+                        __result = AccMover._cvsClothesCopy?.ddCoordeType?[1]?.value ?? 0;
+                    }
+                }
             }
 
             // Propagate acs placement edits
