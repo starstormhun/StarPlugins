@@ -113,6 +113,15 @@ namespace AccMover {
                 btnCompact.onClick.AddListener(() => { moving = true; DoCompact(); });
             }
 
+            // Setup selector compatibility for Copy and Transfer tabs
+            {
+                var tglCopy = _cvsAccessoryCopy.transform.parent.GetComponent<Toggle>();
+                var tglTransfer = _cvsAccessoryChange.transform.parent.GetComponent<Toggle>();
+
+                tglCopy.onValueChanged.AddListener(active => SelectorAccTransform.isCopy = active);
+                tglTransfer.onValueChanged.AddListener(active => SelectorAccTransform.isTransfer = active);
+            }
+
             // Setup copy dropdown
             { // Accs
                 var ddDst = _cvsAccessoryCopy.ddCoordeType[0];

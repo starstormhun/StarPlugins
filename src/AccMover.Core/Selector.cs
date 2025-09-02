@@ -1,8 +1,8 @@
 ﻿using System;
+using ChaCustom;
 using UnityEngine;
 using UnityEngine.UI;
 using System.Collections;
-using System.Linq;
 
 namespace AccMover {
     internal abstract class SelectorBase : MonoBehaviour {
@@ -97,6 +97,9 @@ namespace AccMover {
         private Toggle.ToggleEvent selfEvent;
         private Toggle tgl;
 
+        internal static bool isCopy = false;
+        internal static bool isTransfer = false;
+
         private static readonly Color prevSelCol = new Color(1, 0, 0.5f);
 
         private void Start() {
@@ -123,14 +126,18 @@ namespace AccMover {
         }
 
         private void Update() {
-            if ((Event.current.shift || Event.current.control) && tgl.onValueChanged != selfEvent) {
+            if ((Event.current.shift || Event.current.control) && tgl.onValueChanged != selfEvent && !isCopy && !isTransfer) {
                 tgl.onValueChanged = selfEvent;
-            } else if (!Event.current.shift && !Event.current.control && tgl.onValueChanged != storedEvent) {
+            } else if ((isCopy || isTransfer) || (!Event.current.shift && !Event.current.control && tgl.onValueChanged != storedEvent)) {
                 tgl.onValueChanged = storedEvent;
             }
 
             if (Image != null) {
-                Image.color = AccMover.selectedTransform.Contains(Slot) ? (prevSel == Slot ? prevSelCol : inSetCol) : defCol;
+                Image.color = (
+                    AccMover.selectedTransform.Contains(Slot) &&
+                    Singleton<CustomBase>.Instance.selectSlot + 1 != Slot &&
+                    !isCopy && !isTransfer
+                ) ? (prevSel == Slot ? prevSelCol : inSetCol) : defCol;
                 Image.OnDisable();
                 Image.OnEnable();
             }
