@@ -5,7 +5,6 @@ using MessagePack;
 using System.Linq;
 using UnityEngine;
 using AAAAAAAAAAAA;
-using KKAPI.Utilities;
 using System.Collections;
 using System.Reflection.Emit;
 using System.Collections.Generic;
@@ -212,7 +211,7 @@ namespace AccMover {
             private static Harmony _harmony;
             public static bool A12 { get; private set; } = false;
             public static bool ObjImp { get; private set; } = false;
-            public static bool DBDE { get; private set; } = false;
+            public static int DBDEPresence { get; private set; } = 0;
 
             internal static Dictionary<string, List<string>> savedA12MoveParentage = new Dictionary<string, List<string>>();
 
@@ -229,9 +228,13 @@ namespace AccMover {
                         case "org.njaecha.plugins.dbde":
                             var v = plugin.Info.Metadata.Version;
                             if (v.Major <= 1 && v.Minor <= 5 && v.Build < 1) {
-                                AccMover.Instance.Log("[AccMover] Outdated DBDE detected, please update to v2.0.0 or later! DBDE data will fail to copy over until then.", 5);
+                                AccMover.Instance.Log("[AccMover] Outdated DBDE detected, please update to v1.5.1 or later! DBDE data will fail to copy over until then.", 5);
                             } else {
-                                DBDE = true;
+                                if (v.Major >= 2) {
+                                    DBDEPresence = 2;
+                                } else {
+                                    DBDEPresence = 1;
+                                }
                                 if (_harmony == null) _harmony = Harmony.CreateAndPatchAll(typeof(DBDEHooks));
                                 else _harmony.PatchAll(typeof(DBDEHooks));
                             }
@@ -512,12 +515,33 @@ namespace AccMover {
                             dbde => dbde.ReidentificationData is KeyValuePair<int, string> kvp && kvp.Key == source
                         );
                         List<DBDEDynamicBoneEdit> sourceEditsOriginal = new List<DBDEDynamicBoneEdit>(sourceEdits);
+
+                        System.Reflection.ConstructorInfo cons = null;
+                        if (DBDEPresence == 1) {
+                            cons = AccessTools.Constructor(typeof(DBDEDynamicBoneEdit), new[] {typeof(System.Func<List<DynamicBone>>), typeof(DBDEDynamicBoneEdit)});
+                        }
+
+                        // Duplicating edits so they don't get deleted
                         for (int i = 0; i < sourceEdits.Count; i++) {
                             var nowEdit = sourceEdits[i];
-                            sourceEdits[i] = new DBDEDynamicBoneEdit(() => nowEdit.DynamicBones, nowEdit.holder, nowEdit, false) {
-                                ReidentificationData = nowEdit.ReidentificationData
-                            };
+                            if (DBDEPresence == 2) {
+                                sourceEdits[i] = GetDuplicateEdit();
+                                DBDEDynamicBoneEdit GetDuplicateEdit() {
+                                    return new DBDEDynamicBoneEdit(() => nowEdit.DynamicBones, nowEdit.holder, nowEdit, false) {
+                                        ReidentificationData = nowEdit.ReidentificationData
+                                    };
+                                }
+                            } else if (DBDEPresence == 1) {
+                                sourceEdits[i] = (DBDEDynamicBoneEdit)cons.Invoke(new object[] {
+                                    (System.Func<List<DynamicBone>>)(() => nowEdit.DynamicBones),
+                                    nowEdit
+                                });
+                                sourceEdits[i].ReidentificationData = nowEdit.ReidentificationData;
+                            } else {
+                                throw new System.NotImplementedException("DBDE Presence 0 in DBDE Hook???");
+                            }
                         }
+
                         yield return new WaitForSeconds(0.25f);
                         DynamicBone[] destDBs = __instance.ChaControl.GetAccessoryComponent(destination).GetComponentsInChildren<DynamicBone>();
                         for (int i = 0; i < destDBs.Length; i++) {
@@ -525,12 +549,26 @@ namespace AccMover {
                             int newSlot = destination;
                             DBDEDynamicBoneEdit sourceEdit = sourceEdits.Find(dbdebe => dbdebe.ReidentificationData is KeyValuePair<int, string> kvp && kvp.Value == name);
                             if (sourceEdit == null) continue;
-                            __instance.DistributionEdits[__instance.ChaControl.fileStatus.coordinateType].Add(
-                                new DBDEDynamicBoneEdit(
-                                    () => __instance.WouldYouBeSoKindTohandMeTheDynamicBonePlease(name, newSlot), sourceEdit.holder, sourceEdit, false
-                                ) { ReidentificationData = new KeyValuePair<int, string>(newSlot, name) }
-                            );
+
+                            if (DBDEPresence == 2) {
+                                __instance.DistributionEdits[__instance.ChaControl.fileStatus.coordinateType].Add(GetNewEdit());
+                                DBDEDynamicBoneEdit GetNewEdit() {
+                                    return new DBDEDynamicBoneEdit(
+                                        () => __instance.WouldYouBeSoKindTohandMeTheDynamicBonePlease(name, newSlot), sourceEdit.holder, sourceEdit, false
+                                    ) { ReidentificationData = new KeyValuePair<int, string>(newSlot, name) };
+                                }
+                            } else if (DBDEPresence == 1) {
+                                DBDEDynamicBoneEdit newEdit = (DBDEDynamicBoneEdit)cons.Invoke(new object[] {
+                                    (System.Func<List<DynamicBone>>)(() => __instance.WouldYouBeSoKindTohandMeTheDynamicBonePlease(name, newSlot)),
+                                    sourceEdit
+                                });
+                                newEdit.ReidentificationData = new KeyValuePair<int, string>(newSlot, name);
+                                __instance.DistributionEdits[__instance.ChaControl.fileStatus.coordinateType].Add(newEdit);
+                            } else {
+                                throw new System.NotImplementedException("DBDE Presence 0 in DBDE Hook???");
+                            }
                         }
+
                         foreach (var edit in sourceEditsOriginal) {
                             if (edit.PrimaryDynamicBone != null) edit.ApplyAll();
                         }
