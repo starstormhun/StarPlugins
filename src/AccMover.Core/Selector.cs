@@ -38,13 +38,16 @@ namespace AccMover {
 
         private void Update() {
             if (Image != null) {
+                Color prevCol = Image.color;
                 if (AccMover.selectedCopyMove.Contains(Slot)) {
                     Image.color = AccMover._cvsAccessoryChange.selSrc == Slot ? defCol : inSetCol;
                 } else {
                     Image.color = Color.clear;
                 }
-                Image.OnDisable();
-                Image.OnEnable();
+                if (prevCol != Image.color) {
+                    Image.OnDisable();
+                    Image.OnEnable();
+                }
             }
         }
 
@@ -133,13 +136,16 @@ namespace AccMover {
             }
 
             if (Image != null) {
+                Color prevCol = Image.color;
                 Image.color = (
                     AccMover.selectedTransform.Contains(Slot) &&
                     Singleton<CustomBase>.Instance.selectSlot + 1 != Slot &&
                     !isCopy && !isTransfer
                 ) ? (prevSel == Slot ? prevSelCol : inSetCol) : defCol;
-                Image.OnDisable();
-                Image.OnEnable();
+                if (prevCol != Image.color) {
+                    Image.OnDisable();
+                    Image.OnEnable();
+                }
             }
         }
 

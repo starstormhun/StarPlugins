@@ -12,7 +12,6 @@ using System.Collections;
 using System.Reflection.Emit;
 using System.Collections.Generic;
 using DynamicBoneDistributionEditor;
-using IllusionUtility.GetUtility;
 
 namespace AccMover {
     public static class HookPatch {
@@ -204,13 +203,24 @@ namespace AccMover {
 
             // ===================== Mass Accessory Edit Zone =====================
             private static bool propagating = false;
-            private static bool IsIndependentNMove2(int Slot, out Transform nMove2) {
-                nMove2 = null;
-                Transform acc = Singleton<CustomAcsChangeSlot>.Instance.chaCtrl.objAccessory[Slot - 1]?.transform;
-                if (acc == null) return false;
-                nMove2 = acc.FindChildDeep("N_move2")?.transform;
+            private static CustomAcsChangeSlot m_CustomAcsChangeSlot = null;
+            private static CustomAcsChangeSlot CustomAcsChangeSlot {
+                get {
+                    if (m_CustomAcsChangeSlot == null) m_CustomAcsChangeSlot = Singleton<CustomAcsChangeSlot>.Instance;
+                    return m_CustomAcsChangeSlot;
+                }
+            }
+            private static CustomBase m_CustomBase = null;
+            private static CustomBase CustomBase {
+                get {
+                    if (m_CustomBase == null) m_CustomBase = Singleton<CustomBase>.Instance;
+                    return m_CustomBase;
+                }
+            }
+            private static bool IsIndependentNMove2(CvsAccessory cvsAcc) {
+                Transform nMove2 = cvsAcc.chaCtrl.objAcsMove[cvsAcc.nSlotNo, 1]?.transform;
                 if (nMove2 == null) return false;
-                Transform nMove = acc.FindChildDeep("N_move")?.transform;
+                Transform nMove = cvsAcc.chaCtrl.objAcsMove[cvsAcc.nSlotNo, 0]?.transform;
                 if (nMove == null) return true;
                 return !nMove2.IsChildOf(nMove);
             }
@@ -235,13 +245,12 @@ namespace AccMover {
                 if (propagating) return;
                 propagating = true;
 
-                var customAcsChangeSlot = Singleton<CustomAcsChangeSlot>.Instance;
-                int currentSlot = Singleton<CustomBase>.Instance.selectSlot + 1;
+                int currentSlot = CustomBase.selectSlot + 1;
 
                 foreach (int Slot in AccMover.selectedTransform.Where(x => x != currentSlot)) {
-                    var cvsAccCurr = customAcsChangeSlot.cvsAccessory[Slot - 1];
+                    var cvsAccCurr = CustomAcsChangeSlot.cvsAccessory[Slot - 1];
                     if (cvsAccCurr == null) continue;
-                    if (IsIndependentNMove2(Slot, out _)) {
+                    if (IsIndependentNMove2(cvsAccCurr)) {
                         switch (type) {
                             case 0:
                                 cvsAccCurr.FuncUpdateAcsPosAdd(0, xyz, add, val);
@@ -281,8 +290,7 @@ namespace AccMover {
                 if (__instance.isDrag[0] || __instance.isDrag[1] || __instance.cmpGuid[0]?.isDrag == true || __instance.cmpGuid[1]?.isDrag == true) return false;
                 if (propagating) return true;
 
-                var customAcsChangeSlot = Singleton<CustomAcsChangeSlot>.Instance;
-                int currentSlot = Singleton<CustomBase>.Instance.selectSlot + 1;
+                int currentSlot = CustomBase.selectSlot + 1;
                 int original = 0;
                 if (__instance.nSlotNo < (__instance.accessory?.parts?.Length ?? 0)) original = __instance.accessory.parts[__instance.nSlotNo].id;
 
@@ -299,7 +307,7 @@ namespace AccMover {
 
                 foreach (int Slot in AccMover.selectedTransform.Where(x => x != currentSlot)) {
                     int selfType = __instance.accessory.parts[__instance.nSlotNo].type - 120;
-                    var propagateSlot = customAcsChangeSlot.cvsAccessory[Slot - 1];
+                    var propagateSlot = CustomAcsChangeSlot.cvsAccessory[Slot - 1];
                     if (propagateSlot == null) continue;
                     propagateSlot.UpdateSelectAccessoryType(selfType);
                     propagateSlot.UpdateSelectAccessoryKind(name, sp, index);
@@ -316,7 +324,7 @@ namespace AccMover {
                 // Transform preservation
                 if (AccMover.preserveTransforms) {
                     AccMover.Instance.Log("Preserving transforms!");
-                    Transform acc = Singleton<CustomAcsChangeSlot>.Instance.chaCtrl.objAccessory[__instance.nSlotNo]?.transform;
+                    Transform acc = __instance.chaCtrl.objAccessory[__instance.nSlotNo]?.transform;
                     if (acc == null) return;
                     __state = new List<Vector3?>();
                     Transform nMove = acc.FindChildDeep("N_move")?.transform;
@@ -329,7 +337,8 @@ namespace AccMover {
                     } else {
                         __state.Add(null);
                     }
-                    if (IsIndependentNMove2(__instance.nSlotNo + 1, out Transform nMove2)) {
+                    if (IsIndependentNMove2(__instance)) {
+                        Transform nMove2 = __instance.chaCtrl.objAcsMove[__instance.nSlotNo, 1].transform;
                         __state.Add(nMove2.position);
                         __state.Add(nMove2.eulerAngles);
                         __state.Add(nMove2.lossyScale);
@@ -341,8 +350,7 @@ namespace AccMover {
                 // Propagation
                 if (propagating) return;
 
-                var customAcsChangeSlot = Singleton<CustomAcsChangeSlot>.Instance;
-                int currentSlot = Singleton<CustomBase>.Instance.selectSlot + 1;
+                int currentSlot = CustomBase.selectSlot + 1;
                 string original = "None";
                 if (__instance.nSlotNo < (__instance.accessory?.parts?.Length ?? 0)) original = __instance.accessory.parts[__instance.nSlotNo].parentKey;
                 string[] array = (
@@ -363,7 +371,7 @@ namespace AccMover {
                 propagating = true;
 
                 foreach (int Slot in AccMover.selectedTransform.Where(x => x != currentSlot)) {
-                    customAcsChangeSlot.cvsAccessory[Slot - 1]?.UpdateSelectAccessoryParent(index);
+                    CustomAcsChangeSlot.cvsAccessory[Slot - 1]?.UpdateSelectAccessoryParent(index);
                 }
 
                 propagating = false;
@@ -373,8 +381,7 @@ namespace AccMover {
             private static void PropagateAccessoryTypeEdit(CvsAccessory __instance, int index) {
                 if (propagating) return;
 
-                var customAcsChangeSlot = Singleton<CustomAcsChangeSlot>.Instance;
-                int currentSlot = Singleton<CustomBase>.Instance.selectSlot + 1;
+                int currentSlot = CustomBase.selectSlot + 1;
                 int original = 0;
                 if (__instance.nSlotNo < (__instance.accessory?.parts?.Length ?? 0)) original = __instance.accessory.parts[__instance.nSlotNo].type - 120;
 
@@ -390,7 +397,7 @@ namespace AccMover {
                 propagating = true;
 
                 foreach (int Slot in AccMover.selectedTransform.Where(x => x != currentSlot)) {
-                    customAcsChangeSlot.cvsAccessory[Slot - 1]?.UpdateSelectAccessoryType(index);
+                    CustomAcsChangeSlot.cvsAccessory[Slot - 1]?.UpdateSelectAccessoryType(index);
                 }
 
                 propagating = false;
@@ -417,11 +424,10 @@ namespace AccMover {
                 refGO.transform.parent = guide.parent;
                 refGO.transform.position = __instance.cmpGuid[guidNo].amount.position;
                 refGO.transform.eulerAngles = __instance.cmpGuid[guidNo].amount.rotation;
-                var customAcsChangeSlot = Singleton<CustomAcsChangeSlot>.Instance;
                 if (guidNo == 0 ? __instance.tglControllerType01[0].isOn : __instance.tglControllerType02[0].isOn) {
                     Vector3 posAdjust = (refGO.transform.localPosition - guide.localPosition) * 100;
                     foreach (int Slot in AccMover.selectedTransform.Where(x => x != __instance.nSlotNo + 1)) {
-                        var cvsAccCurr = customAcsChangeSlot.cvsAccessory[Slot - 1];
+                        var cvsAccCurr = CustomAcsChangeSlot.cvsAccessory[Slot - 1];
                         if (cvsAccCurr == null) continue;
                         cvsAccCurr.FuncUpdateAcsPosAdd(guidNo, 0, true, posAdjust.x);
                         cvsAccCurr.FuncUpdateAcsPosAdd(guidNo, 1, true, posAdjust.y);
@@ -430,7 +436,7 @@ namespace AccMover {
                 } else {
                     Vector3 rotAdjust = refGO.transform.localEulerAngles - guide.localEulerAngles;
                     foreach (int Slot in AccMover.selectedTransform.Where(x => x != __instance.nSlotNo + 1)) {
-                        var cvsAccCurr = customAcsChangeSlot.cvsAccessory[Slot - 1];
+                        var cvsAccCurr = CustomAcsChangeSlot.cvsAccessory[Slot - 1];
                         if (cvsAccCurr == null) continue;
                         cvsAccCurr.FuncUpdateAcsRotAdd(guidNo, 0, true, rotAdjust.x);
                         cvsAccCurr.FuncUpdateAcsRotAdd(guidNo, 1, true, rotAdjust.y);
@@ -456,26 +462,27 @@ namespace AccMover {
                 if (AccMover.preserveTransforms) {
                     AccMover.Instance.Log("Applying preserved transform!");
                     if (__state == null || !(__state.Count == 3 || __state.Count == 4 || __state.Count == 6)) return;
-                    Transform acc = Singleton<CustomAcsChangeSlot>.Instance.chaCtrl.objAccessory[__instance.nSlotNo]?.transform;
+                    Transform acc = __instance.chaCtrl.objAccessory[__instance.nSlotNo]?.transform;
                     if (acc == null) return;
                     Transform nMove;
                     Transform nMove2;
                     switch (__state.Count) {
                         case 3:
-                            nMove = acc.FindChildDeep("N_move")?.transform;
+                            nMove = __instance.chaCtrl.objAcsMove[__instance.nSlotNo, 0].transform;
                             ApplyTransforms(__state, nMove, 0, 0);
                             break;
                         case 4:
-                            nMove2 = acc.FindChildDeep("N_move2")?.transform;
+                            nMove2 = __instance.chaCtrl.objAcsMove[__instance.nSlotNo, 1].transform;
                             ApplyTransforms(__state, nMove2, 1, 1);
                             break;
                         case 6:
-                            nMove = acc.FindChildDeep("N_move")?.transform;
-                            nMove2 = acc.FindChildDeep("N_move2")?.transform;
+                            nMove = __instance.chaCtrl.objAcsMove[__instance.nSlotNo, 0].transform;
+                            nMove2 = __instance.chaCtrl.objAcsMove[__instance.nSlotNo, 1].transform;
                             ApplyTransforms(__state, nMove, 0, 0);
                             ApplyTransforms(__state, nMove2, 3, 1);
                             break;
                     }
+                    __instance.UpdateAccessoryMoveInfo();
                 }
 
                 void ApplyTransforms(List<Vector3?> state, Transform tf, int offset, int correctNo) {
@@ -500,7 +507,6 @@ namespace AccMover {
                         AccMover.Instance.Log($"Transform adjustments calculated! P: {posAdjust * 100}, R: {rotAdjust}, S: {sclAdjust}");
 
                     __instance.FuncUpdateAcsMovePaste(correctNo, new[] { posAdjust * 100, rotAdjust, sclAdjust });
-                    __instance.UpdateAccessoryMoveInfo();
                 }
             }
         }
