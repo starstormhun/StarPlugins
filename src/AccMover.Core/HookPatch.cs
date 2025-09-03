@@ -1,17 +1,18 @@
 using TMPro;
 using BepInEx;
 using ChaCustom;
+using StrayTech;
 using HarmonyLib;
 using MessagePack;
 using System.Linq;
 using UnityEngine;
 using AAAAAAAAAAAA;
+using UnityEngine.UI;
 using System.Collections;
 using System.Reflection.Emit;
 using System.Collections.Generic;
 using DynamicBoneDistributionEditor;
-using ADV.Commands.Base;
-using static UnityEngine.UI.Image;
+using IllusionUtility.GetUtility;
 
 namespace AccMover {
     public static class HookPatch {
@@ -203,6 +204,16 @@ namespace AccMover {
 
             // ===================== Mass Accessory Edit Zone =====================
             private static bool propagating = false;
+            private static bool IsIndependentNMove2(int Slot, out Transform nMove2) {
+                nMove2 = null;
+                Transform acc = Singleton<CustomAcsChangeSlot>.Instance.chaCtrl.objAccessory[Slot - 1]?.transform;
+                if (acc == null) return false;
+                nMove2 = acc.FindChildDeep("N_move2")?.transform;
+                if (nMove2 == null) return false;
+                Transform nMove = acc.FindChildDeep("N_move")?.transform;
+                if (nMove == null) return true;
+                return !nMove2.IsChildOf(nMove);
+            }
 
             // Propagate accessory transform edits
             [HarmonyPostfix]
@@ -228,16 +239,35 @@ namespace AccMover {
                 int currentSlot = Singleton<CustomBase>.Instance.selectSlot + 1;
 
                 foreach (int Slot in AccMover.selectedTransform.Where(x => x != currentSlot)) {
-                    switch (type) {
-                        case 0:
-                            customAcsChangeSlot.cvsAccessory[Slot - 1]?.FuncUpdateAcsPosAdd(0, xyz, add, val);
-                            break;
-                        case 1:
-                            customAcsChangeSlot.cvsAccessory[Slot - 1]?.FuncUpdateAcsRotAdd(0, xyz, add, val);
-                            break;
-                        case 2:
-                            customAcsChangeSlot.cvsAccessory[Slot - 1]?.FuncUpdateAcsSclAdd(0, xyz, add, val);
-                            break;
+                    var cvsAccCurr = customAcsChangeSlot.cvsAccessory[Slot - 1];
+                    if (cvsAccCurr == null) continue;
+                    if (IsIndependentNMove2(Slot, out _)) {
+                        switch (type) {
+                            case 0:
+                                cvsAccCurr.FuncUpdateAcsPosAdd(0, xyz, add, val);
+                                cvsAccCurr.FuncUpdateAcsPosAdd(1, xyz, add, val);
+                                break;
+                            case 1:
+                                cvsAccCurr.FuncUpdateAcsRotAdd(0, xyz, add, val);
+                                cvsAccCurr.FuncUpdateAcsRotAdd(1, xyz, add, val);
+                                break;
+                            case 2:
+                                cvsAccCurr.FuncUpdateAcsSclAdd(0, xyz, add, val);
+                                cvsAccCurr.FuncUpdateAcsSclAdd(1, xyz, add, val);
+                                break;
+                        }
+                    } else {
+                        switch (type) {
+                            case 0:
+                                cvsAccCurr.FuncUpdateAcsPosAdd(0, xyz, add, val);
+                                break;
+                            case 1:
+                                cvsAccCurr.FuncUpdateAcsRotAdd(0, xyz, add, val);
+                                break;
+                            case 2:
+                                cvsAccCurr.FuncUpdateAcsSclAdd(0, xyz, add, val);
+                                break;
+                        }
                     }
                 }
 
@@ -247,8 +277,9 @@ namespace AccMover {
             // Propagate accessory kind / type / parent edits
             [HarmonyPrefix]
             [HarmonyPatch(typeof(CvsAccessory), "UpdateSelectAccessoryKind")]
-            private static void PropagateAccessoryKindEdit(CvsAccessory __instance, string name, Sprite sp, int index) {
-                if (propagating) return;
+            private static bool PropagateAccessoryKindEdit(CvsAccessory __instance, string name, Sprite sp, int index) {
+                if (__instance.isDrag[0] || __instance.isDrag[1] || __instance.cmpGuid[0]?.isDrag == true || __instance.cmpGuid[1]?.isDrag == true) return false;
+                if (propagating) return true;
 
                 var customAcsChangeSlot = Singleton<CustomAcsChangeSlot>.Instance;
                 int currentSlot = Singleton<CustomBase>.Instance.selectSlot + 1;
@@ -261,7 +292,7 @@ namespace AccMover {
 
                 if (original == index) {
                     if (AccMover.IsDebug.Value) AccMover.Instance.Log("Skipping propagation!");
-                    return;
+                    return true;
                 }
 
                 propagating = true;
@@ -275,10 +306,39 @@ namespace AccMover {
                 }
 
                 propagating = false;
+
+                return true;
             }
             [HarmonyPrefix]
             [HarmonyPatch(typeof(CvsAccessory), "UpdateSelectAccessoryParent")]
-            private static void PropagateAccessoryParentEdit(CvsAccessory __instance, int index) {
+            // Also sets up transform preservation
+            private static void PropagateAccessoryParentEdit(CvsAccessory __instance, int index, ref List<Vector3?> __state) {
+                // Transform preservation
+                if (AccMover.preserveTransforms) {
+                    AccMover.Instance.Log("Preserving transforms!");
+                    Transform acc = Singleton<CustomAcsChangeSlot>.Instance.chaCtrl.objAccessory[__instance.nSlotNo]?.transform;
+                    if (acc == null) return;
+                    __state = new List<Vector3?>();
+                    Transform nMove = acc.FindChildDeep("N_move")?.transform;
+                    if (nMove != null) {
+                        __state.Add(nMove.position);
+                        __state.Add(nMove.eulerAngles);
+                        __state.Add(nMove.lossyScale);
+                        if (AccMover.IsDebug.Value)
+                            AccMover.Instance.Log($"N_move transforms saved: P: {nMove.position}, R: {nMove.eulerAngles}, S: {nMove.lossyScale}");
+                    } else {
+                        __state.Add(null);
+                    }
+                    if (IsIndependentNMove2(__instance.nSlotNo + 1, out Transform nMove2)) {
+                        __state.Add(nMove2.position);
+                        __state.Add(nMove2.eulerAngles);
+                        __state.Add(nMove2.lossyScale);
+                        if (AccMover.IsDebug.Value)
+                            AccMover.Instance.Log($"N_move2 transforms saved: P: {nMove2.position}, R: {nMove2.eulerAngles}, S: {nMove2.lossyScale}");
+                    }
+                }
+
+                // Propagation
                 if (propagating) return;
 
                 var customAcsChangeSlot = Singleton<CustomAcsChangeSlot>.Instance;
@@ -334,6 +394,114 @@ namespace AccMover {
                 }
 
                 propagating = false;
+            }
+
+            // Propagate axis transforms
+            [HarmonyPrefix]
+            [HarmonyPatch(typeof(CvsAccessory), "SetAccessoryTransform")]
+            private static void BeforeCvsAccessorySetAccessoryTransform(CvsAccessory __instance, int guidNo, bool updateInfo) {
+                Transform guide = __instance.chaCtrl.objAcsMove[__instance.nSlotNo, guidNo].transform;
+                if (
+                    guide == null ||
+                    __instance.tglControllerType01 == null ||
+                    __instance.tglControllerType01.Length == 0 ||
+                    __instance.tglControllerType02 == null ||
+                    __instance.tglControllerType02.Length == 0
+                ) {
+                    return;
+                }
+
+                propagating = true;
+
+                GameObject refGO = new GameObject();
+                refGO.transform.parent = guide.parent;
+                refGO.transform.position = __instance.cmpGuid[guidNo].amount.position;
+                refGO.transform.eulerAngles = __instance.cmpGuid[guidNo].amount.rotation;
+                var customAcsChangeSlot = Singleton<CustomAcsChangeSlot>.Instance;
+                if (guidNo == 0 ? __instance.tglControllerType01[0].isOn : __instance.tglControllerType02[0].isOn) {
+                    Vector3 posAdjust = (refGO.transform.localPosition - guide.localPosition) * 100;
+                    foreach (int Slot in AccMover.selectedTransform.Where(x => x != __instance.nSlotNo + 1)) {
+                        var cvsAccCurr = customAcsChangeSlot.cvsAccessory[Slot - 1];
+                        if (cvsAccCurr == null) continue;
+                        cvsAccCurr.FuncUpdateAcsPosAdd(guidNo, 0, true, posAdjust.x);
+                        cvsAccCurr.FuncUpdateAcsPosAdd(guidNo, 1, true, posAdjust.y);
+                        cvsAccCurr.FuncUpdateAcsPosAdd(guidNo, 2, true, posAdjust.z);
+                    }
+                } else {
+                    Vector3 rotAdjust = refGO.transform.localEulerAngles - guide.localEulerAngles;
+                    foreach (int Slot in AccMover.selectedTransform.Where(x => x != __instance.nSlotNo + 1)) {
+                        var cvsAccCurr = customAcsChangeSlot.cvsAccessory[Slot - 1];
+                        if (cvsAccCurr == null) continue;
+                        cvsAccCurr.FuncUpdateAcsRotAdd(guidNo, 0, true, rotAdjust.x);
+                        cvsAccCurr.FuncUpdateAcsRotAdd(guidNo, 1, true, rotAdjust.y);
+                        cvsAccCurr.FuncUpdateAcsRotAdd(guidNo, 2, true, rotAdjust.z);
+                    }
+                }
+                Object.DestroyImmediate(refGO);
+
+                propagating = false;
+            }
+
+            // Update Preserve toggle on opening new accessory slot
+            [HarmonyPostfix]
+            [HarmonyPatch(typeof(CvsAccessory), "CalculateUI")]
+            private static void AfterCvsAccessoryCalculateUI(CvsAccessory __instance) {
+                __instance.transform.FindChildDeep("tglPreserveTransform").GetComponentInChildren<Toggle>().isOn = AccMover.preserveTransforms;
+            }
+
+            // Handle transform presevation
+            [HarmonyPostfix]
+            [HarmonyPatch(typeof(CvsAccessory), "UpdateSelectAccessoryParent")]
+            private static void AfterCvsAccessoryUpdateSelectAccessoryParent(CvsAccessory __instance, ref List<Vector3?> __state) {
+                if (AccMover.preserveTransforms) {
+                    AccMover.Instance.Log("Applying preserved transform!");
+                    if (__state == null || !(__state.Count == 3 || __state.Count == 4 || __state.Count == 6)) return;
+                    Transform acc = Singleton<CustomAcsChangeSlot>.Instance.chaCtrl.objAccessory[__instance.nSlotNo]?.transform;
+                    if (acc == null) return;
+                    Transform nMove;
+                    Transform nMove2;
+                    switch (__state.Count) {
+                        case 3:
+                            nMove = acc.FindChildDeep("N_move")?.transform;
+                            ApplyTransforms(__state, nMove, 0, 0);
+                            break;
+                        case 4:
+                            nMove2 = acc.FindChildDeep("N_move2")?.transform;
+                            ApplyTransforms(__state, nMove2, 1, 1);
+                            break;
+                        case 6:
+                            nMove = acc.FindChildDeep("N_move")?.transform;
+                            nMove2 = acc.FindChildDeep("N_move2")?.transform;
+                            ApplyTransforms(__state, nMove, 0, 0);
+                            ApplyTransforms(__state, nMove2, 3, 1);
+                            break;
+                    }
+                }
+
+                void ApplyTransforms(List<Vector3?> state, Transform tf, int offset, int correctNo) {
+                    Vector3 pos = state[offset].Value;
+                    Vector3 rot = state[offset + 1].Value;
+                    Vector3 scl = state[offset + 2].Value;
+
+                    tf.position = pos;
+                    Vector3 posAdjust = tf.localPosition;
+
+                    tf.eulerAngles = rot;
+                    Vector3 rotAdjust = tf.localEulerAngles;
+
+                    var tfScl = tf.lossyScale;
+                    if (tfScl.x < 1E-02f) tfScl.x = 1E-02f;
+                    if (tfScl.y < 1E-02f) tfScl.y = 1E-02f;
+                    if (tfScl.z < 1E-02f) tfScl.z = 1E-02f;
+                    tf.localScale = new Vector3(scl.x / tfScl.x, scl.y / tfScl.y, scl.z / tfScl.z);
+                    Vector3 sclAdjust = tf.localScale;
+
+                    if (AccMover.IsDebug.Value)
+                        AccMover.Instance.Log($"Transform adjustments calculated! P: {posAdjust * 100}, R: {rotAdjust}, S: {sclAdjust}");
+
+                    __instance.FuncUpdateAcsMovePaste(correctNo, new[] { posAdjust * 100, rotAdjust, sclAdjust });
+                    __instance.UpdateAccessoryMoveInfo();
+                }
             }
         }
 

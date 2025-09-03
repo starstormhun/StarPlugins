@@ -41,6 +41,7 @@ namespace AccMover {
 
         internal static HashSet<int> selectedCopyMove = new HashSet<int> { 0 };
         internal static HashSet<int> selectedTransform = new HashSet<int> { 1 };
+        internal static bool preserveTransforms = false;
 
         private static int prevAccLength = 0;
         internal static bool moving = false;
@@ -139,7 +140,7 @@ namespace AccMover {
                 tglAccs.onValueChanged.AddListener(FixAllOption);
                 tglAccs.onValueChanged.AddListener((x) => {
                     selectedTransform.Clear();
-                    selectedTransform.Add(1);
+                    selectedTransform.Add(Singleton<CustomBase>.Instance.selectSlot + 1);
                 });
 
                 void FixAllOption(bool active) {
@@ -227,6 +228,22 @@ namespace AccMover {
                     _cvsClothesCopy.chaCtrl.Reload(false, true, true, true);
                     _cvsClothesCopy.CalculateUI();
                     ddDst.value = ddDst.options.Count - 1;
+                }
+            }
+
+            // Setup preserve toggles
+            {
+                var customAcsChangeSlot = Singleton<CustomAcsChangeSlot>.Instance;
+                for (int i = 0; i < customAcsChangeSlot.cvsAccessory.Length; i++) {
+                    var acc = customAcsChangeSlot.cvsAccessory[i];
+                    Transform tfResetCol = acc.transform.Find("Scroll View/Viewport/Content/tglResetColor");
+                    Transform tfPreserveTf = Instantiate(tfResetCol, tfResetCol.parent);
+                    tfPreserveTf.SetSiblingIndex(2);
+                    tfPreserveTf.name = "tglPreserveTransform";
+                    tfPreserveTf.GetComponentInChildren<TextMeshProUGUI>().text = "Preserve transform when changing parent";
+                    tfPreserveTf.GetComponentInChildren<Toggle>().onValueChanged.AddListener((newVal) => {
+                        preserveTransforms = newVal;
+                    });
                 }
             }
         }
