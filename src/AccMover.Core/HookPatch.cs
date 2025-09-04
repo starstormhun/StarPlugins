@@ -201,6 +201,43 @@ namespace AccMover {
                 }
             }
 
+            // Fix CvsAccessory LateUpdate lag
+            private static Vector3[] cvsAccGuidPos = new[] {Vector3.zero, Vector3.zero};
+            private static Vector3[] cvsAccGuidRot = new[] {Vector3.zero, Vector3.zero};
+            private static bool[] cvsAccessoryGuidWasDrag = new[] { false, false};
+            [HarmonyPrefix]
+            [HarmonyPatch(typeof(CvsAccessory), "LateUpdate")]
+            private static bool ReplaceCvsAccessoryLateUpdate(CvsAccessory __instance) {
+                if (__instance.cgSlot.alpha != 1f) {
+                    return false;
+                }
+                for (int i = 0; i < 2; i++) {
+                    if (!(null == __instance.cmpGuid[i])) {
+                        if (__instance.cmpGuid[i].isDrag) {
+                            if (__instance.cmpGuid[i].amount.position != cvsAccGuidPos[i]) {
+                                __instance.SetAccessoryTransform(i, false);
+                                cvsAccGuidPos[i] = __instance.cmpGuid[i].amount.position;
+                                cvsAccessoryGuidWasDrag[i] = true;
+                            }
+                        } else if (__instance.isDrag[i]) {
+                            if (__instance.cmpGuid[i].amount.position != cvsAccGuidPos[i]) {
+                                __instance.SetAccessoryTransform(i, true);
+                                cvsAccGuidRot[i] = __instance.cmpGuid[i].amount.rotation;
+                                cvsAccessoryGuidWasDrag[i] = true;
+                            }
+                        } else {
+                            __instance.SetControllerTransform(i);
+                            if (cvsAccessoryGuidWasDrag[i]) {
+                                cvsAccessoryGuidWasDrag[i] = false;
+                                __instance.UpdateCustomUI();
+                            }
+                        }
+                        __instance.isDrag[i] = __instance.cmpGuid[i].isDrag;
+                    }
+                }
+                return false;
+            }
+
             // ===================== Mass Accessory Edit Zone =====================
             private static bool propagating = false;
             private static CustomAcsChangeSlot m_CustomAcsChangeSlot = null;
@@ -406,8 +443,9 @@ namespace AccMover {
             // Propagate axis transforms
             [HarmonyPrefix]
             [HarmonyPatch(typeof(CvsAccessory), "SetAccessoryTransform")]
-            private static void BeforeCvsAccessorySetAccessoryTransform(CvsAccessory __instance, int guidNo, bool updateInfo) {
-                Transform guide = __instance.chaCtrl.objAcsMove[__instance.nSlotNo, guidNo].transform;
+            private static bool ReplaceCvsAccessorySetAccessoryTransform(CvsAccessory __instance, int guidNo, bool updateInfo) {
+                // Common parts
+                Transform guide = __instance.chaCtrl.objAcsMove[__instance.nSlotNo, guidNo]?.transform;
                 if (
                     guide == null ||
                     __instance.tglControllerType01 == null ||
@@ -415,9 +453,22 @@ namespace AccMover {
                     __instance.tglControllerType02 == null ||
                     __instance.tglControllerType02.Length == 0
                 ) {
-                    return;
+                    return false;
                 }
 
+                // AccMover functions
+                BeforeCvsAccessorySetAccessoryTransformSelf(__instance, guidNo, guide);
+
+                // Optimised vanilla code
+                if (updateInfo) {
+                    int posRot = ((guidNo == 0) ? __instance.tglControllerType01[0].isOn : __instance.tglControllerType02[0].isOn) ? 0 : 1;
+                    __instance.setAccessory.parts[__instance.nSlotNo].addMove[guidNo, posRot] = __instance.accessory.parts[__instance.nSlotNo].addMove[guidNo, posRot];
+                    __instance.chaCtrl.UpdateAccessoryMoveFromInfo(__instance.nSlotNo);
+                }
+
+                return false;
+            }
+            private static void BeforeCvsAccessorySetAccessoryTransformSelf(CvsAccessory __instance, int guidNo, Transform guide) {
                 propagating = true;
 
                 GameObject refGO = new GameObject();
@@ -426,7 +477,7 @@ namespace AccMover {
                 refGO.transform.eulerAngles = __instance.cmpGuid[guidNo].amount.rotation;
                 if (guidNo == 0 ? __instance.tglControllerType01[0].isOn : __instance.tglControllerType02[0].isOn) {
                     Vector3 posAdjust = (refGO.transform.localPosition - guide.localPosition) * 100;
-                    foreach (int Slot in AccMover.selectedTransform.Where(x => x != __instance.nSlotNo + 1)) {
+                    foreach (int Slot in AccMover.selectedTransform) {
                         var cvsAccCurr = CustomAcsChangeSlot.cvsAccessory[Slot - 1];
                         if (cvsAccCurr == null) continue;
                         cvsAccCurr.FuncUpdateAcsPosAdd(guidNo, 0, true, posAdjust.x);
@@ -435,7 +486,7 @@ namespace AccMover {
                     }
                 } else {
                     Vector3 rotAdjust = refGO.transform.localEulerAngles - guide.localEulerAngles;
-                    foreach (int Slot in AccMover.selectedTransform.Where(x => x != __instance.nSlotNo + 1)) {
+                    foreach (int Slot in AccMover.selectedTransform) {
                         var cvsAccCurr = CustomAcsChangeSlot.cvsAccessory[Slot - 1];
                         if (cvsAccCurr == null) continue;
                         cvsAccCurr.FuncUpdateAcsRotAdd(guidNo, 0, true, rotAdjust.x);
