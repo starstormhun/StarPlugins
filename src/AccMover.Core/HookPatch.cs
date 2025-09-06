@@ -194,9 +194,9 @@ namespace AccMover {
                 if (!inAllSensitiveFunction) return;
                 if (__result >= __instance.options.Count() - 1) {
                     if (inAllSensitiveAccFunc) {
-                        __result = AccMover._cvsAccessoryCopy?.ddCoordeType?[1]?.value ?? 0;
+                        __result = AccMover._cvsAccessoryCopy?.ddCoordeType?[1]?.m_Value ?? 0;
                     } else {
-                        __result = AccMover._cvsClothesCopy?.ddCoordeType?[1]?.value ?? 0;
+                        __result = AccMover._cvsClothesCopy?.ddCoordeType?[1]?.m_Value ?? 0;
                     }
                 }
             }
@@ -469,6 +469,7 @@ namespace AccMover {
                 return false;
             }
             private static void BeforeCvsAccessorySetAccessoryTransformSelf(CvsAccessory __instance, int guidNo, Transform guide) {
+                if (propagating) return;
                 propagating = true;
 
                 GameObject refGO = new GameObject();
