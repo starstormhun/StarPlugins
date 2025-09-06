@@ -213,15 +213,13 @@ namespace AccMover {
                 }
                 for (int i = 0; i < 2; i++) {
                     if (!(null == __instance.cmpGuid[i])) {
-                        if (__instance.cmpGuid[i].isDrag) {
-                            if (__instance.cmpGuid[i].amount.position != cvsAccGuidPos[i]) {
+                        if (__instance.cmpGuid[i].isDrag || __instance.isDrag[i]) {
+                            if (
+                                __instance.cmpGuid[i].amount.position != cvsAccGuidPos[i] ||
+                                __instance.cmpGuid[i].amount.rotation != cvsAccGuidRot[i]
+                            ) {
                                 __instance.SetAccessoryTransform(i, false);
                                 cvsAccGuidPos[i] = __instance.cmpGuid[i].amount.position;
-                                cvsAccessoryGuidWasDrag[i] = true;
-                            }
-                        } else if (__instance.isDrag[i]) {
-                            if (__instance.cmpGuid[i].amount.position != cvsAccGuidPos[i]) {
-                                __instance.SetAccessoryTransform(i, true);
                                 cvsAccGuidRot[i] = __instance.cmpGuid[i].amount.rotation;
                                 cvsAccessoryGuidWasDrag[i] = true;
                             }
