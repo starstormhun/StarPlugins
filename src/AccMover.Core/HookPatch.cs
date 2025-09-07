@@ -236,6 +236,29 @@ namespace AccMover {
                 return false;
             }
 
+            // Fix axis movement not appearing
+            [HarmonyPostfix]
+            [HarmonyPatch(typeof(CvsAccessory), "Start")]
+            private static void AfterCvsAccessoryStart(CvsAccessory __instance) {
+                foreach (var tgl in new[] {
+                    __instance.tglDrawController01,
+                    __instance.tglDrawController02,
+                    __instance.tglControllerType01[0],
+                    __instance.tglControllerType01[1],
+                    __instance.tglControllerType02[0],
+                    __instance.tglControllerType02[1]
+                }) {
+                    if (tgl.isOn) {
+                        tgl.isOn = false;
+                        __instance.StartCoroutine(ToggleLater());
+                        IEnumerator ToggleLater() {
+                            yield return null;
+                            tgl.isOn = true;
+                        }
+                    }
+                }
+            }
+
             // ===================== Mass Accessory Edit Zone =====================
             private static bool propagating = false;
             private static CustomAcsChangeSlot m_CustomAcsChangeSlot = null;
@@ -330,7 +353,7 @@ namespace AccMover {
                 if (__instance.nSlotNo < (__instance.accessory?.parts?.Length ?? 0)) original = __instance.accessory.parts[__instance.nSlotNo].id;
 
                 if (AccMover.IsDebug.Value) {
-                    AccMover.Instance.Log($"#{__instance.nSlotNo} Kind: {original} -> {index}");
+                    AccMover.Instance.Log($"Slot{__instance.nSlotNo + 1} Kind: {original} -> {index}");
                 }
 
                 if (original == index) {
@@ -395,7 +418,7 @@ namespace AccMover {
                 ).ToArray();
 
                 if (AccMover.IsDebug.Value) {
-                    AccMover.Instance.Log($"#{__instance.nSlotNo} Parent: {original} -> {array[index]}");
+                    AccMover.Instance.Log($"Slot{__instance.nSlotNo + 1} Parent: {original} -> {array[index]}");
                 }
 
                 if (original == array[index]) {
@@ -421,7 +444,7 @@ namespace AccMover {
                 if (__instance.nSlotNo < (__instance.accessory?.parts?.Length ?? 0)) original = __instance.accessory.parts[__instance.nSlotNo].type - 120;
 
                 if (AccMover.IsDebug.Value) {
-                    AccMover.Instance.Log($"#{__instance.nSlotNo} Type: {original} -> {index}");
+                    AccMover.Instance.Log($"Slot{__instance.nSlotNo + 1} Type: {original} -> {index}");
                 }
 
                 if (original == index) {
