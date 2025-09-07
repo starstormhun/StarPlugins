@@ -34,7 +34,14 @@ namespace AccMover {
         public static AccMover Instance { get; private set; }
 
         public static ConfigEntry<bool> IsDebug { get; private set; }
+        public static ConfigEntry<KeyboardShortcut> KeyAcc1ShowAxis { get; private set; }
+        public static ConfigEntry<KeyboardShortcut> KeyAcc1Translate { get; private set; }
+        public static ConfigEntry<KeyboardShortcut> KeyAcc1Rotate { get; private set; }
+        public static ConfigEntry<KeyboardShortcut> KeyAcc2ShowAxis { get; private set; }
+        public static ConfigEntry<KeyboardShortcut> KeyAcc2Translate { get; private set; }
+        public static ConfigEntry<KeyboardShortcut> KeyAcc2Rotate { get; private set; }
 
+        internal static CustomChangeMainMenu _customChangeMainMenu;
         internal static CvsAccessoryChange _cvsAccessoryChange;
         internal static CvsAccessoryCopy _cvsAccessoryCopy;
         internal static CvsClothesCopy _cvsClothesCopy;
@@ -52,6 +59,13 @@ namespace AccMover {
 
             IsDebug = Config.Bind("General", "Debug", false, new ConfigDescription("Log debug messages", null, new ConfigurationManagerAttributes { IsAdvanced = true }));
 
+            KeyAcc1ShowAxis = Config.Bind("Hotkeys", "Toggle Primary Acc Transform Axis", new KeyboardShortcut(KeyCode.Q), new ConfigDescription("Toggle the manual transform gizmo used to move accessories in 3D space"));
+            KeyAcc1Translate = Config.Bind("Hotkeys", "Activate Primary Axis Translation", new KeyboardShortcut(KeyCode.W), new ConfigDescription("Switch the primary accesory gizmo to translation mode"));
+            KeyAcc1Rotate = Config.Bind("Hotkeys", "Activate Primary Axis Rotation", new KeyboardShortcut(KeyCode.E), new ConfigDescription("Switch the primary accesory gizmo to rotation mode"));
+            KeyAcc2ShowAxis = Config.Bind("Hotkeys", "Toggle Secondary Acc Transform Axis", new KeyboardShortcut(KeyCode.Q, KeyCode.LeftShift), new ConfigDescription("Toggle the manual transform gizmo used to move secondary accessories in 3D space"));
+            KeyAcc2Translate = Config.Bind("Hotkeys", "Activate Secondary Axis Translation", new KeyboardShortcut(KeyCode.W, KeyCode.LeftShift), new ConfigDescription("Switch the secondary accesory gizmo to translation mode"));
+            KeyAcc2Rotate = Config.Bind("Hotkeys", "Activate Secondary Axis Rotation", new KeyboardShortcut(KeyCode.E, KeyCode.LeftShift), new ConfigDescription("Switch the secondary accesory gizmo to rotation mode"));
+
             KKAPI.Maker.MakerAPI.MakerStartedLoading += (x, y) => { Setup(); };
 
             HookPatch.Init();
@@ -64,6 +78,36 @@ namespace AccMover {
                 prevAccLength = _cvsAccessoryChange.tglDstKind.Length;
                 selectedCopyMove.Clear();
                 selectedCopyMove.Add(_cvsAccessoryChange.selSrc);
+            }
+
+            // Hotkeys
+            if (
+                KKAPI.Maker.MakerAPI.InsideMaker &&
+                _customChangeMainMenu != null &&
+                _customChangeMainMenu.transform.Find("tglAccessories").GetComponent<Toggle>().isOn
+            ) {
+                int nowSlot = HookPatch.Hooks.CustomBase.selectSlot;
+                CvsAccessory currAcc = _customChangeMainMenu.ccAcsMenu.cvsAccessory[nowSlot];
+                if (currAcc != null && currAcc.accessory.parts[nowSlot].type != 120) {
+                    if (KeyAcc1ShowAxis.Value.IsDown()) {
+                        currAcc.tglDrawController01.isOn = !currAcc.tglDrawController01.isOn;
+                    }
+                    if (KeyAcc1Translate.Value.IsDown()) {
+                        currAcc.tglControllerType01[0].isOn = true;
+                    }
+                    if (KeyAcc1Rotate.Value.IsDown()) {
+                        currAcc.tglControllerType01[1].isOn = true;
+                    }
+                    if (KeyAcc2ShowAxis.Value.IsDown()) {
+                        currAcc.tglDrawController02.isOn = !currAcc.tglDrawController02.isOn;
+                    }
+                    if (KeyAcc2Translate.Value.IsDown()) {
+                        currAcc.tglControllerType02[0].isOn = true;
+                    }
+                    if (KeyAcc2Rotate.Value.IsDown()) {
+                        currAcc.tglControllerType02[1].isOn = true;
+                    }
+                }
             }
         }
 
@@ -79,6 +123,7 @@ namespace AccMover {
 
             // Setup variables
             selectedCopyMove = new HashSet<int> { 0 };
+            _customChangeMainMenu = Singleton<CustomChangeMainMenu>.Instance;
             _cvsAccessoryChange = accRoot.GetComponentInChildren<CvsAccessoryChange>(true);
             _cvsAccessoryCopy = accRoot.GetComponentInChildren<CvsAccessoryCopy>(true);
             _cvsClothesCopy = accRoot.transform.parent.GetComponentInChildren<CvsClothesCopy>(true);

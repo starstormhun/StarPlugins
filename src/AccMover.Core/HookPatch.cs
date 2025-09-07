@@ -269,7 +269,7 @@ namespace AccMover {
                 }
             }
             private static CustomBase m_CustomBase = null;
-            private static CustomBase CustomBase {
+            internal static CustomBase CustomBase {
                 get {
                     if (m_CustomBase == null) m_CustomBase = Singleton<CustomBase>.Instance;
                     return m_CustomBase;
