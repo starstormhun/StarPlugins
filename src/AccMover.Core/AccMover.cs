@@ -29,7 +29,7 @@ namespace AccMover {
 	/// </info>
     public class AccMover : BaseUnityPlugin {
         public const string GUID = "starstorm.accmover";
-        public const string Version = "1.2.0." + BuildNumber.Version;
+        public const string Version = "1.2.1." + BuildNumber.Version;
 
         public static AccMover Instance { get; private set; }
 
@@ -60,11 +60,11 @@ namespace AccMover {
             IsDebug = Config.Bind("General", "Debug", false, new ConfigDescription("Log debug messages", null, new ConfigurationManagerAttributes { IsAdvanced = true }));
 
             KeyAcc1ShowAxis = Config.Bind("Hotkeys", "Toggle Primary Acc Transform Axis", new KeyboardShortcut(KeyCode.Q), new ConfigDescription("Toggle the manual transform gizmo used to move accessories in 3D space"));
-            KeyAcc1Translate = Config.Bind("Hotkeys", "Activate Primary Axis Translation", new KeyboardShortcut(KeyCode.W), new ConfigDescription("Switch the primary accesory gizmo to translation mode"));
-            KeyAcc1Rotate = Config.Bind("Hotkeys", "Activate Primary Axis Rotation", new KeyboardShortcut(KeyCode.E), new ConfigDescription("Switch the primary accesory gizmo to rotation mode"));
+            KeyAcc1Translate = Config.Bind("Hotkeys", "Activate Primary Axis Translation", new KeyboardShortcut(KeyCode.W), new ConfigDescription("Switch the primary accessory gizmo to translation mode"));
+            KeyAcc1Rotate = Config.Bind("Hotkeys", "Activate Primary Axis Rotation", new KeyboardShortcut(KeyCode.E), new ConfigDescription("Switch the primary accessory gizmo to rotation mode"));
             KeyAcc2ShowAxis = Config.Bind("Hotkeys", "Toggle Secondary Acc Transform Axis", new KeyboardShortcut(KeyCode.Q, KeyCode.LeftShift), new ConfigDescription("Toggle the manual transform gizmo used to move secondary accessories in 3D space"));
-            KeyAcc2Translate = Config.Bind("Hotkeys", "Activate Secondary Axis Translation", new KeyboardShortcut(KeyCode.W, KeyCode.LeftShift), new ConfigDescription("Switch the secondary accesory gizmo to translation mode"));
-            KeyAcc2Rotate = Config.Bind("Hotkeys", "Activate Secondary Axis Rotation", new KeyboardShortcut(KeyCode.E, KeyCode.LeftShift), new ConfigDescription("Switch the secondary accesory gizmo to rotation mode"));
+            KeyAcc2Translate = Config.Bind("Hotkeys", "Activate Secondary Axis Translation", new KeyboardShortcut(KeyCode.W, KeyCode.LeftShift), new ConfigDescription("Switch the secondary accessory gizmo to translation mode"));
+            KeyAcc2Rotate = Config.Bind("Hotkeys", "Activate Secondary Axis Rotation", new KeyboardShortcut(KeyCode.E, KeyCode.LeftShift), new ConfigDescription("Switch the secondary accessory gizmo to rotation mode"));
 
             KKAPI.Maker.MakerAPI.MakerStartedLoading += (x, y) => { Setup(); };
 
