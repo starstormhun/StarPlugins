@@ -18,6 +18,8 @@ namespace AccMover {
         protected static Color inSetCol = Color.clear;
         protected static int prevSel = 0;
 
+        private static int iterationIndex = 0;
+
         private void Start() {
             if (int.TryParse(transform.parent?.parent?.name.Replace("kind", ""), out int parsedSlot)) {
                 Slot = parsedSlot;
@@ -37,6 +39,13 @@ namespace AccMover {
         }
 
         private void Update() {
+            if (Slot == 0) {
+                iterationIndex++;
+                if (iterationIndex > AccMover._cvsAccessoryChange.accessory.parts.Length) {
+                    iterationIndex = 0;
+                }
+            }
+
             if (Image != null) {
                 Color prevCol = Image.color;
                 if (AccMover.selectedCopyMove.Contains(Slot)) {
@@ -44,7 +53,7 @@ namespace AccMover {
                 } else {
                     Image.color = Color.clear;
                 }
-                if (prevCol != Image.color) {
+                if (iterationIndex == Slot) {
                     Image.OnDisable();
                     Image.OnEnable();
                 }
