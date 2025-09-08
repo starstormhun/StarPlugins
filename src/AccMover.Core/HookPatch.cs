@@ -1,10 +1,14 @@
+using TMPro;
 using BepInEx;
 using ChaCustom;
+using StrayTech;
 using HarmonyLib;
 using MessagePack;
 using System.Linq;
 using UnityEngine;
 using AAAAAAAAAAAA;
+using UnityEngine.UI;
+using KKAPI.Utilities;
 using System.Collections;
 using System.Reflection.Emit;
 using System.Collections.Generic;
@@ -24,7 +28,6 @@ namespace AccMover {
             // Setup Harmony and patch methods
             public static void SetupHooks() {
                 _harmony = Harmony.CreateAndPatchAll(typeof(Hooks), null);
-                
             }
 
             // Disable Harmony patches of this plugin
@@ -36,7 +39,7 @@ namespace AccMover {
             [HarmonyTranspiler]
             [HarmonyPatch(typeof(CvsAccessoryChange), "CopyAcs")]
             private static IEnumerable<CodeInstruction> CvsAccessoryChangeCopyAcsTranspiler(IEnumerable<CodeInstruction> instructions) {
-                yield return new CodeInstruction(OpCodes.Call, AccessTools.Method(typeof(Hooks), "CvsAccessoryChangeCopyAcsReplacement"));
+                yield return new CodeInstruction(OpCodes.Call, AccessTools.Method(typeof(Hooks), nameof(CvsAccessoryChangeCopyAcsReplacement)));
                 yield return new CodeInstruction(OpCodes.Ret);
             }
             private static void CvsAccessoryChangeCopyAcsReplacement() {
@@ -62,7 +65,7 @@ namespace AccMover {
             [HarmonyTranspiler]
             [HarmonyPatch(typeof(CvsAccessoryCopy), "CopyAcs")]
             private static IEnumerable<CodeInstruction> CvsAccessoryCopyCopyAcsTranspiler(IEnumerable<CodeInstruction> instructions) {
-                yield return new CodeInstruction(OpCodes.Call, AccessTools.Method(typeof(Hooks), "CvsAccessoryCopyCopyAcsReplacement"));
+                yield return new CodeInstruction(OpCodes.Call, AccessTools.Method(typeof(Hooks), nameof(CvsAccessoryCopyCopyAcsReplacement)));
                 yield return new CodeInstruction(OpCodes.Ret);
             }
             private static void CvsAccessoryCopyCopyAcsReplacement() {
@@ -87,7 +90,7 @@ namespace AccMover {
             [HarmonyTranspiler]
             [HarmonyPatch(typeof(CvsClothesCopy), "CopyClothes")]
             private static IEnumerable<CodeInstruction> CvsClothesCopyCopyAcsTranspiler(IEnumerable<CodeInstruction> instructions) {
-                yield return new CodeInstruction(OpCodes.Call, AccessTools.Method(typeof(Hooks), "CvsClothesCopyCopyClothesReplacement"));
+                yield return new CodeInstruction(OpCodes.Call, AccessTools.Method(typeof(Hooks), nameof(CvsClothesCopyCopyClothesReplacement)));
                 yield return new CodeInstruction(OpCodes.Ret);
             }
             private static void CvsClothesCopyCopyClothesReplacement() {
@@ -166,13 +169,440 @@ namespace AccMover {
                 var dd = __instance.ddCoordeType[0];
                 return !(dd.value == dd.options.Count - 1) && !disableTransferFuncs;
             }
+
+            // Fix exception when copy is on "all" and changing clothes type
+            private static bool inAllSensitiveFunction = false;
+            private static bool inAllSensitiveAccFunc = false;
+            [HarmonyPrefix]
+            [HarmonyPatch(typeof(CvsClothesCopy), "ChangeHideSubParts")]
+            [HarmonyPatch(typeof(CvsClothesCopy), "ChangeDstDD")]
+            [HarmonyPatch(typeof(CvsAccessoryCopy), "ChangeDstDD")]
+            private static void BeforeAllSensitiveFunction(object __instance) {
+                inAllSensitiveFunction = true;
+                inAllSensitiveAccFunc = __instance.GetType() == typeof(CvsAccessoryCopy);
+            }
+            [HarmonyPostfix]
+            [HarmonyPatch(typeof(CvsClothesCopy), "ChangeHideSubParts")]
+            [HarmonyPatch(typeof(CvsClothesCopy), "ChangeDstDD")]
+            [HarmonyPatch(typeof(CvsAccessoryCopy), "ChangeDstDD")]
+            private static void AfterAllSensitiveFunction() {
+                inAllSensitiveFunction = false;
+                inAllSensitiveAccFunc = false;
+            }
+            [HarmonyPostfix]
+            [HarmonyPatch(typeof(TMP_Dropdown), "value", MethodType.Getter)]
+            private static void AfterGetTMPDropdownValue(TMP_Dropdown __instance, ref int __result) {
+                if (!inAllSensitiveFunction) return;
+                if (__result >= __instance.options.Count() - 1) {
+                    if (inAllSensitiveAccFunc) {
+                        __result = AccMover._cvsAccessoryCopy?.ddCoordeType?[1]?.m_Value ?? 0;
+                    } else {
+                        __result = AccMover._cvsClothesCopy?.ddCoordeType?[1]?.m_Value ?? 0;
+                    }
+                }
+            }
+
+            // Fix CvsAccessory LateUpdate lag
+            private static Vector3[] cvsAccGuidPos = new[] {Vector3.zero, Vector3.zero};
+            private static Vector3[] cvsAccGuidRot = new[] {Vector3.zero, Vector3.zero};
+            private static bool[] cvsAccessoryGuidWasDrag = new[] { false, false};
+            [HarmonyPrefix]
+            [HarmonyPatch(typeof(CvsAccessory), "LateUpdate")]
+            private static bool ReplaceCvsAccessoryLateUpdate(CvsAccessory __instance) {
+                if (__instance.cgSlot.alpha != 1f) {
+                    return false;
+                }
+                for (int i = 0; i < 2; i++) {
+                    if (!(null == __instance.cmpGuid[i])) {
+                        if (__instance.cmpGuid[i].isDrag || __instance.isDrag[i]) {
+                            if (
+                                __instance.cmpGuid[i].amount.position != cvsAccGuidPos[i] ||
+                                __instance.cmpGuid[i].amount.rotation != cvsAccGuidRot[i]
+                            ) {
+                                __instance.SetAccessoryTransform(i, false);
+                                cvsAccGuidPos[i] = __instance.cmpGuid[i].amount.position;
+                                cvsAccGuidRot[i] = __instance.cmpGuid[i].amount.rotation;
+                                cvsAccessoryGuidWasDrag[i] = true;
+                            }
+                        } else {
+                            __instance.SetControllerTransform(i);
+                            if (cvsAccessoryGuidWasDrag[i]) {
+                                cvsAccessoryGuidWasDrag[i] = false;
+                                __instance.UpdateCustomUI();
+                            }
+                        }
+                        __instance.isDrag[i] = __instance.cmpGuid[i].isDrag;
+                    }
+                }
+                return false;
+            }
+
+            // Fix axis movement not appearing
+            [HarmonyPostfix]
+            [HarmonyPatch(typeof(CvsAccessory), "Start")]
+            private static void AfterCvsAccessoryStart(CvsAccessory __instance) {
+                foreach (var tgl in new[] {
+                    __instance.tglDrawController01,
+                    __instance.tglDrawController02,
+                    __instance.tglControllerType01[0],
+                    __instance.tglControllerType01[1],
+                    __instance.tglControllerType02[0],
+                    __instance.tglControllerType02[1]
+                }) {
+                    if (tgl.isOn) {
+                        tgl.isOn = false;
+                        __instance.StartCoroutine(ToggleLater());
+                        IEnumerator ToggleLater() {
+                            yield return null;
+                            tgl.isOn = true;
+                        }
+                    }
+                }
+            }
+
+            // ===================== Mass Accessory Edit Zone =====================
+            private static bool propagating = false;
+            private static CustomAcsChangeSlot m_CustomAcsChangeSlot = null;
+            private static CustomAcsChangeSlot CustomAcsChangeSlot {
+                get {
+                    if (m_CustomAcsChangeSlot == null) m_CustomAcsChangeSlot = Singleton<CustomAcsChangeSlot>.Instance;
+                    return m_CustomAcsChangeSlot;
+                }
+            }
+            private static CustomBase m_CustomBase = null;
+            internal static CustomBase CustomBase {
+                get {
+                    if (m_CustomBase == null) m_CustomBase = Singleton<CustomBase>.Instance;
+                    return m_CustomBase;
+                }
+            }
+            private static bool IsIndependentNMove2(CvsAccessory cvsAcc) {
+                Transform nMove2 = cvsAcc.chaCtrl.objAcsMove[cvsAcc.nSlotNo, 1]?.transform;
+                if (nMove2 == null) return false;
+                Transform nMove = cvsAcc.chaCtrl.objAcsMove[cvsAcc.nSlotNo, 0]?.transform;
+                if (nMove == null) return true;
+                return !nMove2.IsChildOf(nMove);
+            }
+
+            // Propagate accessory transform edits
+            [HarmonyPostfix]
+            [HarmonyPatch(typeof(CvsAccessory), "FuncUpdateAcsPosAdd")]
+            private static void CvsAccessoryAfterFuncUpdateAcsPosAdd(int xyz, bool add, float val) {
+                PropagateAccessoryTransformEdit(0, xyz, add, val);
+            }
+            [HarmonyPostfix]
+            [HarmonyPatch(typeof(CvsAccessory), "FuncUpdateAcsRotAdd")]
+            private static void CvsAccessoryAfterFuncUpdateAcsRotAdd(int xyz, bool add, float val) {
+                PropagateAccessoryTransformEdit(1, xyz, add, val);
+            }
+            [HarmonyPostfix]
+            [HarmonyPatch(typeof(CvsAccessory), "FuncUpdateAcsSclAdd")]
+            private static void CvsAccessoryAfterFuncUpdateAcsSclAdd(int xyz, bool add, float val) {
+                PropagateAccessoryTransformEdit(2, xyz, add, val);
+            }
+            private static void PropagateAccessoryTransformEdit(int type, int xyz, bool add, float val) {
+                if (propagating) return;
+                propagating = true;
+
+                int currentSlot = CustomBase.selectSlot + 1;
+
+                foreach (int Slot in AccMover.selectedTransform.Where(x => x != currentSlot)) {
+                    var cvsAccCurr = CustomAcsChangeSlot.cvsAccessory[Slot - 1];
+                    if (cvsAccCurr == null) continue;
+                    if (IsIndependentNMove2(cvsAccCurr)) {
+                        switch (type) {
+                            case 0:
+                                cvsAccCurr.FuncUpdateAcsPosAdd(0, xyz, add, val);
+                                cvsAccCurr.FuncUpdateAcsPosAdd(1, xyz, add, val);
+                                break;
+                            case 1:
+                                cvsAccCurr.FuncUpdateAcsRotAdd(0, xyz, add, val);
+                                cvsAccCurr.FuncUpdateAcsRotAdd(1, xyz, add, val);
+                                break;
+                            case 2:
+                                cvsAccCurr.FuncUpdateAcsSclAdd(0, xyz, add, val);
+                                cvsAccCurr.FuncUpdateAcsSclAdd(1, xyz, add, val);
+                                break;
+                        }
+                    } else {
+                        switch (type) {
+                            case 0:
+                                cvsAccCurr.FuncUpdateAcsPosAdd(0, xyz, add, val);
+                                break;
+                            case 1:
+                                cvsAccCurr.FuncUpdateAcsRotAdd(0, xyz, add, val);
+                                break;
+                            case 2:
+                                cvsAccCurr.FuncUpdateAcsSclAdd(0, xyz, add, val);
+                                break;
+                        }
+                    }
+                }
+
+                propagating = false;
+            }
+
+            // Propagate accessory kind / type / parent edits
+            [HarmonyPrefix]
+            [HarmonyPatch(typeof(CvsAccessory), "UpdateSelectAccessoryKind")]
+            private static bool PropagateAccessoryKindEdit(CvsAccessory __instance, string name, Sprite sp, int index) {
+                if (__instance.isDrag[0] || __instance.isDrag[1] || __instance.cmpGuid[0]?.isDrag == true || __instance.cmpGuid[1]?.isDrag == true) return false;
+                if (propagating) return true;
+
+                int currentSlot = CustomBase.selectSlot + 1;
+                int original = 0;
+                if (__instance.nSlotNo < (__instance.accessory?.parts?.Length ?? 0)) original = __instance.accessory.parts[__instance.nSlotNo].id;
+
+                if (AccMover.IsDebug.Value) {
+                    AccMover.Instance.Log($"Slot{__instance.nSlotNo + 1} Kind: {original} -> {index}");
+                }
+
+                if (original == index) {
+                    if (AccMover.IsDebug.Value) AccMover.Instance.Log("Skipping propagation!");
+                    return true;
+                }
+
+                propagating = true;
+
+                foreach (int Slot in AccMover.selectedTransform.Where(x => x != currentSlot)) {
+                    int selfType = __instance.accessory.parts[__instance.nSlotNo].type - 120;
+                    var propagateSlot = CustomAcsChangeSlot.cvsAccessory[Slot - 1];
+                    if (propagateSlot == null) continue;
+                    propagateSlot.UpdateSelectAccessoryType(selfType);
+                    propagateSlot.UpdateSelectAccessoryKind(name, sp, index);
+                }
+
+                propagating = false;
+
+                return true;
+            }
+            [HarmonyPrefix]
+            [HarmonyPatch(typeof(CvsAccessory), "UpdateSelectAccessoryParent")]
+            // Also handles transform preservation
+            private static bool PropagateAccessoryParentEdit(CvsAccessory __instance, int index) {
+                if (!propagating && (AccMover.selectedTransform.Count > 1 || AccMover.preserveTransforms)) {
+                    __instance.StartCoroutine(UpdateSelectAccessoryParentLater());
+                    return false;
+                }
+                return true;
+
+                IEnumerator UpdateSelectAccessoryParentLater() {
+                    yield return CoroutineUtils.WaitForEndOfFrame;
+
+                    if (propagating) yield break;
+
+                    int currentSlot = CustomBase.selectSlot + 1;
+                    string original = "None";
+                    if (__instance.nSlotNo < (__instance.accessory?.parts?.Length ?? 0)) original = __instance.accessory.parts[__instance.nSlotNo].parentKey;
+                    string[] array = (
+                        from key in System.Enum.GetNames(typeof(ChaAccessoryDefine.AccessoryParentKey))
+                        where key != "none"
+                        select key
+                    ).ToArray();
+
+                    if (AccMover.IsDebug.Value) {
+                        AccMover.Instance.Log($"Slot{__instance.nSlotNo + 1} Parent: {original} -> {array[index]}");
+                    }
+
+                    if (original == array[index]) {
+                        if (AccMover.IsDebug.Value) AccMover.Instance.Log("Skipping propagation!");
+                        yield break;
+                    }
+
+                    
+                    propagating = true;
+
+                    foreach (int Slot in AccMover.selectedTransform) {
+                        var cvsCurr = CustomAcsChangeSlot.cvsAccessory[Slot - 1];
+                        if (cvsCurr == null) continue;
+
+                        // Transform preservation step 1
+                        List<Vector3?> __state = null;
+                        if (AccMover.preserveTransforms) {
+                            __state = PreserveTransformsPre(cvsCurr);
+                        }
+
+                        // Change parent
+                        cvsCurr.UpdateSelectAccessoryParent(index);
+
+                        // Transform preservation step 2
+                        if (AccMover.preserveTransforms) {
+                            PreserveTransformsPost(cvsCurr, __state);
+                        }
+                    }
+
+                    propagating = false;
+                }
+            }
+            [HarmonyPrefix]
+            [HarmonyPatch(typeof(CvsAccessory), "UpdateSelectAccessoryType")]
+            private static void PropagateAccessoryTypeEdit(CvsAccessory __instance, int index) {
+                if (propagating) return;
+
+                int currentSlot = CustomBase.selectSlot + 1;
+                int original = 0;
+                if (__instance.nSlotNo < (__instance.accessory?.parts?.Length ?? 0)) original = __instance.accessory.parts[__instance.nSlotNo].type - 120;
+
+                if (AccMover.IsDebug.Value) {
+                    AccMover.Instance.Log($"Slot{__instance.nSlotNo + 1} Type: {original} -> {index}");
+                }
+
+                if (original == index) {
+                    if (AccMover.IsDebug.Value) AccMover.Instance.Log("Skipping propagation!");
+                    return;
+                }
+
+                propagating = true;
+
+                foreach (int Slot in AccMover.selectedTransform.Where(x => x != currentSlot)) {
+                    CustomAcsChangeSlot.cvsAccessory[Slot - 1]?.UpdateSelectAccessoryType(index);
+                }
+
+                propagating = false;
+            }
+            private static List<Vector3?> PreserveTransformsPre(CvsAccessory cvsAccessory) {
+                var __state = new List<Vector3?>();
+                Transform nMove = cvsAccessory.chaCtrl.objAcsMove[cvsAccessory.nSlotNo, 0]?.transform;
+                if (nMove != null) {
+                    __state.Add(nMove.position);
+                    __state.Add(nMove.eulerAngles);
+                    __state.Add(nMove.lossyScale);
+                    if (AccMover.IsDebug.Value)
+                        AccMover.Instance.Log($"N_move transforms saved: P: {nMove.position}, R: {nMove.eulerAngles}, S: {nMove.lossyScale}");
+                } else {
+                    __state.Add(null);
+                }
+                if (IsIndependentNMove2(cvsAccessory)) {
+                    Transform nMove2 = cvsAccessory.chaCtrl.objAcsMove[cvsAccessory.nSlotNo, 1].transform;
+                    __state.Add(nMove2.position);
+                    __state.Add(nMove2.eulerAngles);
+                    __state.Add(nMove2.lossyScale);
+                    if (AccMover.IsDebug.Value)
+                        AccMover.Instance.Log($"N_move2 transforms saved: P: {nMove2.position}, R: {nMove2.eulerAngles}, S: {nMove2.lossyScale}");
+                }
+                return __state;
+            }
+            private static void PreserveTransformsPost(CvsAccessory cvsAccessory, List<Vector3?> __state) {
+                if (__state == null || !(__state.Count == 3 || __state.Count == 4 || __state.Count == 6)) return;
+                Transform acc = cvsAccessory.chaCtrl.objAccessory[cvsAccessory.nSlotNo]?.transform;
+                if (acc == null) return;
+                Transform nMove;
+                Transform nMove2;
+                switch (__state.Count) {
+                    case 3:
+                        nMove = cvsAccessory.chaCtrl.objAcsMove[cvsAccessory.nSlotNo, 0].transform;
+                        ApplyTransforms(__state, nMove, 0, 0);
+                        break;
+                    case 4:
+                        nMove2 = cvsAccessory.chaCtrl.objAcsMove[cvsAccessory.nSlotNo, 1].transform;
+                        ApplyTransforms(__state, nMove2, 1, 1);
+                        break;
+                    case 6:
+                        nMove = cvsAccessory.chaCtrl.objAcsMove[cvsAccessory.nSlotNo, 0].transform;
+                        nMove2 = cvsAccessory.chaCtrl.objAcsMove[cvsAccessory.nSlotNo, 1].transform;
+                        ApplyTransforms(__state, nMove, 0, 0);
+                        ApplyTransforms(__state, nMove2, 3, 1);
+                        break;
+                }
+                cvsAccessory.UpdateAccessoryMoveInfo();
+
+                void ApplyTransforms(List<Vector3?> state, Transform tf, int offset, int correctNo) {
+                    Vector3 pos = state[offset].Value;
+                    Vector3 rot = state[offset + 1].Value;
+                    Vector3 scl = state[offset + 2].Value;
+
+                    tf.position = pos;
+                    Vector3 posAdjust = tf.localPosition * 100;
+
+                    tf.eulerAngles = rot;
+                    Vector3 rotAdjust = tf.localEulerAngles;
+
+                    var tfScl = tf.parent.lossyScale;
+                    if (tfScl.x < 1E-02f) tfScl.x = 1E-02f;
+                    if (tfScl.y < 1E-02f) tfScl.y = 1E-02f;
+                    if (tfScl.z < 1E-02f) tfScl.z = 1E-02f;
+                    Vector3 sclAdjust = new Vector3(scl.x / tfScl.x, scl.y / tfScl.y, scl.z / tfScl.z);
+
+                    if (AccMover.IsDebug.Value)
+                        AccMover.Instance.Log($"Transform adjustments calculated! P: {posAdjust}, R: {rotAdjust}, S: {sclAdjust}");
+
+                    cvsAccessory.FuncUpdateAcsMovePaste(correctNo, new[] { posAdjust, rotAdjust, sclAdjust });
+                }
+            }
+
+            // Propagate axis transforms
+            [HarmonyPrefix]
+            [HarmonyPatch(typeof(CvsAccessory), "SetAccessoryTransform")]
+            private static bool ReplaceCvsAccessorySetAccessoryTransform(CvsAccessory __instance, int guidNo, bool updateInfo) {
+                // Common parts
+                Transform guide = __instance.chaCtrl.objAcsMove[__instance.nSlotNo, guidNo]?.transform;
+                if (
+                    guide == null ||
+                    __instance.tglControllerType01 == null ||
+                    __instance.tglControllerType01.Length == 0 ||
+                    __instance.tglControllerType02 == null ||
+                    __instance.tglControllerType02.Length == 0
+                ) {
+                    return false;
+                }
+
+                // AccMover functions
+                BeforeCvsAccessorySetAccessoryTransformSelf(__instance, guidNo, guide);
+
+                // Optimised vanilla code
+                if (updateInfo) {
+                    int posRot = ((guidNo == 0) ? __instance.tglControllerType01[0].isOn : __instance.tglControllerType02[0].isOn) ? 0 : 1;
+                    __instance.setAccessory.parts[__instance.nSlotNo].addMove[guidNo, posRot] = __instance.accessory.parts[__instance.nSlotNo].addMove[guidNo, posRot];
+                    __instance.chaCtrl.UpdateAccessoryMoveFromInfo(__instance.nSlotNo);
+                }
+
+                return false;
+            }
+            private static void BeforeCvsAccessorySetAccessoryTransformSelf(CvsAccessory __instance, int guidNo, Transform guide) {
+                if (propagating) return;
+                propagating = true;
+
+                GameObject refGO = new GameObject();
+                refGO.transform.parent = guide.parent;
+                refGO.transform.position = __instance.cmpGuid[guidNo].amount.position;
+                refGO.transform.eulerAngles = __instance.cmpGuid[guidNo].amount.rotation;
+                if (guidNo == 0 ? __instance.tglControllerType01[0].isOn : __instance.tglControllerType02[0].isOn) {
+                    Vector3 posAdjust = (refGO.transform.localPosition - guide.localPosition) * 100;
+                    foreach (int Slot in AccMover.selectedTransform) {
+                        var cvsAccCurr = CustomAcsChangeSlot.cvsAccessory[Slot - 1];
+                        if (cvsAccCurr == null) continue;
+                        cvsAccCurr.FuncUpdateAcsPosAdd(guidNo, 0, true, posAdjust.x);
+                        cvsAccCurr.FuncUpdateAcsPosAdd(guidNo, 1, true, posAdjust.y);
+                        cvsAccCurr.FuncUpdateAcsPosAdd(guidNo, 2, true, posAdjust.z);
+                    }
+                } else {
+                    Vector3 rotAdjust = refGO.transform.localEulerAngles - guide.localEulerAngles;
+                    foreach (int Slot in AccMover.selectedTransform) {
+                        var cvsAccCurr = CustomAcsChangeSlot.cvsAccessory[Slot - 1];
+                        if (cvsAccCurr == null) continue;
+                        cvsAccCurr.FuncUpdateAcsRotAdd(guidNo, 0, true, rotAdjust.x);
+                        cvsAccCurr.FuncUpdateAcsRotAdd(guidNo, 1, true, rotAdjust.y);
+                        cvsAccCurr.FuncUpdateAcsRotAdd(guidNo, 2, true, rotAdjust.z);
+                    }
+                }
+                Object.DestroyImmediate(refGO);
+
+                propagating = false;
+            }
+
+            // Update Preserve toggle on opening new accessory slot
+            [HarmonyPostfix]
+            [HarmonyPatch(typeof(CvsAccessory), "CalculateUI")]
+            private static void AfterCvsAccessoryCalculateUI(CvsAccessory __instance) {
+                __instance.transform.FindChildDeep("tglPreserveTransform").GetComponentInChildren<Toggle>().isOn = AccMover.preserveTransforms;
+            }
         }
 
         public static class Conditionals {
             private static Harmony _harmony;
             public static bool A12 { get; private set; } = false;
             public static bool ObjImp { get; private set; } = false;
-            public static bool DBDE { get; private set; } = false;
+            public static int DBDEPresence { get; private set; } = 0;
 
             internal static Dictionary<string, List<string>> savedA12MoveParentage = new Dictionary<string, List<string>>();
 
@@ -189,9 +619,13 @@ namespace AccMover {
                         case "org.njaecha.plugins.dbde":
                             var v = plugin.Info.Metadata.Version;
                             if (v.Major <= 1 && v.Minor <= 5 && v.Build < 1) {
-                                AccMover.Instance.Log("[AccMover] Outdated DBDE detected, please update to v1.5.1 or later! AccMover won't be compatible with it until you do.", 5);
+                                AccMover.Instance.Log("[AccMover] Outdated DBDE detected, please update to v1.5.1 or later! DBDE data will fail to copy over until then.", 5);
                             } else {
-                                DBDE = true;
+                                if (v.Major >= 2) {
+                                    DBDEPresence = 2;
+                                } else {
+                                    DBDEPresence = 1;
+                                }
                                 if (_harmony == null) _harmony = Harmony.CreateAndPatchAll(typeof(DBDEHooks));
                                 else _harmony.PatchAll(typeof(DBDEHooks));
                             }
@@ -472,20 +906,60 @@ namespace AccMover {
                             dbde => dbde.ReidentificationData is KeyValuePair<int, string> kvp && kvp.Key == source
                         );
                         List<DBDEDynamicBoneEdit> sourceEditsOriginal = new List<DBDEDynamicBoneEdit>(sourceEdits);
-                        for (int i = 0; i < sourceEdits.Count; i++) {
-                            sourceEdits[i] = new DBDEDynamicBoneEdit(() => sourceEdits[i].DynamicBones, sourceEdits[i]) {
-                                ReidentificationData = sourceEdits[i].ReidentificationData
-                            };
+
+                        System.Reflection.ConstructorInfo cons = null;
+                        if (DBDEPresence == 1) {
+                            cons = AccessTools.Constructor(typeof(DBDEDynamicBoneEdit), new[] {typeof(System.Func<List<DynamicBone>>), typeof(DBDEDynamicBoneEdit)});
                         }
+
+                        // Duplicating edits so they don't get deleted
+                        for (int i = 0; i < sourceEdits.Count; i++) {
+                            var nowEdit = sourceEdits[i];
+                            if (DBDEPresence == 2) {
+                                sourceEdits[i] = GetDuplicateEdit();
+                                DBDEDynamicBoneEdit GetDuplicateEdit() {
+                                    return new DBDEDynamicBoneEdit(() => nowEdit.DynamicBones, nowEdit.holder, nowEdit, false) {
+                                        ReidentificationData = nowEdit.ReidentificationData
+                                    };
+                                }
+                            } else if (DBDEPresence == 1) {
+                                sourceEdits[i] = (DBDEDynamicBoneEdit)cons.Invoke(new object[] {
+                                    (System.Func<List<DynamicBone>>)(() => nowEdit.DynamicBones),
+                                    nowEdit
+                                });
+                                sourceEdits[i].ReidentificationData = nowEdit.ReidentificationData;
+                            } else {
+                                throw new System.NotImplementedException("DBDE Presence 0 in DBDE Hook???");
+                            }
+                        }
+
                         yield return new WaitForSeconds(0.25f);
                         DynamicBone[] destDBs = __instance.ChaControl.GetAccessoryComponent(destination).GetComponentsInChildren<DynamicBone>();
                         for (int i = 0; i < destDBs.Length; i++) {
                             sourcDBs[i].TryGetAccessoryQualifiedName(out string name);
                             int newSlot = destination;
-                            DBDEDynamicBoneEdit sourceEdit = sourceEdits.Find(dbde => dbde.ReidentificationData is KeyValuePair<int, string> kvp && kvp.Value == name);
+                            DBDEDynamicBoneEdit sourceEdit = sourceEdits.Find(dbdebe => dbdebe.ReidentificationData is KeyValuePair<int, string> kvp && kvp.Value == name);
                             if (sourceEdit == null) continue;
-                            __instance.DistributionEdits[__instance.ChaControl.fileStatus.coordinateType].Add(new DBDEDynamicBoneEdit(() => __instance.WouldYouBeSoKindTohandMeTheDynamicBonePlease(name, newSlot), sourceEdit) { ReidentificationData = new KeyValuePair<int, string>(newSlot, name) });
+
+                            if (DBDEPresence == 2) {
+                                __instance.DistributionEdits[__instance.ChaControl.fileStatus.coordinateType].Add(GetNewEdit());
+                                DBDEDynamicBoneEdit GetNewEdit() {
+                                    return new DBDEDynamicBoneEdit(
+                                        () => __instance.WouldYouBeSoKindTohandMeTheDynamicBonePlease(name, newSlot), sourceEdit.holder, sourceEdit, false
+                                    ) { ReidentificationData = new KeyValuePair<int, string>(newSlot, name) };
+                                }
+                            } else if (DBDEPresence == 1) {
+                                DBDEDynamicBoneEdit newEdit = (DBDEDynamicBoneEdit)cons.Invoke(new object[] {
+                                    (System.Func<List<DynamicBone>>)(() => __instance.WouldYouBeSoKindTohandMeTheDynamicBonePlease(name, newSlot)),
+                                    sourceEdit
+                                });
+                                newEdit.ReidentificationData = new KeyValuePair<int, string>(newSlot, name);
+                                __instance.DistributionEdits[__instance.ChaControl.fileStatus.coordinateType].Add(newEdit);
+                            } else {
+                                throw new System.NotImplementedException("DBDE Presence 0 in DBDE Hook???");
+                            }
                         }
+
                         foreach (var edit in sourceEditsOriginal) {
                             if (edit.PrimaryDynamicBone != null) edit.ApplyAll();
                         }

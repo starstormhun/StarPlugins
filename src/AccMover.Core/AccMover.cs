@@ -9,13 +9,16 @@ using KKAPI.Utilities;
 using System.Collections;
 using BepInEx.Configuration;
 using System.Collections.Generic;
+using KK_Plugins.MaterialEditor;
 
 [assembly: System.Reflection.AssemblyFileVersion(AccMover.AccMover.Version)]
 
 namespace AccMover {
     [BepInDependency(KKAPI.KoikatuAPI.GUID)]
     [BepInDependency(ObjImport.ObjImport.GUID, BepInDependency.DependencyFlags.SoftDependency)]
+    [BepInDependency(MaterialEditorPlugin.PluginGUID, BepInDependency.DependencyFlags.SoftDependency)]
     [BepInDependency(DynamicBoneDistributionEditor.DBDE.GUID, BepInDependency.DependencyFlags.SoftDependency)]
+    [BepInDependency(KK_Plugins.MoreOutfits.Plugin.PluginGUID, BepInDependency.DependencyFlags.SoftDependency)]
 	[BepInProcess(KKAPI.KoikatuAPI.GameProcessName)]
 #if KK
 	[BepInProcess(KKAPI.KoikatuAPI.GameProcessNameSteam)]
@@ -26,17 +29,26 @@ namespace AccMover {
 	/// </info>
     public class AccMover : BaseUnityPlugin {
         public const string GUID = "starstorm.accmover";
-        public const string Version = "1.1.1." + BuildNumber.Version;
+        public const string Version = "1.2.1." + BuildNumber.Version;
 
         public static AccMover Instance { get; private set; }
 
         public static ConfigEntry<bool> IsDebug { get; private set; }
+        public static ConfigEntry<KeyboardShortcut> KeyAcc1ShowAxis { get; private set; }
+        public static ConfigEntry<KeyboardShortcut> KeyAcc1Translate { get; private set; }
+        public static ConfigEntry<KeyboardShortcut> KeyAcc1Rotate { get; private set; }
+        public static ConfigEntry<KeyboardShortcut> KeyAcc2ShowAxis { get; private set; }
+        public static ConfigEntry<KeyboardShortcut> KeyAcc2Translate { get; private set; }
+        public static ConfigEntry<KeyboardShortcut> KeyAcc2Rotate { get; private set; }
 
+        internal static CustomChangeMainMenu _customChangeMainMenu;
         internal static CvsAccessoryChange _cvsAccessoryChange;
         internal static CvsAccessoryCopy _cvsAccessoryCopy;
         internal static CvsClothesCopy _cvsClothesCopy;
 
-        internal static HashSet<int> selected = new HashSet<int> { 0 };
+        internal static HashSet<int> selectedCopyMove = new HashSet<int> { 0 };
+        internal static HashSet<int> selectedTransform = new HashSet<int> { 1 };
+        internal static bool preserveTransforms = false;
 
         private static int prevAccLength = 0;
         internal static bool moving = false;
@@ -46,6 +58,13 @@ namespace AccMover {
             Instance = this;
 
             IsDebug = Config.Bind("General", "Debug", false, new ConfigDescription("Log debug messages", null, new ConfigurationManagerAttributes { IsAdvanced = true }));
+
+            KeyAcc1ShowAxis = Config.Bind("Hotkeys", "Toggle Primary Acc Transform Axis", new KeyboardShortcut(KeyCode.Q), new ConfigDescription("Toggle the manual transform gizmo used to move accessories in 3D space"));
+            KeyAcc1Translate = Config.Bind("Hotkeys", "Activate Primary Axis Translation", new KeyboardShortcut(KeyCode.W), new ConfigDescription("Switch the primary accessory gizmo to translation mode"));
+            KeyAcc1Rotate = Config.Bind("Hotkeys", "Activate Primary Axis Rotation", new KeyboardShortcut(KeyCode.E), new ConfigDescription("Switch the primary accessory gizmo to rotation mode"));
+            KeyAcc2ShowAxis = Config.Bind("Hotkeys", "Toggle Secondary Acc Transform Axis", new KeyboardShortcut(KeyCode.Q, KeyCode.LeftShift), new ConfigDescription("Toggle the manual transform gizmo used to move secondary accessories in 3D space"));
+            KeyAcc2Translate = Config.Bind("Hotkeys", "Activate Secondary Axis Translation", new KeyboardShortcut(KeyCode.W, KeyCode.LeftShift), new ConfigDescription("Switch the secondary accessory gizmo to translation mode"));
+            KeyAcc2Rotate = Config.Bind("Hotkeys", "Activate Secondary Axis Rotation", new KeyboardShortcut(KeyCode.E, KeyCode.LeftShift), new ConfigDescription("Switch the secondary accessory gizmo to rotation mode"));
 
             KKAPI.Maker.MakerAPI.MakerStartedLoading += (x, y) => { Setup(); };
 
@@ -57,24 +76,64 @@ namespace AccMover {
         private void Update() {
             if (_cvsAccessoryChange != null && _cvsAccessoryChange.tglDstKind.Length != prevAccLength) {
                 prevAccLength = _cvsAccessoryChange.tglDstKind.Length;
-                selected.Clear();
-                selected.Add(_cvsAccessoryChange.selSrc);
+                selectedCopyMove.Clear();
+                selectedCopyMove.Add(_cvsAccessoryChange.selSrc);
+            }
+
+            // Hotkeys
+            if (
+                KKAPI.Maker.MakerAPI.InsideMaker &&
+                _customChangeMainMenu != null &&
+                _customChangeMainMenu.transform.Find("tglAccessories").GetComponent<Toggle>().isOn
+            ) {
+                int nowSlot = HookPatch.Hooks.CustomBase.selectSlot;
+                CvsAccessory currAcc = _customChangeMainMenu.ccAcsMenu.cvsAccessory[nowSlot];
+                if (currAcc != null && currAcc.accessory.parts[nowSlot].type != 120) {
+                    if (KeyAcc1ShowAxis.Value.IsDown()) {
+                        currAcc.tglDrawController01.isOn = !currAcc.tglDrawController01.isOn;
+                    }
+                    if (KeyAcc1Translate.Value.IsDown()) {
+                        currAcc.tglControllerType01[0].isOn = true;
+                    }
+                    if (KeyAcc1Rotate.Value.IsDown()) {
+                        currAcc.tglControllerType01[1].isOn = true;
+                    }
+                    if (KeyAcc2ShowAxis.Value.IsDown()) {
+                        currAcc.tglDrawController02.isOn = !currAcc.tglDrawController02.isOn;
+                    }
+                    if (KeyAcc2Translate.Value.IsDown()) {
+                        currAcc.tglControllerType02[0].isOn = true;
+                    }
+                    if (KeyAcc2Rotate.Value.IsDown()) {
+                        currAcc.tglControllerType02[1].isOn = true;
+                    }
+                }
             }
         }
 
         private void Setup() {
+            // Reset selections
+            selectedCopyMove.Clear();
+            selectedCopyMove.Add(0);
+            selectedTransform.Clear();
+            selectedTransform.Add(1);
+
             // Get root
             var accRoot = GameObject.Find("04_AccessoryTop");
 
             // Setup variables
-            selected = new HashSet<int> { 0 };
+            selectedCopyMove = new HashSet<int> { 0 };
+            _customChangeMainMenu = Singleton<CustomChangeMainMenu>.Instance;
             _cvsAccessoryChange = accRoot.GetComponentInChildren<CvsAccessoryChange>(true);
             _cvsAccessoryCopy = accRoot.GetComponentInChildren<CvsAccessoryCopy>(true);
             _cvsClothesCopy = accRoot.transform.parent.GetComponentInChildren<CvsClothesCopy>(true);
 
-            // Setup transfer selection
+            // Setup selector components
             foreach (var toggle in _cvsAccessoryChange.tglSrcKind) {
-                toggle.transform.GetChild(0).gameObject.AddComponent<Selector>();
+                toggle.transform.GetChild(0).gameObject.AddComponent<SelectorAccMove>();
+            }
+            foreach (var text in Singleton<CustomAcsChangeSlot>.Instance.textSlotNames) {
+                text.transform.parent.parent.gameObject.AddComponent<SelectorAccTransform>();
             }
 
             // Setup transfer UI buttons
@@ -106,6 +165,15 @@ namespace AccMover {
                 btnCompact.onClick.AddListener(() => { moving = true; DoCompact(); });
             }
 
+            // Setup selector compatibility for Copy and Transfer tabs
+            {
+                var tglCopy = _cvsAccessoryCopy.transform.parent.GetComponent<Toggle>();
+                var tglTransfer = _cvsAccessoryChange.transform.parent.GetComponent<Toggle>();
+
+                tglCopy.onValueChanged.AddListener(active => SelectorAccTransform.isCopy = active);
+                tglTransfer.onValueChanged.AddListener(active => SelectorAccTransform.isTransfer = active);
+            }
+
             // Setup copy dropdown
             { // Accs
                 var ddDst = _cvsAccessoryCopy.ddCoordeType[0];
@@ -115,6 +183,10 @@ namespace AccMover {
                 tglCopy.onValueChanged.AddListener(FixAllOption);
                 var tglAccs = accRoot.transform.parent.parent.Find("CvsMainMenu/BaseTop/tglAccessories").GetComponent<Toggle>();
                 tglAccs.onValueChanged.AddListener(FixAllOption);
+                tglAccs.onValueChanged.AddListener((x) => {
+                    selectedTransform.Clear();
+                    selectedTransform.Add(Singleton<CustomBase>.Instance.selectSlot + 1);
+                });
 
                 void FixAllOption(bool active) {
                     if (active && ddDst.options.IndexOf(allOpt) != ddDst.options.Count - 1) {
@@ -203,29 +275,45 @@ namespace AccMover {
                     ddDst.value = ddDst.options.Count - 1;
                 }
             }
+
+            // Setup preserve toggles
+            {
+                var customAcsChangeSlot = Singleton<CustomAcsChangeSlot>.Instance;
+                for (int i = 0; i < customAcsChangeSlot.cvsAccessory.Length; i++) {
+                    var acc = customAcsChangeSlot.cvsAccessory[i];
+                    Transform tfResetCol = acc.transform.Find("Scroll View/Viewport/Content/tglResetColor");
+                    Transform tfPreserveTf = Instantiate(tfResetCol, tfResetCol.parent);
+                    tfPreserveTf.SetSiblingIndex(2);
+                    tfPreserveTf.name = "tglPreserveTransform";
+                    tfPreserveTf.GetComponentInChildren<TextMeshProUGUI>().text = "Preserve transform when changing parent";
+                    tfPreserveTf.GetComponentInChildren<Toggle>().onValueChanged.AddListener((newVal) => {
+                        preserveTransforms = newVal;
+                    });
+                }
+            }
         }
 
         private static void DoCompact() {
-            selected.Clear();
+            selectedCopyMove.Clear();
             int bufferedDst = _cvsAccessoryChange.selDst;
             _cvsAccessoryChange.selDst = 0;
             var accNum = _cvsAccessoryChange.tglDstKind.Where(x => x.isActiveAndEnabled).Count();
             for (int i = 0; i < accNum; i++) {
                 if (_cvsAccessoryChange.chaCtrl.infoAccessory[i] != null) {
-                    selected.Add(i);
+                    selectedCopyMove.Add(i);
                 }
             }
             DoTransfer();
             _cvsAccessoryChange.selSrc = 0;
             _cvsAccessoryChange.selDst = bufferedDst;
-            selected.Clear();
-            selected.Add(0);
+            selectedCopyMove.Clear();
+            selectedCopyMove.Add(0);
         }
 
         private static void DoTransfer() {
             // Prepare
             var accNum = _cvsAccessoryChange.tglDstKind.Where(x => x.isActiveAndEnabled).Count();
-            if (accNum < _cvsAccessoryChange.selDst + selected.Count) {
+            if (accNum < _cvsAccessoryChange.selDst + selectedCopyMove.Count) {
                 Instance.Log("[AccMover] Not enough space to copy/move, please add more slots!", 5);
                 return;
             }
@@ -236,14 +324,14 @@ namespace AccMover {
             var safeSlots = new HashSet<int>();
             int next = _cvsAccessoryChange.selDst;
             for (int idx = 0; idx < accNum; idx++) {
-                if (selected.Contains(idx)) {
+                if (selectedCopyMove.Contains(idx)) {
                     if (idx != next) {
                         dicMovement[idx] = next;
                         movements.Add(new KeyValuePair<int, int>(idx, next));
                     }
                     next++;
                 } else {
-                    if (idx >= _cvsAccessoryChange.selDst && idx < _cvsAccessoryChange.selDst + selected.Count) safeSlots.Add(idx);
+                    if (idx >= _cvsAccessoryChange.selDst && idx < _cvsAccessoryChange.selDst + selectedCopyMove.Count) safeSlots.Add(idx);
                 }
             }
             // Check if there's nothing to do
@@ -273,7 +361,7 @@ namespace AccMover {
                 var kvp = available[0];
                 if (kvp.Key == kvp.Value) continue;
                 movements.Remove(kvp);
-                if ((kvp.Key < bufferedDst + selected.Count) && !safeSlots.Contains(kvp.Key)) safeSlots.Add(kvp.Key);
+                if ((kvp.Key < bufferedDst + selectedCopyMove.Count) && !safeSlots.Contains(kvp.Key)) safeSlots.Add(kvp.Key);
 
                 // Perform movement
                 if (_cvsAccessoryChange.chaCtrl.infoAccessory[kvp.Key] == null) {
@@ -330,10 +418,6 @@ namespace AccMover {
             foreach (int i in dicMovement.Keys) {
                 if (HookPatch.Conditionals.A12) HookPatch.Conditionals.HandleA12After(i, dicMovement);
             }
-        }
-
-        private static void DoCopy() {
-
         }
 
         internal void Log(object data, int level = 0) {
