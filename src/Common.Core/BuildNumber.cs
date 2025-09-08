@@ -1,4 +1,4 @@
 ﻿internal static class BuildNumber
 {
-    public const string Version = "9";
+    public const string Version = "10";
 }
