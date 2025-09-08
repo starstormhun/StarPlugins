@@ -12,12 +12,12 @@ Configuration Manager is recommended to make changing the settings from these pl
 ## Plugins
 
 #### Attach All Accessories Anywhere, Anytime, At Any Angle And Artistic Arrangement, Allegedly [KK/KKS]
-This lets you parent accessories to any bone, chosen through ABMX. Especially useful in cases
+AKA A12. This lets you parent accessories to any bone, chosen through ABMX. Especially useful in cases
 where you want to attach a tie to a tail, for example.
 
 #### Acc Mover [KK/KKS]
 This plugin revamps the "Transfer" tab of the accessories panel, letting you copy, move, or
-compact accessories. Useful for dealing with heavy cards.
+compact accessories. It also allows for batch accessory edits. Useful for dealing with heavy cards.
 
 #### Axis Unlocker [KK/KKS]
 Makes the manipulation axis speed and size sliders' minimum and maximum values configurable.
