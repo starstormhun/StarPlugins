@@ -41,7 +41,7 @@ namespace AccMover {
         private void Update() {
             if (Slot == 0) {
                 iterationIndex++;
-                if (iterationIndex > AccMover._cvsAccessoryChange.accessory.parts.Length) {
+                if (iterationIndex > AccMover._cvsAccessoryChange.accessory.parts.Length / 5 + 1) {
                     iterationIndex = 0;
                 }
             }
@@ -53,7 +53,7 @@ namespace AccMover {
                 } else {
                     Image.color = Color.clear;
                 }
-                if (iterationIndex == Slot) {
+                if (iterationIndex == Slot / 5) {
                     Image.OnDisable();
                     Image.OnEnable();
                 }

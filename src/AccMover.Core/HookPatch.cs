@@ -8,6 +8,7 @@ using System.Linq;
 using UnityEngine;
 using AAAAAAAAAAAA;
 using UnityEngine.UI;
+using KKAPI.Utilities;
 using System.Collections;
 using System.Reflection.Emit;
 using System.Collections.Generic;
@@ -377,62 +378,61 @@ namespace AccMover {
             }
             [HarmonyPrefix]
             [HarmonyPatch(typeof(CvsAccessory), "UpdateSelectAccessoryParent")]
-            // Also sets up transform preservation
-            private static void PropagateAccessoryParentEdit(CvsAccessory __instance, int index, ref List<Vector3?> __state) {
-                // Transform preservation
-                if (AccMover.preserveTransforms) {
-                    AccMover.Instance.Log("Preserving transforms!");
-                    Transform acc = __instance.chaCtrl.objAccessory[__instance.nSlotNo]?.transform;
-                    if (acc == null) return;
-                    __state = new List<Vector3?>();
-                    Transform nMove = acc.FindChildDeep("N_move")?.transform;
-                    if (nMove != null) {
-                        __state.Add(nMove.position);
-                        __state.Add(nMove.eulerAngles);
-                        __state.Add(nMove.lossyScale);
-                        if (AccMover.IsDebug.Value)
-                            AccMover.Instance.Log($"N_move transforms saved: P: {nMove.position}, R: {nMove.eulerAngles}, S: {nMove.lossyScale}");
-                    } else {
-                        __state.Add(null);
+            // Also handles transform preservation
+            private static bool PropagateAccessoryParentEdit(CvsAccessory __instance, int index) {
+                if (!propagating && (AccMover.selectedTransform.Count > 1 || AccMover.preserveTransforms)) {
+                    __instance.StartCoroutine(UpdateSelectAccessoryParentLater());
+                    return false;
+                }
+                return true;
+
+                IEnumerator UpdateSelectAccessoryParentLater() {
+                    yield return CoroutineUtils.WaitForEndOfFrame;
+
+                    if (propagating) yield break;
+
+                    int currentSlot = CustomBase.selectSlot + 1;
+                    string original = "None";
+                    if (__instance.nSlotNo < (__instance.accessory?.parts?.Length ?? 0)) original = __instance.accessory.parts[__instance.nSlotNo].parentKey;
+                    string[] array = (
+                        from key in System.Enum.GetNames(typeof(ChaAccessoryDefine.AccessoryParentKey))
+                        where key != "none"
+                        select key
+                    ).ToArray();
+
+                    if (AccMover.IsDebug.Value) {
+                        AccMover.Instance.Log($"Slot{__instance.nSlotNo + 1} Parent: {original} -> {array[index]}");
                     }
-                    if (IsIndependentNMove2(__instance)) {
-                        Transform nMove2 = __instance.chaCtrl.objAcsMove[__instance.nSlotNo, 1].transform;
-                        __state.Add(nMove2.position);
-                        __state.Add(nMove2.eulerAngles);
-                        __state.Add(nMove2.lossyScale);
-                        if (AccMover.IsDebug.Value)
-                            AccMover.Instance.Log($"N_move2 transforms saved: P: {nMove2.position}, R: {nMove2.eulerAngles}, S: {nMove2.lossyScale}");
+
+                    if (original == array[index]) {
+                        if (AccMover.IsDebug.Value) AccMover.Instance.Log("Skipping propagation!");
+                        yield break;
                     }
-                }
 
-                // Propagation
-                if (propagating) return;
-
-                int currentSlot = CustomBase.selectSlot + 1;
-                string original = "None";
-                if (__instance.nSlotNo < (__instance.accessory?.parts?.Length ?? 0)) original = __instance.accessory.parts[__instance.nSlotNo].parentKey;
-                string[] array = (
-                    from key in System.Enum.GetNames(typeof(ChaAccessoryDefine.AccessoryParentKey))
-                    where key != "none"
-                    select key
-                ).ToArray();
-
-                if (AccMover.IsDebug.Value) {
-                    AccMover.Instance.Log($"Slot{__instance.nSlotNo + 1} Parent: {original} -> {array[index]}");
-                }
-
-                if (original == array[index]) {
-                    if (AccMover.IsDebug.Value) AccMover.Instance.Log("Skipping propagation!");
-                    return;
-                }
                     
-                propagating = true;
+                    propagating = true;
 
-                foreach (int Slot in AccMover.selectedTransform.Where(x => x != currentSlot)) {
-                    CustomAcsChangeSlot.cvsAccessory[Slot - 1]?.UpdateSelectAccessoryParent(index);
+                    foreach (int Slot in AccMover.selectedTransform) {
+                        var cvsCurr = CustomAcsChangeSlot.cvsAccessory[Slot - 1];
+                        if (cvsCurr == null) continue;
+
+                        // Transform preservation step 1
+                        List<Vector3?> __state = null;
+                        if (AccMover.preserveTransforms) {
+                            __state = PreserveTransformsPre(cvsCurr);
+                        }
+
+                        // Change parent
+                        cvsCurr.UpdateSelectAccessoryParent(index);
+
+                        // Transform preservation step 2
+                        if (AccMover.preserveTransforms) {
+                            PreserveTransformsPost(cvsCurr, __state);
+                        }
+                    }
+
+                    propagating = false;
                 }
-
-                propagating = false;
             }
             [HarmonyPrefix]
             [HarmonyPatch(typeof(CvsAccessory), "UpdateSelectAccessoryType")]
@@ -459,6 +459,75 @@ namespace AccMover {
                 }
 
                 propagating = false;
+            }
+            private static List<Vector3?> PreserveTransformsPre(CvsAccessory cvsAccessory) {
+                var __state = new List<Vector3?>();
+                Transform nMove = cvsAccessory.chaCtrl.objAcsMove[cvsAccessory.nSlotNo, 0]?.transform;
+                if (nMove != null) {
+                    __state.Add(nMove.position);
+                    __state.Add(nMove.eulerAngles);
+                    __state.Add(nMove.lossyScale);
+                    if (AccMover.IsDebug.Value)
+                        AccMover.Instance.Log($"N_move transforms saved: P: {nMove.position}, R: {nMove.eulerAngles}, S: {nMove.lossyScale}");
+                } else {
+                    __state.Add(null);
+                }
+                if (IsIndependentNMove2(cvsAccessory)) {
+                    Transform nMove2 = cvsAccessory.chaCtrl.objAcsMove[cvsAccessory.nSlotNo, 1].transform;
+                    __state.Add(nMove2.position);
+                    __state.Add(nMove2.eulerAngles);
+                    __state.Add(nMove2.lossyScale);
+                    if (AccMover.IsDebug.Value)
+                        AccMover.Instance.Log($"N_move2 transforms saved: P: {nMove2.position}, R: {nMove2.eulerAngles}, S: {nMove2.lossyScale}");
+                }
+                return __state;
+            }
+            private static void PreserveTransformsPost(CvsAccessory cvsAccessory, List<Vector3?> __state) {
+                if (__state == null || !(__state.Count == 3 || __state.Count == 4 || __state.Count == 6)) return;
+                Transform acc = cvsAccessory.chaCtrl.objAccessory[cvsAccessory.nSlotNo]?.transform;
+                if (acc == null) return;
+                Transform nMove;
+                Transform nMove2;
+                switch (__state.Count) {
+                    case 3:
+                        nMove = cvsAccessory.chaCtrl.objAcsMove[cvsAccessory.nSlotNo, 0].transform;
+                        ApplyTransforms(__state, nMove, 0, 0);
+                        break;
+                    case 4:
+                        nMove2 = cvsAccessory.chaCtrl.objAcsMove[cvsAccessory.nSlotNo, 1].transform;
+                        ApplyTransforms(__state, nMove2, 1, 1);
+                        break;
+                    case 6:
+                        nMove = cvsAccessory.chaCtrl.objAcsMove[cvsAccessory.nSlotNo, 0].transform;
+                        nMove2 = cvsAccessory.chaCtrl.objAcsMove[cvsAccessory.nSlotNo, 1].transform;
+                        ApplyTransforms(__state, nMove, 0, 0);
+                        ApplyTransforms(__state, nMove2, 3, 1);
+                        break;
+                }
+                cvsAccessory.UpdateAccessoryMoveInfo();
+
+                void ApplyTransforms(List<Vector3?> state, Transform tf, int offset, int correctNo) {
+                    Vector3 pos = state[offset].Value;
+                    Vector3 rot = state[offset + 1].Value;
+                    Vector3 scl = state[offset + 2].Value;
+
+                    tf.position = pos;
+                    Vector3 posAdjust = tf.localPosition * 100;
+
+                    tf.eulerAngles = rot;
+                    Vector3 rotAdjust = tf.localEulerAngles;
+
+                    var tfScl = tf.parent.lossyScale;
+                    if (tfScl.x < 1E-02f) tfScl.x = 1E-02f;
+                    if (tfScl.y < 1E-02f) tfScl.y = 1E-02f;
+                    if (tfScl.z < 1E-02f) tfScl.z = 1E-02f;
+                    Vector3 sclAdjust = new Vector3(scl.x / tfScl.x, scl.y / tfScl.y, scl.z / tfScl.z);
+
+                    if (AccMover.IsDebug.Value)
+                        AccMover.Instance.Log($"Transform adjustments calculated! P: {posAdjust}, R: {rotAdjust}, S: {sclAdjust}");
+
+                    cvsAccessory.FuncUpdateAcsMovePaste(correctNo, new[] { posAdjust, rotAdjust, sclAdjust });
+                }
             }
 
             // Propagate axis transforms
@@ -526,61 +595,6 @@ namespace AccMover {
             [HarmonyPatch(typeof(CvsAccessory), "CalculateUI")]
             private static void AfterCvsAccessoryCalculateUI(CvsAccessory __instance) {
                 __instance.transform.FindChildDeep("tglPreserveTransform").GetComponentInChildren<Toggle>().isOn = AccMover.preserveTransforms;
-            }
-
-            // Handle transform presevation
-            [HarmonyPostfix]
-            [HarmonyPatch(typeof(CvsAccessory), "UpdateSelectAccessoryParent")]
-            private static void AfterCvsAccessoryUpdateSelectAccessoryParent(CvsAccessory __instance, ref List<Vector3?> __state) {
-                if (AccMover.preserveTransforms) {
-                    AccMover.Instance.Log("Applying preserved transform!");
-                    if (__state == null || !(__state.Count == 3 || __state.Count == 4 || __state.Count == 6)) return;
-                    Transform acc = __instance.chaCtrl.objAccessory[__instance.nSlotNo]?.transform;
-                    if (acc == null) return;
-                    Transform nMove;
-                    Transform nMove2;
-                    switch (__state.Count) {
-                        case 3:
-                            nMove = __instance.chaCtrl.objAcsMove[__instance.nSlotNo, 0].transform;
-                            ApplyTransforms(__state, nMove, 0, 0);
-                            break;
-                        case 4:
-                            nMove2 = __instance.chaCtrl.objAcsMove[__instance.nSlotNo, 1].transform;
-                            ApplyTransforms(__state, nMove2, 1, 1);
-                            break;
-                        case 6:
-                            nMove = __instance.chaCtrl.objAcsMove[__instance.nSlotNo, 0].transform;
-                            nMove2 = __instance.chaCtrl.objAcsMove[__instance.nSlotNo, 1].transform;
-                            ApplyTransforms(__state, nMove, 0, 0);
-                            ApplyTransforms(__state, nMove2, 3, 1);
-                            break;
-                    }
-                    __instance.UpdateAccessoryMoveInfo();
-                }
-
-                void ApplyTransforms(List<Vector3?> state, Transform tf, int offset, int correctNo) {
-                    Vector3 pos = state[offset].Value;
-                    Vector3 rot = state[offset + 1].Value;
-                    Vector3 scl = state[offset + 2].Value;
-
-                    tf.position = pos;
-                    Vector3 posAdjust = tf.localPosition;
-
-                    tf.eulerAngles = rot;
-                    Vector3 rotAdjust = tf.localEulerAngles;
-
-                    var tfScl = tf.lossyScale;
-                    if (tfScl.x < 1E-02f) tfScl.x = 1E-02f;
-                    if (tfScl.y < 1E-02f) tfScl.y = 1E-02f;
-                    if (tfScl.z < 1E-02f) tfScl.z = 1E-02f;
-                    tf.localScale = new Vector3(scl.x / tfScl.x, scl.y / tfScl.y, scl.z / tfScl.z);
-                    Vector3 sclAdjust = tf.localScale;
-
-                    if (AccMover.IsDebug.Value)
-                        AccMover.Instance.Log($"Transform adjustments calculated! P: {posAdjust * 100}, R: {rotAdjust}, S: {sclAdjust}");
-
-                    __instance.FuncUpdateAcsMovePaste(correctNo, new[] { posAdjust * 100, rotAdjust, sclAdjust });
-                }
             }
         }
 
