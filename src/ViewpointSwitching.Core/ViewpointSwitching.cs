@@ -408,8 +408,6 @@ namespace ViewpointSwitching {
         private IEnumerator SmoothSwitch(Vector3 initialVal, Vector3 targetVal, Action<Vector3> act, bool isRotate = false) {
             float start = Time.realtimeSinceStartup;
             float timePassed = 0;
-            Logger.LogDebug($"Start: {initialVal}");
-            Logger.LogDebug($"Target: {targetVal}");
             if (isRotate && smoothSwitching) {
                 smoothSwitching = false;
                 yield return null;
@@ -424,7 +422,6 @@ namespace ViewpointSwitching {
                     Mathf.SmoothStep(initialVal.y, targetVal.y, t),
                     Mathf.SmoothStep(initialVal.z, targetVal.z, t)
                 );
-                Logger.LogDebug($"t: {t}");
                 act.Invoke(currentVal);
                 yield return null;
             }
