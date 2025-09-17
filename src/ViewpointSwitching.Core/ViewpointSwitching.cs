@@ -54,17 +54,19 @@ namespace ViewpointSwitching {
                     if (MoveDuration.Value == 0f) {
                         Singleton<Studio.CameraControl>.Instance.cameraAngle = value;
                     } else {
+                        smoothSwitchRotateTarget = value;
                         StartCoroutine(SmoothSwitch(Singleton<Studio.CameraControl>.Instance.cameraAngle, value, (x) => {
                             Singleton<Studio.CameraControl>.Instance.cameraAngle = x;
-                        }));
+                        }, true));
                     }
                 } else if (KKAPI.Maker.MakerAPI.InsideMaker) {
                     if (MoveDuration.Value == 0f) {
                         Singleton<CameraControl_Ver2>.Instance.CameraAngle = value;
                     } else {
+                        smoothSwitchRotateTarget = value;
                         StartCoroutine(SmoothSwitch(Singleton<CameraControl_Ver2>.Instance.CameraAngle, value, (x) => {
                             Singleton<CameraControl_Ver2>.Instance.CameraAngle = x;
-                        }));
+                        }, true));
                     }
                 }
             }
@@ -138,6 +140,8 @@ namespace ViewpointSwitching {
             }
         }
 
+        private bool smoothSwitching = false;
+        private Vector3 smoothSwitchRotateTarget = Vector3.zero;
         private Vector3 cameraAngle = Vector3.zero;
         private bool isDoubleType = false;
         private bool axisSwitch = true;
@@ -290,27 +294,32 @@ namespace ViewpointSwitching {
                 }
 
                 // Adjustments
-                if (KeyRotRight.Value.IsDown()) {
-                    cameraAngle = CameraRotate;
-                    cameraAngle.y = (cameraAngle.y - RotateAngle.Value) % 360f;
-                    didRotate = true;
-                } else if (KeyRotLeft.Value.IsDown()) {
-                    cameraAngle = CameraRotate;
-                    cameraAngle.y = (cameraAngle.y + RotateAngle.Value) % 360f;
-                    didRotate = true;
-                }
-                if (KeyRotDown.Value.IsDown()) {
-                    cameraAngle = CameraRotate;
-                    cameraAngle.x = (cameraAngle.x - RotateAngle.Value) % 360f;
-                    didRotate = true;
-                } else if (KeyRotUp.Value.IsDown()) {
-                    cameraAngle = CameraRotate;
-                    cameraAngle.x = (cameraAngle.x + RotateAngle.Value) % 360f;
-                    didRotate = true;
+                {
+                    if (KeyRotRight.Value.IsDown()) {
+                        cameraAngle = smoothSwitching ? smoothSwitchRotateTarget : CameraRotate;
+                        cameraAngle.y = (cameraAngle.y - RotateAngle.Value) % 360f;
+                        didRotate = true;
+                    } else if (KeyRotLeft.Value.IsDown()) {
+                        cameraAngle = smoothSwitching ? smoothSwitchRotateTarget : CameraRotate;
+                        cameraAngle.y = (cameraAngle.y + RotateAngle.Value) % 360f;
+                        didRotate = true;
+                    }
+                    if (KeyRotDown.Value.IsDown()) {
+                        cameraAngle = smoothSwitching ? smoothSwitchRotateTarget : CameraRotate;
+                        cameraAngle.x = (cameraAngle.x - RotateAngle.Value) % 360f;
+                        didRotate = true;
+                    } else if (KeyRotUp.Value.IsDown()) {
+                        cameraAngle = smoothSwitching ? smoothSwitchRotateTarget : CameraRotate;
+                        cameraAngle.x = (cameraAngle.x + RotateAngle.Value) % 360f;
+                        didRotate = true;
+                    }
                 }
 
                 // Inversion
                 if (KeyInvert.Value.IsDown()) {
+                    if (smoothSwitching) {
+                        invertObj.parent.eulerAngles = smoothSwitchRotateTarget;
+                    }
                     cameraAngle = invertObj.transform.eulerAngles;
                     didRotate = true;
                 }
@@ -396,10 +405,18 @@ namespace ViewpointSwitching {
             return gizmoObj;
         }
 
-        private IEnumerator SmoothSwitch(Vector3 initialVal, Vector3 targetVal, Action<Vector3> act) {
+        private IEnumerator SmoothSwitch(Vector3 initialVal, Vector3 targetVal, Action<Vector3> act, bool isRotate = false) {
             float start = Time.realtimeSinceStartup;
             float timePassed = 0;
+            Logger.LogDebug($"Start: {initialVal}");
+            Logger.LogDebug($"Target: {targetVal}");
+            if (isRotate && smoothSwitching) {
+                smoothSwitching = false;
+                yield return null;
+            }
+            if (isRotate) smoothSwitching = true;
             while (timePassed < MoveDuration.Value) {
+                if (isRotate && !smoothSwitching) yield break;
                 timePassed = Time.realtimeSinceStartup - start;
                 float t = timePassed / MoveDuration.Value;
                 Vector3 currentVal = new Vector3(
@@ -407,9 +424,11 @@ namespace ViewpointSwitching {
                     Mathf.SmoothStep(initialVal.y, targetVal.y, t),
                     Mathf.SmoothStep(initialVal.z, targetVal.z, t)
                 );
+                Logger.LogDebug($"t: {t}");
                 act.Invoke(currentVal);
                 yield return null;
             }
+            if (isRotate) smoothSwitching = false;
         }
     }
 }
