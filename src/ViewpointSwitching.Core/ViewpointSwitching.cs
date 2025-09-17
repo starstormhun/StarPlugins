@@ -1,8 +1,8 @@
-﻿using BepInEx;
-using BepInEx.Configuration;
-using HarmonyLib;
+﻿using BepInEx.Configuration;
 using System.Collections;
 using UnityEngine;
+using BepInEx;
+using System;
 
 [assembly: System.Reflection.AssemblyFileVersion(ViewpointSwitching.ViewpointSwitching.Version)]
 
@@ -25,8 +25,9 @@ namespace ViewpointSwitching {
         public static ConfigEntry<int> RotateAngle { get; private set; }
         public static ConfigEntry<int> FovLimit { get; private set; }
         public static ConfigEntry<float> Magnification { get; private set; }
+        public static ConfigEntry<float> MoveDuration { get; private set; }
+        public static ConfigEntry<float> DoubleTapSpeed { get; private set; }
 
-        public static ConfigEntry<KeyboardShortcut> KeySwitch { get; private set; }
         public static ConfigEntry<KeyboardShortcut> KeyFront { get; private set; }
         public static ConfigEntry<KeyboardShortcut> KeyLeft { get; private set; }
         public static ConfigEntry<KeyboardShortcut> KeyTop { get; private set; }
@@ -50,9 +51,21 @@ namespace ViewpointSwitching {
             }
             set {
                 if (KKAPI.Studio.StudioAPI.InsideStudio) {
-                    Singleton<Studio.CameraControl>.Instance.cameraAngle = value;
+                    if (MoveDuration.Value == 0f) {
+                        Singleton<Studio.CameraControl>.Instance.cameraAngle = value;
+                    } else {
+                        StartCoroutine(SmoothSwitch(Singleton<Studio.CameraControl>.Instance.cameraAngle, value, (x) => {
+                            Singleton<Studio.CameraControl>.Instance.cameraAngle = x;
+                        }));
+                    }
                 } else if (KKAPI.Maker.MakerAPI.InsideMaker) {
-                    Singleton<CameraControl_Ver2>.Instance.CameraAngle = value;
+                    if (MoveDuration.Value == 0f) {
+                        Singleton<CameraControl_Ver2>.Instance.CameraAngle = value;
+                    } else {
+                        StartCoroutine(SmoothSwitch(Singleton<CameraControl_Ver2>.Instance.CameraAngle, value, (x) => {
+                            Singleton<CameraControl_Ver2>.Instance.CameraAngle = x;
+                        }));
+                    }
                 }
             }
         }
@@ -71,13 +84,26 @@ namespace ViewpointSwitching {
             set {
                 if (KKAPI.Studio.StudioAPI.InsideStudio) {
                     var studioCameraData = Singleton<Studio.CameraControl>.Instance.Export();
-                    studioCameraData.distance.z = value;
-                    Singleton<Studio.CameraControl>.Instance.Import(studioCameraData);
-                    return;
+                    if (MoveDuration.Value == 0) {
+                        studioCameraData.distance.z = value;
+                        Singleton<Studio.CameraControl>.Instance.Import(studioCameraData);
+                    } else {
+                        StartCoroutine(SmoothSwitch(new Vector3(studioCameraData.distance.z, 0, 0), new Vector3(value, 0, 0), (x) => {
+                            studioCameraData.distance.z = x.x;
+                            Singleton<Studio.CameraControl>.Instance.Import(studioCameraData);
+                        }));
+                    }
                 } else if (KKAPI.Maker.MakerAPI.InsideMaker) {
                     var mainCameraData = Singleton<BaseCameraControl_Ver2>.Instance.GetCameraData();
-                    mainCameraData.Dir.z = value;
-                    Singleton<BaseCameraControl_Ver2>.Instance.SetCameraData(mainCameraData);
+                    if (MoveDuration.Value == 0) {
+                        mainCameraData.Dir.z = value;
+                        Singleton<BaseCameraControl_Ver2>.Instance.SetCameraData(mainCameraData);
+                    } else {
+                        StartCoroutine(SmoothSwitch(new Vector3(mainCameraData.Dir.z, 0, 0), new Vector3(value, 0, 0), (x) => {
+                            mainCameraData.Dir.z = x.x;
+                            Singleton<BaseCameraControl_Ver2>.Instance.SetCameraData(mainCameraData);
+                        }));
+                    }
                 }
             }
         }
@@ -92,9 +118,22 @@ namespace ViewpointSwitching {
             }
             set {
                 if (KKAPI.Studio.StudioAPI.InsideStudio) {
-                    Singleton<Studio.CameraControl>.Instance.targetPos = value;
+                    if (MoveDuration.Value == 0) {
+                        Singleton<Studio.CameraControl>.Instance.targetPos = value;
+                    } else {
+                        StartCoroutine(SmoothSwitch(Singleton<Studio.CameraControl>.Instance.targetPos, value, (x) => {
+                            Singleton<Studio.CameraControl>.Instance.targetPos = x;
+                        }));
+                    }
                 } else if (KKAPI.Maker.MakerAPI.InsideMaker) {
                     Singleton<CameraControl_Ver2>.Instance.TargetPos = value;
+                    if (MoveDuration.Value == 0) {
+                        Singleton<CameraControl_Ver2>.Instance.TargetPos = value;
+                    } else {
+                        StartCoroutine(SmoothSwitch(Singleton<CameraControl_Ver2>.Instance.TargetPos, value, (x) => {
+                            Singleton<CameraControl_Ver2>.Instance.TargetPos = x;
+                        }));
+                    }
                 }
             }
         }
@@ -129,6 +168,11 @@ namespace ViewpointSwitching {
                 DoHotkeys();
             }
         }
+        
+        private void OnDestroy() {
+            Destroy(invertObj);
+            HookPatch.Deactivate();
+        }
 
         private void CheckMoarCamz() {
             var plugins = gameObject.GetComponents<BaseUnityPlugin>();
@@ -162,9 +206,10 @@ namespace ViewpointSwitching {
         private void BindOptions() {
             RotateAngle = Config.Bind("General", "View adjustment amount", 15, new ConfigDescription("Amount of degrees to rotate the view by via the view adjustment keys (by default Numpad 2/4/6/8)", new AcceptableValueRange<int>(1, 90)));
             FovLimit = Config.Bind("General", "Field of View limit", 60, new ConfigDescription("Set the limit of the vanilla Field of View adjustment", new AcceptableValueRange<int>(30, 170)));
-            Magnification = Config.Bind("General", "Zoom speed", 0.5f, new ConfigDescription("Adjust the zoom speed", new AcceptableValueRange<float>(0.1f, 1.5f)));
+            Magnification = Config.Bind("General", "Zoom amount", 0.5f, new ConfigDescription("Adjusts how much the zoom keys zoom in / out with each press", new AcceptableValueRange<float>(0.1f, 1.5f)));
+            MoveDuration = Config.Bind("General", "Move duration", 0.15f, new ConfigDescription("How long it takes to smoothly switch between views in seconds", new AcceptableValueRange<float>(0f, 0.5f)));
+            DoubleTapSpeed = Config.Bind("General", "Double tap speed", 0.3f, new ConfigDescription("Delay in seconds in which pressing the front / left / top view buttons again will instead snap to back / right / bottom respectively (Equivalent to pressing the invert button afterwards)", new AcceptableValueRange<float>(0.1f, 1.0f)));
 
-            KeySwitch = Config.Bind("Keys", "Adjustment key", new KeyboardShortcut(KeyCode.Keypad0), new ConfigDescription("Hold this to adjust the camera view with the adjustment buttons"));
             KeyFront = Config.Bind("Keys", "Goto front view", new KeyboardShortcut(KeyCode.Keypad1));
             KeyLeft = Config.Bind("Keys", "Goto left view", new KeyboardShortcut(KeyCode.Keypad3));
             KeyTop = Config.Bind("Keys", "Goto top view", new KeyboardShortcut(KeyCode.Keypad7));
@@ -321,7 +366,7 @@ namespace ViewpointSwitching {
 
         private IEnumerator DoubleType() {
             isDoubleType = true;
-            yield return new WaitForSeconds(0.3f);
+            yield return new WaitForSeconds(DoubleTapSpeed.Value);
             isDoubleType = false;
             yield break;
         }
@@ -351,9 +396,20 @@ namespace ViewpointSwitching {
             return gizmoObj;
         }
 
-        private void OnDestroy() {
-            Destroy(invertObj);
-            HookPatch.Deactivate();
+        private IEnumerator SmoothSwitch(Vector3 initialVal, Vector3 targetVal, Action<Vector3> act) {
+            float start = Time.realtimeSinceStartup;
+            float timePassed = 0;
+            while (timePassed < MoveDuration.Value) {
+                timePassed = Time.realtimeSinceStartup - start;
+                float t = timePassed / MoveDuration.Value;
+                Vector3 currentVal = new Vector3(
+                    Mathf.SmoothStep(initialVal.x, targetVal.x, t),
+                    Mathf.SmoothStep(initialVal.y, targetVal.y, t),
+                    Mathf.SmoothStep(initialVal.z, targetVal.z, t)
+                );
+                act.Invoke(currentVal);
+                yield return null;
+            }
         }
     }
 }
