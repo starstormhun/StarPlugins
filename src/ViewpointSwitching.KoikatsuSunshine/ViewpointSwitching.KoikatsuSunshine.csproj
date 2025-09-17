@@ -20,6 +20,11 @@
     <PackageReference Include="IllusionLibs.KoikatsuSunshine.UnityEngine.UI" Version="2019.4.9" />
     <PackageReference Include="IllusionModdingAPI.KKSAPI" Version="1.36.0" />
   </ItemGroup>
+  <ItemGroup>
+    <Reference Include="KKS_MoarCamz">
+      <HintPath>..\..\lib\KKS_MoarCamz.dll</HintPath>
+    </Reference>
+  </ItemGroup>
   <Import Project="..\Common.Core\Common.Core.projitems" Label="Shared" />
   <Import Project="..\ViewpointSwitching.Core\ViewpointSwitching.Core.projitems" Label="Shared" />
   <Target Name="PostBuild" AfterTargets="PostBuildEvent">

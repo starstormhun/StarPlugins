@@ -1,13 +1,14 @@
-﻿using BepInEx.Configuration;
+﻿using BepInEx;
+using BepInEx.Configuration;
+using HarmonyLib;
 using System.Collections;
 using UnityEngine;
-using BepInEx;
 
 [assembly: System.Reflection.AssemblyFileVersion(ViewpointSwitching.ViewpointSwitching.Version)]
 
 namespace ViewpointSwitching {
     [BepInDependency(KKAPI.KoikatuAPI.GUID)]
-    [BepInDependency("orange.spork.moarcamzplugin", BepInDependency.DependencyFlags.SoftDependency)]
+    [BepInDependency(MoarCamz.MoarCamzPlugin.GUID, BepInDependency.DependencyFlags.SoftDependency)]
     [BepInProcess(KKAPI.KoikatuAPI.StudioProcessName)]
     [BepInProcess(KKAPI.KoikatuAPI.GameProcessName)]
 #if KK
@@ -104,6 +105,7 @@ namespace ViewpointSwitching {
         private Transform invertObj;
 
         private void Start() {
+            CheckMoarCamz();
             BindOptions();
             HookPatch.Init();
         }
@@ -125,6 +127,35 @@ namespace ViewpointSwitching {
                 }
 
                 DoHotkeys();
+            }
+        }
+
+        private void CheckMoarCamz() {
+            var plugins = gameObject.GetComponents<BaseUnityPlugin>();
+            foreach (var plugin in plugins) {
+                switch (plugin.Info.Metadata.GUID) {
+                    case MoarCamz.MoarCamzPlugin.GUID: 
+                        StartCoroutine(DoCheckMoarCamz());
+                        return;
+                }
+            }
+            IEnumerator DoCheckMoarCamz() {
+                yield return null;
+                yield return null;
+                yield return null;
+                if (
+                    KKAPI.Studio.StudioAPI.InsideStudio &&
+                    (MoarCamz.MoarCamzPlugin.NextCameraButton.Value.Equals(new KeyboardShortcut(KeyCode.KeypadPlus)) ||
+                    MoarCamz.MoarCamzPlugin.NextCameraButton.Value.Equals(new KeyboardShortcut(KeyCode.KeypadMinus)) ||
+                    MoarCamz.MoarCamzPlugin.PrevCameraButton.Value.Equals(new KeyboardShortcut(KeyCode.KeypadPlus)) ||
+                    MoarCamz.MoarCamzPlugin.PrevCameraButton.Value.Equals(new KeyboardShortcut(KeyCode.KeypadMinus))) &&
+                    (KeyZoomIn.Value.Equals(new KeyboardShortcut(KeyCode.KeypadPlus)) ||
+                    KeyZoomIn.Value.Equals(new KeyboardShortcut(KeyCode.KeypadMinus)) ||
+                    KeyZoomOut.Value.Equals(new KeyboardShortcut(KeyCode.KeypadPlus)) ||
+                    KeyZoomOut.Value.Equals(new KeyboardShortcut(KeyCode.KeypadMinus)))
+                ) {
+                    Logger.LogMessage("[ViewpointSwitching] MoarCamz camera switching buttons will interfere with zoom in/out buttons!");
+                }
             }
         }
 
