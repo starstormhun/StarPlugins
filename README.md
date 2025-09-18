@@ -56,3 +56,6 @@ The shader and property name filters are configurable, thus it can be extended t
 #### Shadow Patcher [KK]
 Increases the maximum shadow resolution for KK lights by modifying the Unity bytecode at startup.
 Beware: Increased shadow resolution heavily impacts GPU VRAM usage.
+
+#### Viewpoint Switching [KK/KKS]
+Old plugin of Nakay's improved by me. Implements Blender-like camera manipulation hotkeys via the numpad.
