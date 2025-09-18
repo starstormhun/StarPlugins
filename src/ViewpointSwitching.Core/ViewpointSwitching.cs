@@ -179,31 +179,35 @@ namespace ViewpointSwitching {
         }
 
         private void CheckMoarCamz() {
-            var plugins = gameObject.GetComponents<BaseUnityPlugin>();
-            foreach (var plugin in plugins) {
-                switch (plugin.Info.Metadata.GUID) {
-                    case MoarCamz.MoarCamzPlugin.GUID: 
-                        StartCoroutine(DoCheckMoarCamz());
-                        return;
+            try {
+                var plugins = gameObject.GetComponents<BaseUnityPlugin>();
+                foreach (var plugin in plugins) {
+                    switch (plugin?.Info?.Metadata?.GUID) {
+                        case MoarCamz.MoarCamzPlugin.GUID: 
+                            StartCoroutine(CheckMoarCamzImpl());
+                            return;
+                    }
                 }
+            } catch (Exception e) {
+                Logger.LogError("MoarCamz compatibility check failed!\n" + e.Message + "\n" + e.StackTrace);
             }
-            IEnumerator DoCheckMoarCamz() {
-                yield return null;
-                yield return null;
-                yield return null;
-                if (
-                    KKAPI.Studio.StudioAPI.InsideStudio &&
-                    (MoarCamz.MoarCamzPlugin.NextCameraButton.Value.Equals(new KeyboardShortcut(KeyCode.KeypadPlus)) ||
-                    MoarCamz.MoarCamzPlugin.NextCameraButton.Value.Equals(new KeyboardShortcut(KeyCode.KeypadMinus)) ||
-                    MoarCamz.MoarCamzPlugin.PrevCameraButton.Value.Equals(new KeyboardShortcut(KeyCode.KeypadPlus)) ||
-                    MoarCamz.MoarCamzPlugin.PrevCameraButton.Value.Equals(new KeyboardShortcut(KeyCode.KeypadMinus))) &&
-                    (KeyZoomIn.Value.Equals(new KeyboardShortcut(KeyCode.KeypadPlus)) ||
-                    KeyZoomIn.Value.Equals(new KeyboardShortcut(KeyCode.KeypadMinus)) ||
-                    KeyZoomOut.Value.Equals(new KeyboardShortcut(KeyCode.KeypadPlus)) ||
-                    KeyZoomOut.Value.Equals(new KeyboardShortcut(KeyCode.KeypadMinus)))
-                ) {
-                    Logger.LogMessage("[ViewpointSwitching] MoarCamz camera switching buttons will interfere with zoom in/out buttons!");
-                }
+        }
+        private IEnumerator CheckMoarCamzImpl() {
+            yield return null;
+            yield return null;
+            yield return null;
+            if (
+                KKAPI.Studio.StudioAPI.InsideStudio &&
+                (MoarCamz.MoarCamzPlugin.NextCameraButton.Value.Equals(new KeyboardShortcut(KeyCode.KeypadPlus)) ||
+                MoarCamz.MoarCamzPlugin.NextCameraButton.Value.Equals(new KeyboardShortcut(KeyCode.KeypadMinus)) ||
+                MoarCamz.MoarCamzPlugin.PrevCameraButton.Value.Equals(new KeyboardShortcut(KeyCode.KeypadPlus)) ||
+                MoarCamz.MoarCamzPlugin.PrevCameraButton.Value.Equals(new KeyboardShortcut(KeyCode.KeypadMinus))) &&
+                (KeyZoomIn.Value.Equals(new KeyboardShortcut(KeyCode.KeypadPlus)) ||
+                KeyZoomIn.Value.Equals(new KeyboardShortcut(KeyCode.KeypadMinus)) ||
+                KeyZoomOut.Value.Equals(new KeyboardShortcut(KeyCode.KeypadPlus)) ||
+                KeyZoomOut.Value.Equals(new KeyboardShortcut(KeyCode.KeypadMinus)))
+            ) {
+                Logger.LogMessage("[ViewpointSwitching] MoarCamz camera switching buttons will interfere with zoom in/out buttons!");
             }
         }
 
