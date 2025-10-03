@@ -127,6 +127,14 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ViewpointSwitching.Koikatu"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ViewpointSwitching.KoikatsuSunshine", "src\ViewpointSwitching.KoikatsuSunshine\ViewpointSwitching.KoikatsuSunshine.csproj", "{405D88BE-CF08-35E2-E4F4-E1301B7A8EAB}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "MEClipboard", "MEClipboard", "{3FD773B8-5F5A-47DC-A60E-E3502411934F}"
+EndProject
+Project("{D954291E-2A0B-460D-934E-DC6B0785DB48}") = "MaterialEditorClipboard.Core", "src\MaterialEditorClipboard.Core\MaterialEditorClipboard.Core.shproj", "{385CE2F2-06A9-42C1-AE50-BA25B1198FB6}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MaterialEditorClipboard.Koikatu", "src\MaterialEditorClipboard.Koikatu\MaterialEditorClipboard.Koikatu.csproj", "{093EBF5B-7189-E217-5BF9-79E3404AEF8D}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MaterialEditorClipboard.KoikatsuSunshine", "src\MaterialEditorClipboard.KoikatsuSunshine\MaterialEditorClipboard.KoikatsuSunshine.csproj", "{805587DE-4BE0-4739-7DB9-B7376EE9E85B}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -233,6 +241,14 @@ Global
 		{405D88BE-CF08-35E2-E4F4-E1301B7A8EAB}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{405D88BE-CF08-35E2-E4F4-E1301B7A8EAB}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{405D88BE-CF08-35E2-E4F4-E1301B7A8EAB}.Release|Any CPU.Build.0 = Release|Any CPU
+		{093EBF5B-7189-E217-5BF9-79E3404AEF8D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{093EBF5B-7189-E217-5BF9-79E3404AEF8D}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{093EBF5B-7189-E217-5BF9-79E3404AEF8D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{093EBF5B-7189-E217-5BF9-79E3404AEF8D}.Release|Any CPU.Build.0 = Release|Any CPU
+		{805587DE-4BE0-4739-7DB9-B7376EE9E85B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{805587DE-4BE0-4739-7DB9-B7376EE9E85B}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{805587DE-4BE0-4739-7DB9-B7376EE9E85B}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{805587DE-4BE0-4739-7DB9-B7376EE9E85B}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -291,6 +307,10 @@ Global
 		{C6A6E09A-1201-49CE-A93C-536B830EABD5} = {02EA681E-C7D8-13C7-8484-4AC65E1B71E8}
 		{1AB37FD0-4861-CD65-156F-EDAFE9F6885F} = {02EA681E-C7D8-13C7-8484-4AC65E1B71E8}
 		{405D88BE-CF08-35E2-E4F4-E1301B7A8EAB} = {02EA681E-C7D8-13C7-8484-4AC65E1B71E8}
+		{3FD773B8-5F5A-47DC-A60E-E3502411934F} = {BA55B5E5-B0FD-465F-93F2-D73BD193AC86}
+		{385CE2F2-06A9-42C1-AE50-BA25B1198FB6} = {3FD773B8-5F5A-47DC-A60E-E3502411934F}
+		{093EBF5B-7189-E217-5BF9-79E3404AEF8D} = {3FD773B8-5F5A-47DC-A60E-E3502411934F}
+		{805587DE-4BE0-4739-7DB9-B7376EE9E85B} = {3FD773B8-5F5A-47DC-A60E-E3502411934F}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {CECC9C6B-8041-49A1-B7FD-DC89264B7393}
@@ -298,6 +318,8 @@ Global
 	GlobalSection(SharedMSBuildProjectFiles) = preSolution
 		src\AAAAAAAAAAAA.Core\AAAAAAAAAAAA.Core.projitems*{0682dd54-90a8-449d-80dc-19a025f2a621}*SharedItemsImports = 5
 		src\Common.Core\Common.Core.projitems*{0682dd54-90a8-449d-80dc-19a025f2a621}*SharedItemsImports = 5
+		src\Common.Core\Common.Core.projitems*{093ebf5b-7189-e217-5bf9-79e3404aef8d}*SharedItemsImports = 5
+		src\MaterialEditorClipboard.Core\MaterialEditorClipboard.Core.projitems*{093ebf5b-7189-e217-5bf9-79e3404aef8d}*SharedItemsImports = 5
 		src\Common.Core\Common.Core.projitems*{12bceef7-38a9-4465-8a6c-43af970c7694}*SharedItemsImports = 5
 		src\KKShadowPatcher.Core\KKShadowPatcher.Core.projitems*{12bceef7-38a9-4465-8a6c-43af970c7694}*SharedItemsImports = 5
 		src\Common.Core\Common.Core.projitems*{1ab37fd0-4861-cd65-156f-edafe9f6885f}*SharedItemsImports = 5
@@ -305,6 +327,7 @@ Global
 		src\CursorIndicator.Core\CursorIndicator.Core.projitems*{2b1dc1b2-1145-447b-a8eb-76b3dc2aa1e6}*SharedItemsImports = 13
 		src\Common.Core\Common.Core.projitems*{3363e86d-5fbf-4088-881e-ac96753ae018}*SharedItemsImports = 5
 		src\LightSettings.Core\LightSettings.Core.projitems*{3363e86d-5fbf-4088-881e-ac96753ae018}*SharedItemsImports = 5
+		src\MaterialEditorClipboard.Core\MaterialEditorClipboard.Core.projitems*{385ce2f2-06a9-42c1-ae50-ba25b1198fb6}*SharedItemsImports = 13
 		src\Common.Core\Common.Core.projitems*{398d13b4-5014-4eea-8aa8-0e709ee9daa3}*SharedItemsImports = 5
 		src\LightToggler.Core\LightToggler.Core.projitems*{398d13b4-5014-4eea-8aa8-0e709ee9daa3}*SharedItemsImports = 5
 		src\Common.Core\Common.Core.projitems*{405d88be-cf08-35e2-e4f4-e1301b7a8eab}*SharedItemsImports = 5
@@ -334,6 +357,8 @@ Global
 		src\Common.Core\Common.Core.projitems*{74fd20ae-ad62-42c8-96ae-74898488f0c8}*SharedItemsImports = 5
 		src\UIUtility\UIUtility.projitems*{7f30866a-1b8b-40f1-8960-0e203eede225}*SharedItemsImports = 13
 		src\LightSettings.Core\LightSettings.Core.projitems*{7fecd315-6e2b-4dea-9e3b-2eaebda1393e}*SharedItemsImports = 13
+		src\Common.Core\Common.Core.projitems*{805587de-4be0-4739-7db9-b7376ee9e85b}*SharedItemsImports = 5
+		src\MaterialEditorClipboard.Core\MaterialEditorClipboard.Core.projitems*{805587de-4be0-4739-7db9-b7376ee9e85b}*SharedItemsImports = 5
 		src\AccMover.Core\AccMover.Core.projitems*{8f8c71f5-cacb-4015-a288-be58f9065376}*SharedItemsImports = 5
 		src\Common.Core\Common.Core.projitems*{8f8c71f5-cacb-4015-a288-be58f9065376}*SharedItemsImports = 5
 		src\Common.Core\Common.Core.projitems*{9fa45274-9e07-4b06-acc2-dd6e360a8564}*SharedItemsImports = 5

@@ -45,6 +45,10 @@ A plugin that lets you edit the properties of multiple shaders at once, based on
 For both Maker and Studio. Also lets you swap shaders for others.
 Contains a built-in tutorial and help section due to its many options.
 
+#### Material Editor Clipboard [KK/KKS]
+Lets you store multiple `Copy Edits` changes from Material Editor in a list to be used later.
+Can also export / import edits for multi-session persistence.
+
 #### Performancer [KK/KKS]
 Optimises some aspects of Charastudio to make it more efficient in scenes that use lots of
 character or lots of objects.
