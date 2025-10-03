@@ -50,7 +50,7 @@ namespace MaterialEditorClipboard {
 
         internal static Harmony harmony;
         internal static List<ClipboardEntry> _listCopyContainer = new List<ClipboardEntry>();
-        internal static string exportFolder;
+        internal static string defaultFolderPath = Path.Combine(Paths.GameRootPath, Path.Combine(Path.Combine("UserData", "MaterialEditor"), "Clipboard"));
 
         private void Awake() {
             LoggerStat = Logger;
@@ -73,10 +73,7 @@ namespace MaterialEditorClipboard {
                 WindowInstance.SetResScale(ConfResScale.Value);
             };
             ConfExportXML = Config.Bind("General", "Export as XML", false, new ConfigDescription("Export clipboard entries as XML files instead of binary files"));
-            string defaultExportPath = Path.Combine(Path.Combine("UserData", "MaterialEditor"), "Clipboard");
-            ConfExportPath = Config.Bind("General", "Export Path", defaultExportPath, new ConfigDescription("Path to export the clipboard entries", null, new KKAPI.Utilities.ConfigurationManagerAttributes {
-                CustomDrawer = new Action<ConfigEntryBase>(ExportPathDrawer)
-            }));
+
             MakerAPI.RegisterCustomSubCategories += (x, y) => {
                 WindowInstance = Instance.gameObject.AddComponent<MaterialEditorClipboardUI>();
                 harmony = Harmony.CreateAndPatchAll(typeof(Hooks), null);
@@ -127,46 +124,24 @@ namespace MaterialEditorClipboard {
             return copyContainer;
         }
 
-        private void ExportPathDrawer(ConfigEntryBase configEntry) {
-            GUILayout.BeginHorizontal();
-            {
-                string newPath = GUILayout.TextField(ConfExportPath.Value, GUILayout.Width(220f));
-                if (newPath != ConfExportPath.Value) {
-                    ConfExportPath.Value = newPath;
-                }
-                GUILayout.FlexibleSpace();
-                if (GUILayout.Button("Browse")) {
-                    GetExportPath();
-                }
-            }
-            GUILayout.EndHorizontal();
-        }
-
-        private void GetExportPath() {
+        private static string GetFolderPath(bool export = true) {
             BrowseForFolder browser = new BrowseForFolder();
             string path = browser.SelectFolder(
-                "Select export folder",
-                Path.Combine(Path.Combine(Paths.GameRootPath, "UserData"), "MaterialEditor"),
+                $"Select {(export ? "export" : "import")} folder",
+                defaultFolderPath,
                 BrowseForFolder.GetActiveWindow()
             );
-            OnExportPathAccept(path);
-        }
+            if (path.IsNullOrEmpty())
+            {
+                path = defaultFolderPath;
+            }
+            
+            path = (File.GetAttributes(path) & FileAttributes.Directory) != 0
+                ? path
+                : Path.GetDirectoryName(path);
+            if(export) Directory.CreateDirectory(path);
 
-        private void OnExportPathAccept(string path) {
-            if (path.IsNullOrEmpty()) {
-                return;
-            }
-            string newPath;
-            var attr = File.GetAttributes(path);
-            if ((attr & FileAttributes.Directory) == FileAttributes.Directory) {
-                newPath = path;
-            } else {
-                newPath = Path.GetDirectoryName(path);
-            }
-            if (Path.IsPathRooted(newPath) && newPath.StartsWith(Paths.GameRootPath)) {
-                newPath = newPath.Replace(Paths.GameRootPath + Path.DirectorySeparatorChar, "");
-            }
-            ConfExportPath.Value = newPath;
+            return path;
         }
 
         public class ClipboardEntry {
@@ -448,27 +423,14 @@ namespace MaterialEditorClipboard {
                     }
                     _listCopyContainer.Clear();
                 }
-                if (GUILayout.Button(new GUIContent("Export", "Export to external binary file"), _buttonElem)) {
+                if (GUILayout.Button(new GUIContent("Export", "Export entries to a folder"), _buttonElem)) {
                     if (_listCopyContainer.Count == 0) {
                         LoggerStat.LogMessage("Nothing to export");
                         return;
                     }
 
-                    if (Path.IsPathRooted(ConfExportPath.Value)) {
-                        exportFolder = ConfExportPath.Value;
-                    } else {
-                        exportFolder = Path.Combine(Paths.GameRootPath, ConfExportPath.Value);
-                    }
-                    if (Directory.Exists(exportFolder) || File.Exists(exportFolder)) {
-                        var attr = File.GetAttributes(exportFolder);
-                        if ((attr & FileAttributes.Directory) != FileAttributes.Directory) {
-                            exportFolder = Path.GetDirectoryName(exportFolder);
-                        }
-                    } else {
-                        Directory.CreateDirectory(exportFolder);
-                    }
-
-                    string exportFile = Path.Combine(exportFolder, $"MEClipboard-{DateTime.Now:yy-MM-dd-HH-mm-ss}.");
+                    string folderPath = GetFolderPath();
+                    string exportFile = Path.Combine(folderPath, $"MEClipboard-{DateTime.Now:yy-MM-dd-HH-mm-ss}.");
                     if (ConfExportXML.Value) {
                         ExportXML(exportFile + "xml");
                     } else {
@@ -477,8 +439,22 @@ namespace MaterialEditorClipboard {
 
                     LoggerStat.LogMessage(string.Format("{0} entries exported", _listCopyContainer.Count));
                 }
-                if (GUILayout.Button(new GUIContent("Import", "Import from external binary file"), _buttonElem)) {
-                    GetImportFile();
+                if (GUILayout.Button(new GUIContent("Import", "Import entries from a folder"), _buttonElem)) {
+                    
+                    string folderPath = GetFolderPath(false);
+                    int countBefore = _listCopyContainer.Count;
+
+                    string[] binFiles = Directory.GetFiles(folderPath, "*.bin");
+                    foreach (var file in binFiles)
+                    {
+                        ImportBinary(file);
+                    }
+                    string[] xmlFiles = Directory.GetFiles(folderPath, "*.xml");
+                    foreach (var file in xmlFiles)
+                    {
+                        ImportXML(file);
+                    }
+                    LoggerStat.LogMessage(string.Format("{0} entries imported", _listCopyContainer.Count - countBefore));
                 }
                 GUILayout.EndHorizontal();
                 GUILayout.BeginHorizontal(GUI.skin.box);
@@ -486,50 +462,10 @@ namespace MaterialEditorClipboard {
                 GUILayout.EndHorizontal();
             }
 
-            private void GetImportFile() {
-                string defaultRoute = File.Exists(exportFolder) ? exportFolder : Paths.GameRootPath;
-                OpenFileDialog.Show(
-                    (path) => { OnImportFileAccept(path); },
-                    "Select MEClipboard file",
-                    defaultRoute,
-                    "MEClipboard file (*.bin;*.xml)|*.bin;*.xml",
-                    ".bin"
-                );
-            }
-
-            private void OnImportFileAccept(string[] path) {
-                if (path.IsNullOrEmpty()) {
-                    LoggerStat.LogMessage("No file selected!");
-                    return;
-                }
-                if (File.Exists(path[0])) {
-                    int countBefore = _listCopyContainer.Count;
-
-                    if (path[0].ToLower().EndsWith("xml")) {
-                        ImportXML(path[0]);
-                    } else {
-                        ImportBinary(path[0]);
-                    }
-                    
-                    LoggerStat.LogMessage(string.Format("{0} entries imported", _listCopyContainer.Count - countBefore));
-                } else {
-                    LoggerStat.LogMessage("Invalid file selected!");
-                    return;
-                }
-            }
-
             private void ExportBinary(string path) {
                 List<MsgPackClipboardEntry> list = new List<MsgPackClipboardEntry>();
                 foreach (ClipboardEntry x in _listCopyContainer) {
                     list.Add(new MsgPackClipboardEntry().Import(x));
-                }
-                if (Path.IsPathRooted(ConfExportPath.Value)) {
-                    exportFolder = ConfExportPath.Value;
-                } else {
-                    exportFolder = Path.Combine(Paths.GameRootPath, ConfExportPath.Value);
-                }
-                if (!Directory.Exists(exportFolder)) {
-                    Directory.CreateDirectory(exportFolder);
                 }
                 File.WriteAllBytes(path, MessagePackSerializer.Serialize(list));
             }
