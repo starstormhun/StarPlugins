@@ -23,10 +23,14 @@ namespace AAAAAAAAAAAA {
 
         internal static bool TryGetStudioAccBone(CardDataController controller, int slot, out Bone bone) {
             bone = null;
+            if (controller.ChaControl.objAccessory.Length < slot + 1) {
+                Instance.Log($"Fewer accessory slots found on character than being requested! ({slot + 1})", 3);
+                return false;
+            }
             var acc = controller.ChaControl.objAccessory?[slot]?.transform;
             if (acc == null) return false;
             if (controller.dicTfBones.TryGetValue(acc, out bone)) return true;
-            Instance.Log($"Could not get accessory bone for slot {slot}!", 3);
+            Instance.Log($"Could not get accessory bone for slot {slot + 1}!", 3);
             return false;
         }
 
