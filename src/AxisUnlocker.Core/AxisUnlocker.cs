@@ -15,17 +15,21 @@ namespace AxisUnlocker.Koikatu {
 	/// </info>
     public class AxisUnlocker : BaseUnityPlugin {
         public const string GUID = "starstorm.axisunlocker";
-        public const string Version = "1.1.0." + BuildNumber.Version;
+        public const string Version = "1.1.1." + BuildNumber.Version;
 
-        public static ConfigEntry<float> NewMinSize { get; set; }
-        public static ConfigEntry<float> NewMaxSize { get; set; }
-        public static ConfigEntry<bool> UseLogSize { get; set; }
-        public static ConfigEntry<bool> DisplaySizeWhileEditing { get; set; }
-        public static ConfigEntry<float> NewMinMove { get; set; }
-        public static ConfigEntry<float> NewMaxMove { get; set; }
-        public static ConfigEntry<bool> UseLogMove { get; set; }
-        public static ConfigEntry<bool> DisplayMoveWhileEditing { get; set; }
+        public static AxisUnlocker Instance {  get; private set; }
+
+        public static ConfigEntry<float> NewMinSize { get; private set; }
+        public static ConfigEntry<float> NewMaxSize { get; private set; }
+        public static ConfigEntry<bool> UseLogSize { get; private set; }
+        public static ConfigEntry<bool> DisplaySizeWhileEditing { get; private set; }
+        public static ConfigEntry<float> NewMinMove { get; private set; }
+        public static ConfigEntry<float> NewMaxMove { get; private set; }
+        public static ConfigEntry<bool> UseLogMove { get; private set; }
+        public static ConfigEntry<bool> DisplayMoveWhileEditing { get; private set; }
         public static ConfigEntry<KeyboardShortcut> Hotkey { get; private set; }
+
+        public static ConfigEntry<bool> IsDebug { get; set; }
 
         internal static GameObject guiContainer;
         internal static SimpleDisplay display;
@@ -33,6 +37,8 @@ namespace AxisUnlocker.Koikatu {
         private static Vector2 displaySize = new Vector2(80,45);
 
         private void Awake() {
+            Instance = this;
+
             // Options
             UseLogSize = Config.Bind("General", "Logarithmic axis size", true, new ConfigDescription("Use a logarithmic slider for the guideobject scaling factor. This enables finer control across very different sizes.", null, new ConfigurationManagerAttributes { Order = 4 }));
             UseLogSize.SettingChanged += (x, y) => UpdateSliders(_logSizeChanged:true);
@@ -40,7 +46,7 @@ namespace AxisUnlocker.Koikatu {
 
             NewMinSize = Config.Bind("General", "New min size", 0.1f, new ConfigDescription("New cap value for the System/Options/Size slider", new AcceptableValueRange<float>(0.01f, 1f), new ConfigurationManagerAttributes { Order = 3 }));
             NewMinSize.SettingChanged += (x, y) => UpdateSliders();
-            NewMaxSize = Config.Bind("General", "New max size", 10f, new ConfigDescription("New cap value for the System/Options/Size slider", new AcceptableValueRange<float>(4f,100f), new ConfigurationManagerAttributes { Order = 3 }));
+            NewMaxSize = Config.Bind("General", "New max size", 10f, new ConfigDescription("New cap value for the System/Options/Size slider", new AcceptableValueRange<float>(2f,100f), new ConfigurationManagerAttributes { Order = 3 }));
             NewMaxSize.SettingChanged += (x, y) => UpdateSliders();
 
             UseLogMove = Config.Bind("General", "Logarithmic move speed", true, new ConfigDescription("Use a logarithmic slider for the object move speed factor. This enables finer control for very different speeds.", null, new ConfigurationManagerAttributes { Order = 2 }));
@@ -49,19 +55,19 @@ namespace AxisUnlocker.Koikatu {
 
             NewMinMove = Config.Bind("General", "New min speed", 0.01f, new ConfigDescription("New minimum value for the System/Options/Speed slider", new AcceptableValueRange<float>(0.001f, 0.1f), new ConfigurationManagerAttributes { Order = 1 }));
             NewMinMove.SettingChanged += (x, y) => UpdateSliders();
-            NewMaxMove = Config.Bind("General", "New max speed", 10f, new ConfigDescription("New cap value for the System/Options/Speed slider", new AcceptableValueRange<float>(5f, 100f), new ConfigurationManagerAttributes { Order = 1 }));
+            NewMaxMove = Config.Bind("General", "New max speed", 10f, new ConfigDescription("New cap value for the System/Options/Speed slider", new AcceptableValueRange<float>(2f, 100f), new ConfigurationManagerAttributes { Order = 1 }));
             NewMaxMove.SettingChanged += (x, y) => UpdateSliders();
 
             Hotkey = Config.Bind("Hidden", "Move change hotkey", new KeyboardShortcut(KeyCode.B), new ConfigDescription("B", null, new ConfigurationManagerAttributes { Order = 0, Browsable = false }));
+
+            IsDebug = Config.Bind("Advanced", "Debug", false, new ConfigDescription("Write debug info in log", null, new ConfigurationManagerAttributes { IsAdvanced = true }));
 
             // Setup KKAPI
             KKAPI.Studio.StudioAPI.StudioLoadedChanged += (x, y) => MakeGUI();
 
             // Setup Harmony hooks
             HookPatch.Init();
-#if DEBUG
-            Logger.LogInfo($"Plugin {GUID} is loaded!");
-#endif
+            if (IsDebug.Value) Logger.LogInfo($"Plugin {GUID} is loaded!");
         }
 
         private void MakeGUI() {
@@ -142,6 +148,10 @@ namespace AxisUnlocker.Koikatu {
                 _ctrlComponent.inputSpeed.slider.maxValue = NewMaxMove.Value;
                 if (_logMoveChanged) _ctrlComponent.inputSpeed.slider.value = bufferedMove.FromdB();
             }
+        }
+
+        internal static void Log(object toLog, BepInEx.Logging.LogLevel level = BepInEx.Logging.LogLevel.Debug) {
+            Instance.Logger.Log(level, toLog);
         }
     }
 }

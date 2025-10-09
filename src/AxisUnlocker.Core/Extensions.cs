@@ -4,6 +4,13 @@ using Studio;
 namespace AxisUnlocker.Koikatu {
     public static class Extensions {
         public static float TodB(this float val) {
+            if (val <= 0) {
+                AxisUnlocker.Log(
+                    $"Tried to take log of zero or less! ({val})\n" + new System.Diagnostics.StackTrace().ToString(),
+                    BepInEx.Logging.LogLevel.Error
+                );
+                return 0;
+            }
             return Mathf.Log10(val) * 20;
         }
         public static float FromdB(this float val) {
@@ -11,7 +18,7 @@ namespace AxisUnlocker.Koikatu {
         }
     }
 
-public abstract class ICLogValBase : OptionCtrl.InputCombination {
+    public abstract class ICLogValBase : OptionCtrl.InputCombination {
         public abstract bool GetToggle();
 
         new public float value {
