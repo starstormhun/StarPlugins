@@ -63,7 +63,13 @@ namespace AxisUnlocker.Koikatu {
             IsDebug = Config.Bind("Advanced", "Debug", false, new ConfigDescription("Write debug info in log", null, new ConfigurationManagerAttributes { IsAdvanced = true }));
 
             // Setup KKAPI
-            KKAPI.Studio.StudioAPI.StudioLoadedChanged += (x, y) => MakeGUI();
+            KKAPI.Studio.StudioAPI.StudioLoadedChanged += (x, y) => {
+                MakeGUI();
+                if (float.IsNaN(Studio.Studio.optionSystem.manipulateSize) || Studio.Studio.optionSystem.manipulateSize <= 0) {
+                    Studio.Studio.optionSystem.manipulateSize = 1;
+                    Singleton<Studio.Studio>.Instance.m_WorkspaceCtrl.studioScene.optionCtrl.UpdateUI();
+                }
+            }; 
 
             // Setup Harmony hooks
             HookPatch.Init();
