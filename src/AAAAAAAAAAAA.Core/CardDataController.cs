@@ -97,14 +97,17 @@ namespace AAAAAAAAAAAA {
         }
 
         internal void AddAAAPKData(PluginData data, bool announce = false, bool loadingCoord = false) {
-            if (data == null || data.data == null) return;
+            if (data == null || data.data == null) {
+                listAAAPKData = null;
+                return;
+            } 
             StartCoroutine(DoAddAAAPKData());
             IEnumerator DoAddAAAPKData() {
                 for (int i = 0; i < 3; i++) yield return KKAPI.Utilities.CoroutineUtils.WaitForEndOfFrame;
-                if (announce) AAAAAAAAAAAA.Instance.Log("[AAAAAAAAAAAA] AAAPK data found! Converting...", 5);
                 if (data.data.TryGetValue(aaapkKey, out object pluginData) && pluginData != null) {
                     var listParentRules = MessagePackSerializer.Deserialize<List<AAAPKParentRule>>((byte[])pluginData);
-                    if (listParentRules == null) yield break;
+                    if (listParentRules == null || listParentRules.Count == 0) yield break;
+                    if (announce) AAAAAAAAAAAA.Instance.Log("[AAAAAAAAAAAA] AAAPK data found! Converting...", 5);
                     if (KKAPI.Maker.MakerAPI.InsideMaker) {
                         if (AAAAAAAAAAAA.makerBoneRoot == null) AAAAAAAAAAAA.MakeMakerTree();
                         else AAAAAAAAAAAA.UpdateMakerTree(_clearNullTransforms: true, forced: true);
@@ -187,6 +190,7 @@ namespace AAAAAAAAAAAA {
                         if (AAAAAAAAAAAA.IsDebug.Value) AAAAAAAAAAAA.Instance.Log($"Added new parent from AAAPK on coord {rule.Coordinate} for acc #{rule.Slot} with hash {parentBone.Hash}!");
                     }
                     if (listSaveValues.Count > 0) listAAAPKData = listSaveValues;
+                    else listAAAPKData = null;
                     LoadData();
                 }
             }
