@@ -221,6 +221,8 @@ namespace AAAAAAAAAAAA {
                     }
                     data.data.Add(aaapkKey, MessagePackSerializer.Serialize(parentCtrl.listAAAPKData));
                     SetExtendedData(data);
+                } else {
+                    SetExtendedData(null);
                 }
             }
 
