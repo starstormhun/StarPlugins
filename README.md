@@ -1,3 +1,6 @@
+# Moved
+This repository has been moved to https://gitgoon.dev/Starstorm/StarPlugins
+
 # StarPlugins
 
 Various plugins for Illusion's Koikatsu / Koikatsu Sunshine games.
